@@ -1,6 +1,8 @@
 # Phased Plan
 
-Current work: **phase 5 in progress** (code done offline, waiting for the Neon connection); phase 4 still awaits the user's walkthrough. The user explicitly authorized completing the whole phase with investigation, code review and tests. A real OpenAI call and LangSmith server-side verification succeeded. Docker step 2.2 remains deferred and remote CI execution is not independently verified. Phases 6–11 have not started.
+Current work: **local implementation and code review complete, awaiting manual UI/UX acceptance**. The user authorized the remaining batch with parallel agents. Stories, persisted approval, HTTP/SSE and Next.js UI pass automated and isolated live Neon checks, including concurrent approval. The full model-quality evaluation does not pass; see phase 10. Docker and deployment are deferred, and remote CI is not independently verified.
+
+**Latest user checkpoint:** deployment is deferred; prioritize tests and the working local interface. Preserve release configuration for a later explicitly requested publication.
 
 The original two-day MVP target is an estimate, not a deadline promise. We progress through observable results and accept phases together. If a phase is too large for one clear manual check, split it into smaller steps before implementation.
 
@@ -109,7 +111,7 @@ Real smoke evidence (2026-11-02): run `7c3f88ee-e9d6-4a9a-bc4d-cb2c7c8746c2`, tr
 
 ## Phase 5. RAG and classification
 
-**Status:** in progress. Original items 1.4 and 1.6. The user chose Neon (cloud Postgres with pgvector) instead of waiting for local Docker on 2026-11-02.
+**Status:** implemented and verified with Neon; three classification disagreements await review. Original items 1.4 and 1.6. The user chose Neon instead of waiting for Docker on 2026-11-02.
 
 1. **5.1 — chunking:** implemented in `app/rag/chunking.py`. One chunk per `## ` heading, ID taken from the stable `HD-*` prefix (slug otherwise), text before the first heading becomes `intro`. Sections over 2000 characters are packed by paragraph into `ID#1`, `ID#2`; an oversized paragraph is cut at fixed offsets. Harbor Desk yields 13 chunks covering every gold reference.
 2. **5.2 — ingestion:** `app/rag/ingest.py` creates the extension and `spec_chunks` table, embeds through the shared helper (`text-embedding-3-small`, cost accounted) and replaces a project's chunks in one transaction under an advisory lock. Unchanged text and model skip embedding entirely.
@@ -137,7 +139,7 @@ Remaining misses: `05-usability R2`, `07-new-preset R1` (spec says presets are n
 
 ## Phase 6. Stories and critic
 
-**Status:** not started. Original item 1.7.
+**Status:** implemented and functionally verified; manual acceptance pending. Original item 1.7. `app/stories.py` owns strict stories, new-requirement coverage and deterministic idempotency keys; `app/workflow.py` limits critic-driven revision to one cycle.
 
 - Deliverable: `write_stories`, testable acceptance criteria, open questions, requirement links, and a `critic` with at most one revision cycle.
 - Checks: story contracts, requirement references, stable idempotency keys, critic-loop bounds, and evals for prompt changes.
@@ -146,7 +148,7 @@ Remaining misses: `05-usability R2`, `07-new-preset R1` (spec says presets are n
 
 ## Phase 7. Human review and Jira
 
-**Status:** not started. Original item 1.8.
+**Status:** implemented; isolated Neon tests verify restart and concurrent approval. Manual acceptance remains pending. Original item 1.8. LangGraph interrupts before approval and persists through PostgresSaver; run/idempotency locks protect competing approvals. Public mode forces previews. Real Jira writes remain unverified.
 
 - Deliverable: assembled LangGraph, Postgres checkpointer, `human_review` interrupt, resumption only after Approve, and `create_tickets` with dry-run and real Jira support.
 - Checks: no writes before Approve; human edits are validated and reach the preview; state survives restart; repeated/concurrent approvals do not duplicate tickets; handle 429/5xx and ambiguous create results.
@@ -155,7 +157,7 @@ Remaining misses: `05-usability R2`, `07-new-preset R1` (spec says presets are n
 
 ## Phase 8. API, SSE, and observability
 
-**Status:** not started. Original item 1.9.
+**Status:** implemented and functionally verified; manual acceptance pending. Original item 1.9. `app/api.py`, `run_service.py` and `run_store.py` expose persisted runs/events, approval and usage. `/health` proves liveness; `/ready` initializes/checks the database-backed runtime. SSE includes the nested extract, retrieve and classify nodes.
 
 - Deliverable: `/projects`, run creation/state, SSE, approval endpoint, error events, cost, latency, and trace URL. One full run must be visible in LangSmith.
 - Checks: API integration workflow, input validation, unknown runs, event ordering, SSE reconnection/final-state retrieval, and repeated approval.
@@ -164,7 +166,7 @@ Remaining misses: `05-usability R2`, `07-new-preset R1` (spec says presets are n
 
 ## Phase 9. Interface
 
-**Status:** not started. Original items 2.1–2.5.
+**Status:** implemented in `apps/web`; full browser acceptance pending. Original items 2.1–2.5. Next.js/React, strict TypeScript and Tailwind support inputs, progress, evidence, edited stories and previews. Set server-side `API_URL` before the Vercel build.
 
 - Deliverable: Next.js project/transcript selection and text input, live timeline, requirements table, highlighted quotes/spec refs, story editor, Approve, and Jira preview. Include retrieved chunks, cost, latency, and trace URL in the detail panel.
 - Checks: TypeScript strict mode, ESLint, build, main browser workflow, loading/error states, and keyboard operation. Split screens into individually accepted steps if needed.
@@ -173,7 +175,7 @@ Remaining misses: `05-usability R2`, `07-new-preset R1` (spec says presets are n
 
 ## Phase 10. Measured quality
 
-**Status:** not started. Original item 2.6. Introduce the runner earlier as soon as there is model behavior to evaluate.
+**Status:** runner/gates implemented, full quality gate **not met**. Original item 2.6. LangSmith dataset `discovery-jira-gold-v1` was uploaded with 12 fictional cases. The full 12-case report returned 32 requirements against 29 gold, with 11 matches at cosine >=0.8: precision 0.344, recall 0.379, conflict F1 0.286 (TP 2, FP 7, FN 3). Grounding 32/32; judge mean 3.857 on 7 stories is uncalibrated. `05-usability` failed an evidence-reference check. Known eval cost $0.18068246 plus $0.30 conservative legacy unknown-cost reservation. Retrieval N=4 and latency N=8 exclude missing legacy measurements. See the case study for annotation granularity/paraphrase caveats. Full baseline is not approved; null values stay in the RAG-scoped baseline rather than freezing a failing mixed-resume sample. Ten manual calibration scores and a controlled full rerun remain pending.
 
 - Deliverable: complete `evals/run_evals.py`, LangSmith dataset, baseline, saved thresholds, and a CI subset that fails below threshold. Calibrate the LLM judge on ten manual scores.
 - Checks: 12+ gold cases; grounding 1.0; precision/recall and conflict F1 at least baseline − 0.05; story quality at least 3.5/5. An intentionally poor result must produce a nonzero exit code. Cost and p95 latency are report-only metrics.
@@ -182,7 +184,7 @@ Remaining misses: `05-usability R2`, `07-new-preset R1` (spec says presets are n
 
 ## Phase 11. Deployment and demonstration
 
-**Status:** not started. Original items 2.7–2.8.
+**Status:** release configuration and case study prepared; actual deployment, public acceptance, GIF and measured full browser duration pending. Original items 2.7–2.8. The batch adds preset caching and a persisted daily reservation budget. Approved development limits: $0.30/run and $1/day; unknown-cost reservations are retained. Render builds from repository root; Vercel builds `apps/web` with deployed `API_URL`. Local Docker remains deferred.
 
 - Deliverable: Neon, Docker API on Render, web on Vercel, preset cache, daily LLM budget, public dry-run, GIF, verified commands, architecture, and `docs/case-study.md`.
 - Checks: production smoke test, persistence across restarts, budgets, no public Jira writes, and timed main workflow.

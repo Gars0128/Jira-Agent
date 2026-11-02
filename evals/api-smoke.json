@@ -1,0 +1,229 @@
+{
+  "error": null,
+  "usage": {
+    "calls": 5,
+    "cost_usd": "0.01897844",
+    "input_tokens": 4684,
+    "output_tokens": 821
+  },
+  "cached": false,
+  "run_id": "13c059df-df8c-4a9d-aa53-44467f55d4d4",
+  "status": "awaiting_review",
+  "stories": [
+    {
+      "id": "S1",
+      "as_a": "cooperative lead",
+      "title": "Report reservation counts by start month",
+      "i_want": "the report to show reservation counts grouped by each reservation start month within the selected date-filter range",
+      "so_that": "I can compare reservation volume month by month when the range spans multiple months",
+      "idempotency_key": "7beb1a07483b502075b7bd738652f0bb69c8a567451b2a4b6ac8c131b89d8132",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "acceptance_criteria": [
+        "Given a report date filter that includes reservations whose start dates fall in more than one calendar month, when I generate the report, then the report shows a reservation count for each reservation start month in the filtered range.",
+        "Given reservations with start dates in the same calendar month, when I generate the report, then those reservations are included in that month's count.",
+        "Given a reservation date filter limited to one calendar month, when I generate the report, then the report shows the reservation count for that start month."
+      ]
+    }
+  ],
+  "tickets": [],
+  "questions": [
+    "REQ-003: HD-EXPORT limits report export to administrators and explicitly treats another export-enabled role as an access-policy change. Please confirm the intended decision.",
+    "REQ-004: HD-USABILITY states that terms such as instant require measurable clarification, while HD-EXPORT specifies no asynchronous export queue or time target. Please confirm the intended decision."
+  ],
+  "retrieved": {
+    "REQ-001": [
+      {
+        "id": "HD-EXPORT",
+        "text": "## HD-EXPORT \u2014 Report export permissions and format\n\nOnly administrators may export reservation reports. Coordinators may view reports but may not download them. The server must enforce this restriction even when a coordinator sends an export request directly. Hiding the export button alone is insufficient. Members have no report export permission. Introducing another role with export permission is a change to the approved access policy, not a clarification of the existing behavior.\n\nThe initial export format is CSV encoded as UTF-8. Exported rows follow the active report filters and contain the same approved columns as the report. CSV values that could be interpreted as spreadsheet formulas must be rendered safely. The filename includes the export date and does not contain a member's name. PDF, spreadsheet workbooks, scheduled delivery and a new monthly summary column are outside the baseline. Large reports may take time to prepare, but no asynchronous export queue is specified for the first release.",
+        "heading": "HD-EXPORT \u2014 Report export permissions and format",
+        "distance": 0.44903164817233854
+      },
+      {
+        "id": "HD-REPORTS",
+        "text": "## HD-REPORTS \u2014 Reservation reporting\n\nCoordinators and administrators can view a reservation report filtered by date interval, item and reservation status. Each row contains the reservation reference, item name, requested dates and status. Member names are visible only to staff with reporting access. Members can view their own reservation list but not the organization-wide report. Empty reports show a clear empty state rather than an error.\n\nThe report is generated on demand from current records. The baseline does not schedule reports, email attachments or save personal report views. Counts shown above the report must use the same filters as the displayed rows. Changing a filter and then exporting must not silently export an older filter selection. The interface should make the active filters visible so a staff member can explain what a report represents.",
+        "heading": "HD-REPORTS \u2014 Reservation reporting",
+        "distance": 0.5332601829256659
+      },
+      {
+        "id": "HD-AUDIT",
+        "text": "## HD-AUDIT \u2014 Audit history and retention\n\nRole changes, reservation creation, cancellation and handover confirmation create audit events. Each event records an actor identifier, action, affected record identifier and timestamp. Audit records are append-only: ordinary users, coordinators and administrators cannot edit earlier events through the portal. Corrections are represented by a new event referencing the affected action. Passwords, invitation tokens and session tokens must never be recorded in audit data.\n\nAudit events are retained for one hundred eighty days. A daily cleanup removes events older than that retention period. Administrators can view audit history for a particular affected record, but the baseline does not include a general actor filter or a free-text search across all events. Retaining audit data for a longer period changes the approved retention policy and requires explicit approval. Exporting report rows must not accidentally include audit payloads or account credentials.\n\nThe retention rule concerns audit events rather than active reservations. Removing an old audit event does not delete a current booking. Before changing retention, stakeholders must identify both the purpose of longer storage and the records it covers. A vague request to keep everything must not be interpreted as permission for indefinite retention.",
+        "heading": "HD-AUDIT \u2014 Audit history and retention",
+        "distance": 0.6994482756881351
+      },
+      {
+        "id": "HD-CATALOGUE",
+        "text": "## HD-CATALOGUE \u2014 Equipment information\n\nThe catalogue contains an item name, category, plain-language description, storage location and availability calendar. Categories are camera, projector and audio kit. An administrator can mark an item out of service with an explanation. An out-of-service item remains visible with its status, but cannot receive new reservations. Existing affected reservations are flagged for coordinator attention rather than silently cancelled.\n\nMembers can filter the catalogue by category and requested dates. The default view shows active items alphabetically. Search matches item names without case sensitivity. The baseline does not persist personal filter presets between visits. There are no equipment ratings, comments, image uploads or recommendation algorithms. Staff can update descriptive text, but inventory identifiers remain stable so that older reservations continue to reference the same physical item.",
+        "heading": "HD-CATALOGUE \u2014 Equipment information",
+        "distance": 0.7157764594107063
+      },
+      {
+        "id": "HD-USABILITY",
+        "text": "## HD-USABILITY \u2014 Accessibility and interaction\n\nCore reservation and reporting actions must be usable with a keyboard. Inputs have visible labels, focus remains visible and status is not communicated by color alone. Validation errors identify the affected field and explain how to correct it. After a failed submission, entered values remain in the form unless retaining a sensitive value would be inappropriate. Dates use an unambiguous display format and identify the cooperative's timezone where confusion is possible.\n\nThe supported viewport range is from a narrow mobile browser to a desktop browser. Tables may use a compact layout on smaller screens but cannot hide the reservation reference or status. No custom design system, animation framework or native mobile application is required. The baseline has no numeric response-time target, so phrases such as fast, instant or smooth require measurable clarification. Accessibility is part of the release criteria rather than optional visual polish.",
+        "heading": "HD-USABILITY \u2014 Accessibility and interaction",
+        "distance": 0.7273779890873627
+      }
+    ],
+    "REQ-002": [
+      {
+        "id": "HD-REPORTS",
+        "text": "## HD-REPORTS \u2014 Reservation reporting\n\nCoordinators and administrators can view a reservation report filtered by date interval, item and reservation status. Each row contains the reservation reference, item name, requested dates and status. Member names are visible only to staff with reporting access. Members can view their own reservation list but not the organization-wide report. Empty reports show a clear empty state rather than an error.\n\nThe report is generated on demand from current records. The baseline does not schedule reports, email attachments or save personal report views. Counts shown above the report must use the same filters as the displayed rows. Changing a filter and then exporting must not silently export an older filter selection. The interface should make the active filters visible so a staff member can explain what a report represents.",
+        "heading": "HD-REPORTS \u2014 Reservation reporting",
+        "distance": 0.45947806735209384
+      },
+      {
+        "id": "HD-BOOKING",
+        "text": "## HD-BOOKING \u2014 Reservation rules\n\nMembers select one equipment item, a start date and an end date. Reservations use whole calendar days in the cooperative's configured local timezone. A reservation may begin no more than fourteen calendar days after the date of submission. This fourteen-day advance-booking limit applies equally to members, coordinators and administrators. Staff cannot silently bypass it through an alternative form. The maximum reservation duration is three consecutive calendar days, including the start date.\n\nReservations must not overlap for the same item. A successful reservation receives a stable reference and appears in the member's reservation list. The confirmation page shows the selected item and dates. A declined request does not create a provisional booking or reserve inventory. If the item becomes unavailable before submission, the member sees an actionable availability message. Retrying the same completed submission must not create another reservation.\n\nMembers may cancel their own reservation until its start date. Coordinators can cancel any reservation with a required reason. Cancellation releases the reserved interval and records who cancelled it. Recurring reservations, automatic renewal, waiting lists and subscriptions to newly available slots are not included in this baseline. A member who cancels a request is not automatically offered a different item. Recommendations and automatic substitutions require a separate decision about acceptable equipment equivalence.",
+        "heading": "HD-BOOKING \u2014 Reservation rules",
+        "distance": 0.6454160405796867
+      },
+      {
+        "id": "HD-EXPORT",
+        "text": "## HD-EXPORT \u2014 Report export permissions and format\n\nOnly administrators may export reservation reports. Coordinators may view reports but may not download them. The server must enforce this restriction even when a coordinator sends an export request directly. Hiding the export button alone is insufficient. Members have no report export permission. Introducing another role with export permission is a change to the approved access policy, not a clarification of the existing behavior.\n\nThe initial export format is CSV encoded as UTF-8. Exported rows follow the active report filters and contain the same approved columns as the report. CSV values that could be interpreted as spreadsheet formulas must be rendered safely. The filename includes the export date and does not contain a member's name. PDF, spreadsheet workbooks, scheduled delivery and a new monthly summary column are outside the baseline. Large reports may take time to prepare, but no asynchronous export queue is specified for the first release.",
+        "heading": "HD-EXPORT \u2014 Report export permissions and format",
+        "distance": 0.6597426268543517
+      },
+      {
+        "id": "HD-AUDIT",
+        "text": "## HD-AUDIT \u2014 Audit history and retention\n\nRole changes, reservation creation, cancellation and handover confirmation create audit events. Each event records an actor identifier, action, affected record identifier and timestamp. Audit records are append-only: ordinary users, coordinators and administrators cannot edit earlier events through the portal. Corrections are represented by a new event referencing the affected action. Passwords, invitation tokens and session tokens must never be recorded in audit data.\n\nAudit events are retained for one hundred eighty days. A daily cleanup removes events older than that retention period. Administrators can view audit history for a particular affected record, but the baseline does not include a general actor filter or a free-text search across all events. Retaining audit data for a longer period changes the approved retention policy and requires explicit approval. Exporting report rows must not accidentally include audit payloads or account credentials.\n\nThe retention rule concerns audit events rather than active reservations. Removing an old audit event does not delete a current booking. Before changing retention, stakeholders must identify both the purpose of longer storage and the records it covers. A vague request to keep everything must not be interpreted as permission for indefinite retention.",
+        "heading": "HD-AUDIT \u2014 Audit history and retention",
+        "distance": 0.7167633182660147
+      },
+      {
+        "id": "HD-ACCEPTANCE",
+        "text": "## HD-ACCEPTANCE \u2014 Baseline acceptance\n\nAcceptance uses invented member accounts and equipment records. A member signs in, finds a free interval within fourteen days, confirms a reservation and sees its reference. A second overlapping request is rejected without a duplicate booking. A coordinator can inspect the report and cannot export it; an administrator can export a filtered CSV. An anonymous browser cannot view a copied private reservation link.\n\nThe test set must also cover cancellation, expired invitations, out-of-service equipment, audit append-only behavior and keyboard interaction. New discovery requests are classified against this baseline as new, duplicate, conflict or unclear. A conflict is not automatically approved by appearing in a transcript. Staff must review the supporting quote, the baseline section and the open question before treating a policy change as agreed scope.",
+        "heading": "HD-ACCEPTANCE \u2014 Baseline acceptance",
+        "distance": 0.7315140341864392
+      }
+    ],
+    "REQ-003": [
+      {
+        "id": "HD-EXPORT",
+        "text": "## HD-EXPORT \u2014 Report export permissions and format\n\nOnly administrators may export reservation reports. Coordinators may view reports but may not download them. The server must enforce this restriction even when a coordinator sends an export request directly. Hiding the export button alone is insufficient. Members have no report export permission. Introducing another role with export permission is a change to the approved access policy, not a clarification of the existing behavior.\n\nThe initial export format is CSV encoded as UTF-8. Exported rows follow the active report filters and contain the same approved columns as the report. CSV values that could be interpreted as spreadsheet formulas must be rendered safely. The filename includes the export date and does not contain a member's name. PDF, spreadsheet workbooks, scheduled delivery and a new monthly summary column are outside the baseline. Large reports may take time to prepare, but no asynchronous export queue is specified for the first release.",
+        "heading": "HD-EXPORT \u2014 Report export permissions and format",
+        "distance": 0.29816780347304217
+      },
+      {
+        "id": "HD-REPORTS",
+        "text": "## HD-REPORTS \u2014 Reservation reporting\n\nCoordinators and administrators can view a reservation report filtered by date interval, item and reservation status. Each row contains the reservation reference, item name, requested dates and status. Member names are visible only to staff with reporting access. Members can view their own reservation list but not the organization-wide report. Empty reports show a clear empty state rather than an error.\n\nThe report is generated on demand from current records. The baseline does not schedule reports, email attachments or save personal report views. Counts shown above the report must use the same filters as the displayed rows. Changing a filter and then exporting must not silently export an older filter selection. The interface should make the active filters visible so a staff member can explain what a report represents.",
+        "heading": "HD-REPORTS \u2014 Reservation reporting",
+        "distance": 0.4471186830419741
+      },
+      {
+        "id": "HD-ACCESS",
+        "text": "## HD-ACCESS \u2014 Accounts, roles and private access\n\nEvery portal page containing equipment availability, reservations or reports requires a signed-in account. Anonymous visitors may see only a sign-in page and a generic description of the cooperative. Public sharing links and anonymous reservation views are excluded from the baseline. A copied reservation URL does not grant access; the server must apply the same authorization checks as ordinary navigation. Invitations create an opportunity to activate an account, not a bypass around authentication.\n\nThere are three roles: member, coordinator and administrator. Members can read the equipment catalogue and manage their own reservations. Coordinators can inspect all reservations, confirm equipment handover and send account invitations. Administrators can assign roles, deactivate accounts and configure permitted operational settings. Reports are visible to coordinators and administrators, but export is governed separately by HD-EXPORT. A coordinator may not promote themselves or another person to administrator.\n\nDeactivating an account prevents subsequent sign-ins and new reservations. Existing reservation and audit records remain available to authorized staff. Deactivation must not erase the history that explains an equipment handover. This specification does not define guest, manager or external-collaborator roles. Requests introducing such roles require a clear permission matrix before implementation; the application must not infer permissions from a person's job title.",
+        "heading": "HD-ACCESS \u2014 Accounts, roles and private access",
+        "distance": 0.4908767889856346
+      },
+      {
+        "id": "HD-ACCEPTANCE",
+        "text": "## HD-ACCEPTANCE \u2014 Baseline acceptance\n\nAcceptance uses invented member accounts and equipment records. A member signs in, finds a free interval within fourteen days, confirms a reservation and sees its reference. A second overlapping request is rejected without a duplicate booking. A coordinator can inspect the report and cannot export it; an administrator can export a filtered CSV. An anonymous browser cannot view a copied private reservation link.\n\nThe test set must also cover cancellation, expired invitations, out-of-service equipment, audit append-only behavior and keyboard interaction. New discovery requests are classified against this baseline as new, duplicate, conflict or unclear. A conflict is not automatically approved by appearing in a transcript. Staff must review the supporting quote, the baseline section and the open question before treating a policy change as agreed scope.",
+        "heading": "HD-ACCEPTANCE \u2014 Baseline acceptance",
+        "distance": 0.5492629491184072
+      },
+      {
+        "id": "HD-PURPOSE",
+        "text": "## HD-PURPOSE \u2014 Purpose and release boundary\n\nHarbor Desk lends cameras, projectors and portable audio kits to its members. Today coordinators reconcile reservations in a shared spreadsheet and answer availability questions by email. The portal should provide one reliable place to inspect availability, reserve an item and explain why a request cannot be completed. The first release serves one cooperative with a single equipment room and approximately two hundred active members. It does not support multiple organizations, payments, delivery routing or a public marketplace.\n\nThe cooperative wants a straightforward browser application. A person should understand whether a reservation succeeded without reading internal logs. Staff should be able to explain access decisions and reservation changes from the visible record. This release replaces reservation bookkeeping, not the cooperative's membership register. Membership verification remains an external administrative process. Names and examples in demonstrations must be invented. Demo records may be reset independently of any future operational deployment.\n\nThe application must distinguish availability from a confirmed reservation. Viewing a free slot does not hold it. Confirmation happens only after the server validates permissions, the reservation window and competing bookings. If two members request the same item and overlapping interval, only one request may succeed. The unsuccessful request must explain the conflict and allow the member to choose a different interval.",
+        "heading": "HD-PURPOSE \u2014 Purpose and release boundary",
+        "distance": 0.5672770018093471
+      }
+    ],
+    "REQ-004": [
+      {
+        "id": "HD-EXPORT",
+        "text": "## HD-EXPORT \u2014 Report export permissions and format\n\nOnly administrators may export reservation reports. Coordinators may view reports but may not download them. The server must enforce this restriction even when a coordinator sends an export request directly. Hiding the export button alone is insufficient. Members have no report export permission. Introducing another role with export permission is a change to the approved access policy, not a clarification of the existing behavior.\n\nThe initial export format is CSV encoded as UTF-8. Exported rows follow the active report filters and contain the same approved columns as the report. CSV values that could be interpreted as spreadsheet formulas must be rendered safely. The filename includes the export date and does not contain a member's name. PDF, spreadsheet workbooks, scheduled delivery and a new monthly summary column are outside the baseline. Large reports may take time to prepare, but no asynchronous export queue is specified for the first release.",
+        "heading": "HD-EXPORT \u2014 Report export permissions and format",
+        "distance": 0.518135315813588
+      },
+      {
+        "id": "HD-USABILITY",
+        "text": "## HD-USABILITY \u2014 Accessibility and interaction\n\nCore reservation and reporting actions must be usable with a keyboard. Inputs have visible labels, focus remains visible and status is not communicated by color alone. Validation errors identify the affected field and explain how to correct it. After a failed submission, entered values remain in the form unless retaining a sensitive value would be inappropriate. Dates use an unambiguous display format and identify the cooperative's timezone where confusion is possible.\n\nThe supported viewport range is from a narrow mobile browser to a desktop browser. Tables may use a compact layout on smaller screens but cannot hide the reservation reference or status. No custom design system, animation framework or native mobile application is required. The baseline has no numeric response-time target, so phrases such as fast, instant or smooth require measurable clarification. Accessibility is part of the release criteria rather than optional visual polish.",
+        "heading": "HD-USABILITY \u2014 Accessibility and interaction",
+        "distance": 0.6786601501797205
+      },
+      {
+        "id": "HD-REPORTS",
+        "text": "## HD-REPORTS \u2014 Reservation reporting\n\nCoordinators and administrators can view a reservation report filtered by date interval, item and reservation status. Each row contains the reservation reference, item name, requested dates and status. Member names are visible only to staff with reporting access. Members can view their own reservation list but not the organization-wide report. Empty reports show a clear empty state rather than an error.\n\nThe report is generated on demand from current records. The baseline does not schedule reports, email attachments or save personal report views. Counts shown above the report must use the same filters as the displayed rows. Changing a filter and then exporting must not silently export an older filter selection. The interface should make the active filters visible so a staff member can explain what a report represents.",
+        "heading": "HD-REPORTS \u2014 Reservation reporting",
+        "distance": 0.6819098856039347
+      },
+      {
+        "id": "HD-OPERATIONS",
+        "text": "## HD-OPERATIONS \u2014 Reliability and support\n\nTransient outbound email failures with HTTP status 429 or 5xx are retried at most three times after the initial attempt, using exponential backoff. Permanent client errors are not retried automatically. Each delivery attempt must be distinguishable in operational logs without logging message content that contains secrets. Duplicate delivery attempts must not create duplicate reservation records. Operators should be able to associate a failure with a reservation reference.\n\nThe baseline includes an internal health endpoint for service availability but no publicly accessible system-status page. Monitoring scope, alert recipients and numeric availability objectives remain undecided. There is no approved maintenance schedule or restriction on weekend schema migrations. A request for monitoring everything needs clarification of the events, thresholds and response owner. A health response alone does not prove that an external email provider or every database query is working.",
+        "heading": "HD-OPERATIONS \u2014 Reliability and support",
+        "distance": 0.7567806186311931
+      },
+      {
+        "id": "HD-PURPOSE",
+        "text": "## HD-PURPOSE \u2014 Purpose and release boundary\n\nHarbor Desk lends cameras, projectors and portable audio kits to its members. Today coordinators reconcile reservations in a shared spreadsheet and answer availability questions by email. The portal should provide one reliable place to inspect availability, reserve an item and explain why a request cannot be completed. The first release serves one cooperative with a single equipment room and approximately two hundred active members. It does not support multiple organizations, payments, delivery routing or a public marketplace.\n\nThe cooperative wants a straightforward browser application. A person should understand whether a reservation succeeded without reading internal logs. Staff should be able to explain access decisions and reservation changes from the visible record. This release replaces reservation bookkeeping, not the cooperative's membership register. Membership verification remains an external administrative process. Names and examples in demonstrations must be invented. Demo records may be reset independently of any future operational deployment.\n\nThe application must distinguish availability from a confirmed reservation. Viewing a free slot does not hold it. Confirmation happens only after the server validates permissions, the reservation window and competing bookings. If two members request the same item and overlapping interval, only one request may succeed. The unsuccessful request must explain the conflict and allow the member to choose a different interval.",
+        "heading": "HD-PURPOSE \u2014 Purpose and release boundary",
+        "distance": 0.7602184543515849
+      }
+    ]
+  },
+  "trace_url": "https://smith.langchain.com/o/a4cdea29-5824-4b4c-acd3-3d4b5e46b75e/projects/p/01a19ceb-ff54-73fd-bcd1-eb65f7c137f9/r/01a19e38-2bfb-73a7-a7d1-8ce9b05c6885?poll=true",
+  "latency_ms": 17334,
+  "transcript": "# Harbor Desk discovery 01 \u2014 Reporting handoff\n\nMira (analyst): Before we start, did the projector arrive back from the library? The rain was impressive this morning.\nNora (cooperative lead): It did, and the case was dry. Let us start with reports before we forget why we booked this call.\nMira (analyst): The approved document lets coordinators view reports and only administrators export them. Is the complaint about the report itself or the access rule?\nNora (cooperative lead): Both, but they are separate. Coordinators must be allowed to export reservation reports too.\nMira (analyst): That changes the administrator-only export policy. I will mark it as a conflict, not assume the change is approved. Do you still need CSV?\nNora (cooperative lead): Keep the export as UTF-8 CSV using the active filters.\nOwen (coordinator): I first thought PDF because people print things, but no, forget PDF for this release. CSV is what we actually send to our internal spreadsheet.\nMira (analyst): Good, I will not turn the withdrawn PDF idea into a requirement. What is missing from the current manual process?\nOwen (coordinator): At month end I keep adding up reservations by hand. Add a monthly reservation count to the report.\nMira (analyst): Do you mean one total for the selected interval, or a month-by-month breakdown? The report already has filter-matched counts above the rows.\nOwen (coordinator): A month-by-month breakdown, even if the date filter spans three months. The ordinary total can stay where it is.\nNora (cooperative lead): Yes. Add a month-by-month reservation count to the report, grouped by reservation start month.\nMira (analyst): Is scheduled email needed now?\nNora (cooperative lead): Not now. We can download manually; please do not invent a scheduler because I said month end.\nOwen (coordinator): One other thing: make exporting feel instant.\nMira (analyst): That needs a report size and a time target. We have not agreed either. I will leave a question rather than a performance acceptance criterion.\nNora (cooperative lead): Fine. I need to take the next call, so send the access-policy question separately. The board has not approved broader exports yet.\n",
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "note": "HD-EXPORT already requires UTF-8 CSV exports and HD-REPORTS requires exports to use the active report filters.",
+      "text": "Export reservation reports as UTF-8 CSV using the active filters.",
+      "type": "functional",
+      "quote": "Keep the export as UTF-8 CSV using the active filters.",
+      "status": "duplicate",
+      "speaker": "Nora (cooperative lead)",
+      "priority": "must",
+      "spec_refs": [
+        "HD-EXPORT",
+        "HD-REPORTS"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "note": "HD-EXPORT identifies a new monthly summary column as outside the baseline, so month-grouped reservation counts require new scope approval.",
+      "text": "Add a month-by-month reservation count to the report, grouped by reservation start month, including when the date filter spans multiple months.",
+      "type": "functional",
+      "quote": "Add a month-by-month reservation count to the report, grouped by reservation start month.",
+      "status": "new",
+      "speaker": "Nora (cooperative lead)",
+      "priority": "must",
+      "spec_refs": [
+        "HD-EXPORT",
+        "HD-REPORTS"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "note": "HD-EXPORT limits report export to administrators and explicitly treats another export-enabled role as an access-policy change.",
+      "text": "Allow coordinators to export reservation reports; approval of this broader export access policy remains unresolved.",
+      "type": "constraint",
+      "quote": "Coordinators must be allowed to export reservation reports too.",
+      "status": "conflict",
+      "speaker": "Nora (cooperative lead)",
+      "priority": "must",
+      "spec_refs": [
+        "HD-EXPORT",
+        "HD-ACCEPTANCE"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "note": "HD-USABILITY states that terms such as instant require measurable clarification, while HD-EXPORT specifies no asynchronous export queue or time target.",
+      "text": "Make exporting feel instant; the report size and time target are unresolved.",
+      "type": "non_functional",
+      "quote": "One other thing: make exporting feel instant.",
+      "status": "unclear",
+      "speaker": "Owen (coordinator)",
+      "priority": "could",
+      "spec_refs": [
+        "HD-USABILITY",
+        "HD-EXPORT"
+      ]
+    }
+  ],
+  "revision_count": 0,
+  "critic_feedback": [],
+  "dropped_requirement_ids": []
+}

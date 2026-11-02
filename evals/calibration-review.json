@@ -1,0 +1,294 @@
+{
+  "instructions": "Review actual stories against linked requirements and rate 1-5 in human. Seven judge-rated examples are real saved outputs; the remaining three are pending real examples, not fabricated. Once ten real human/judge scores are reviewed, copy approved rows into calibration.json and explicitly approve agreement. This review worksheet is not the active calibration artifact.",
+  "approved": false,
+  "scores": [
+    {
+      "example_id": "02-retention:S1",
+      "human": null,
+      "judge": 4,
+      "judge_rationale": "The story is focused, valuable, and small, with clear actor, outcome, and two testable single-value filtering scenarios. It aligns with REQ-003 and does not add unsupported scope. Minor edits would make it fully test-ready: define what counts as an actor identifier (format/canonical matching) and clarify expected behavior for no matching records, invalid/empty values, and clearing the filter.",
+      "story": {
+        "id": "S1",
+        "title": "Filter Audit History by Actor Identifier",
+        "as_a": "administrator",
+        "i_want": "to filter audit history by a single actor identifier value",
+        "so_that": "I can view audit records associated with that actor",
+        "acceptance_criteria": [
+          "Given an administrator is viewing audit history, when the administrator applies a filter with one actor identifier value, then the audit history displays only records associated with that actor identifier.",
+          "Given an administrator has applied an actor identifier filter, when the administrator changes the filter to a different single actor identifier value, then the audit history displays only records associated with the newly specified actor identifier."
+        ],
+        "requirement_ids": [
+          "REQ-003"
+        ],
+        "idempotency_key": "e6b7c65df63409c57d9d47b121ae1bbb05a8af6b22e25cf7307e92ab7b5e6b46"
+      },
+      "requirements": [
+        {
+          "id": "REQ-003",
+          "text": "Allow administrators to filter audit history by a single actor identifier value.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Allow administrators to filter audit history by actor identifier.",
+          "speaker": "Eli (administrator)",
+          "status": "new",
+          "spec_refs": [
+            "HD-AUDIT"
+          ],
+          "note": "HD-AUDIT provides record-specific audit history but states that the baseline does not include a general actor filter, so this administrator actor-filter capability is additional scope."
+        }
+      ]
+    },
+    {
+      "example_id": "03-sharing:S1",
+      "human": null,
+      "judge": 4,
+      "judge_rationale": "The story is independent, valuable, small, and directly traceable to REQ-002. Its acceptance criteria are clear and testable for revocation and continued non-acceptability before expiry. It correctly avoids inventing details such as authorization rules, UI behavior, or account-creation handling (the latter belongs to REQ-003). A minor edit would clarify whether revocation is allowed only while unexpired and define the expected outcome if a coordinator attempts to revoke an already expired invitation.",
+      "story": {
+        "id": "S1",
+        "title": "Revoke an unexpired invitation",
+        "as_a": "coordinator",
+        "i_want": "to revoke an invitation before it expires",
+        "so_that": "the invitation can no longer be accepted",
+        "acceptance_criteria": [
+          "Given an invitation is unexpired, When a coordinator revokes it, Then the invitation is recorded as revoked.",
+          "Given an invitation is revoked, When its expiration time has not yet passed, Then it remains unavailable for acceptance."
+        ],
+        "requirement_ids": [
+          "REQ-002"
+        ],
+        "idempotency_key": "edf4860c4b28436c8bcd74d65db59d914f3ded2a0b1f4c53d673bc958e6554d2"
+      },
+      "requirements": [
+        {
+          "id": "REQ-002",
+          "text": "The product must allow a coordinator to revoke an invitation before it expires.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Allow a coordinator to revoke an invitation before it expires.",
+          "speaker": "Owen (coordinator)",
+          "status": "new",
+          "spec_refs": [
+            "HD-INVITES"
+          ],
+          "note": "Manual revocation of an unexpired invitation is explicitly not specified in the baseline and is identified as a potential future feature."
+        }
+      ]
+    },
+    {
+      "example_id": "03-sharing:S2",
+      "human": null,
+      "judge": 5,
+      "judge_rationale": "The story is focused and INVEST-aligned: it covers one clear revoked-invitation outcome for a defined user, has direct value, and is small and testable. Both acceptance criteria are deterministic and map exactly to REQ-003: rejection with a revoked explanation and no account creation. It does not invent requirements; the prerequisite ability to revoke is separately covered by REQ-002.",
+      "story": {
+        "id": "S2",
+        "title": "Reject acceptance of a revoked invitation",
+        "as_a": "invitee",
+        "i_want": "to receive an explanation when I try to accept a revoked invitation",
+        "so_that": "I know why I cannot complete account creation",
+        "acceptance_criteria": [
+          "Given an invitation has been revoked, When an invitee attempts to accept it, Then the product rejects the acceptance and explains that the invitation was revoked.",
+          "Given an invitation has been revoked, When an invitee attempts to accept it, Then the product does not create an account."
+        ],
+        "requirement_ids": [
+          "REQ-003"
+        ],
+        "idempotency_key": "7bc4c01d1ced3bc4477dd78a4b819481a4f494ede94c702801ed1074a9ad1777"
+      },
+      "requirements": [
+        {
+          "id": "REQ-003",
+          "text": "The product must reject acceptance of a revoked invitation, explain that it was revoked, and must not create an account.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Reject it and explain that it was revoked. It must not create an account.",
+          "speaker": "Owen (coordinator)",
+          "status": "new",
+          "spec_refs": [
+            "HD-INVITES"
+          ],
+          "note": "The invitation workflow defines handling for valid, expired, and used invitations but does not define revoked invitations or their acceptance response."
+        }
+      ]
+    },
+    {
+      "example_id": "04-bookings:S1",
+      "human": null,
+      "judge": 3,
+      "judge_rationale": "The story is valuable and mostly testable: it identifies the member, item, interval, email channel, and portal-link content. However, it omits required related behavior: members must be able to unsubscribe (REQ-006), and it does not state that a notification does not create a reservation (REQ-005). More importantly, subscription expiry is explicitly undecided (REQ-007), leaving lifecycle behavior ambiguous. The criteria should also define what qualifies as availability within an interval and expected behavior for duplicate subscriptions or repeated availability events. No unsupported requirements should be added; the expiry rule needs stakeholder clarification.",
+      "story": {
+        "id": "S1",
+        "title": "Subscribe to item availability notifications",
+        "as_a": "member",
+        "i_want": "to subscribe to an email notification for a selected item and date interval",
+        "so_that": "I am notified when that item becomes available during the interval I need",
+        "acceptance_criteria": [
+          "Given I am viewing a selected item, when I provide a date interval and submit an availability-notification subscription, then the system records my subscription for that item and date interval.",
+          "Given I have an active availability-notification subscription for an item and date interval, when the item becomes available in that interval, then the system sends an email notification to me containing a portal link."
+        ],
+        "requirement_ids": [
+          "REQ-003",
+          "REQ-004"
+        ],
+        "idempotency_key": "3bd53baa6fd7de4f8fec20e8c3b1522985766abaecf5b55bec94728a8f5f9d54"
+      },
+      "requirements": [
+        {
+          "id": "REQ-003",
+          "text": "The system must allow members to subscribe for an email notification when a selected item and date interval becomes available.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Let members subscribe to an email when a selected item and date interval become available.",
+          "speaker": "Jun (member representative)",
+          "status": "new",
+          "spec_refs": [
+            "HD-BOOKING",
+            "HD-NOTIFY"
+          ],
+          "note": "HD-BOOKING excludes subscriptions to newly available slots and HD-NOTIFY excludes waitlist notifications from the baseline."
+        },
+        {
+          "id": "REQ-004",
+          "text": "Availability notifications must be sent by email and include a portal link.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Send an email with a portal link.",
+          "speaker": "Jun (member representative)",
+          "status": "new",
+          "spec_refs": [
+            "HD-NOTIFY"
+          ],
+          "note": "HD-NOTIFY defines email and portal links for existing reservation notifications, but not for availability notifications."
+        }
+      ]
+    },
+    {
+      "example_id": "04-bookings:S2",
+      "human": null,
+      "judge": 4,
+      "judge_rationale": "Focused, independent story with clear member value and two testable criteria: unsubscribing disables the subscription, and inactive subscriptions generate no availability email. It aligns with REQ-006 without expanding scope. Minor edits: \u201cmarks ... inactive\u201d assumes a particular internal state rather than specifying observable opt-out behavior, and the story does not state that a member may unsubscribe only their own subscription. These are small clarifications, not blockers.",
+      "story": {
+        "id": "S2",
+        "title": "Unsubscribe from availability notifications",
+        "as_a": "member",
+        "i_want": "to unsubscribe from availability notifications",
+        "so_that": "I no longer receive availability emails I do not want",
+        "acceptance_criteria": [
+          "Given I have an active availability-notification subscription, when I unsubscribe from it, then the system marks the subscription as inactive.",
+          "Given an availability-notification subscription is inactive, when its selected item becomes available during its date interval, then the system does not send an availability email for that subscription."
+        ],
+        "requirement_ids": [
+          "REQ-006"
+        ],
+        "idempotency_key": "add78fc6eaa2b0f0320a43eca682e8f4abb626c6ba9d301673e49bce9565caee"
+      },
+      "requirements": [
+        {
+          "id": "REQ-006",
+          "text": "Members must be able to unsubscribe from availability notifications.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Yes, members must be able to unsubscribe.",
+          "speaker": "Jun (member representative)",
+          "status": "new",
+          "spec_refs": [
+            "HD-NOTIFY"
+          ],
+          "note": "HD-NOTIFY requires opt-out behavior to be identified for any new notification, but does not specify an unsubscribe mechanism for availability notices."
+        }
+      ]
+    },
+    {
+      "example_id": "06-operations:S1",
+      "human": null,
+      "judge": 3,
+      "judge_rationale": "The story is valuable, small, and mostly testable: the criteria clearly cover availability visibility, exclusion of reservation/member data, and read-only behavior. However, it depends on a public status page whose creation is only stated in REQ-001, while the story traces only to REQ-002; REQ-001 is marked as conflicting with the baseline. The acceptance criteria also need a defined availability indicator/source and clearer verification scope for \u201cno action\u201d (for example, no state-changing UI controls or public API operations). Resolve the public-page conflict and link/clarify the enabling requirement before implementation.",
+      "story": {
+        "id": "S1",
+        "title": "Restrict public status page content",
+        "as_a": "public visitor",
+        "i_want": "to view service availability on the public status page without access to cooperative data or change actions",
+        "so_that": "I can check service status without exposing protected information or modifying the system",
+        "acceptance_criteria": [
+          "Given a public visitor opens the status page, When the page is displayed, Then it shows service availability.",
+          "Given a public visitor opens the status page, When the page is displayed, Then it does not show reservation data or member details.",
+          "Given a public visitor opens the status page, When the page is displayed, Then it provides no action that changes system data or state."
+        ],
+        "requirement_ids": [
+          "REQ-002"
+        ],
+        "idempotency_key": "8438c8824bb7e5825102b109850980a13144f103d28e02bda445517d85aad5f4"
+      },
+      "requirements": [
+        {
+          "id": "REQ-002",
+          "text": "The public status page must show service availability only and must not expose reservation data, member details, or any action that changes anything.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "No. Show service availability only, without reservation data, member details or an action to change anything.",
+          "speaker": "Eli (administrator)",
+          "status": "new",
+          "spec_refs": [
+            "HD-ACCESS"
+          ],
+          "note": "Although the access rules limit anonymous visitors to sign-in and a generic cooperative description, they do not specify a public status page with these restricted contents."
+        }
+      ]
+    },
+    {
+      "example_id": "06-operations:S2",
+      "human": null,
+      "judge": 4,
+      "judge_rationale": "Aligned with REQ-005 and does not invent the separate weekend-prohibition behavior from REQ-004. The acceptance criterion is clear and testable, including timezone/day-boundary cases. Minor refinement: explicitly identify the scheduled timestamp and configured timezone source (and include a boundary example) to remove implementation ambiguity.",
+      "story": {
+        "id": "S2",
+        "title": "Use cooperative local timezone for weekend migration scheduling",
+        "as_a": "cooperative administrator",
+        "i_want": "schema migration scheduling to evaluate Saturday and Sunday using the cooperative's configured local timezone",
+        "so_that": "weekend scheduling is determined according to the cooperative's local time",
+        "acceptance_criteria": [
+          "Given a schema migration is scheduled, When the system determines whether its scheduled time falls on Saturday or Sunday, Then it uses the cooperative's configured local timezone to determine the local day of week."
+        ],
+        "requirement_ids": [
+          "REQ-005"
+        ],
+        "idempotency_key": "79623b19e7823fcc8c78b96cef76a444936a745d92514848cbee1b701a0830f1"
+      },
+      "requirements": [
+        {
+          "id": "REQ-005",
+          "text": "The cooperative's configured local timezone must determine whether a database schema migration is scheduled on Saturday or Sunday.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "Use the cooperative's configured local timezone.",
+          "speaker": "Nora (cooperative lead)",
+          "status": "new",
+          "spec_refs": [
+            "HD-OPERATIONS"
+          ],
+          "note": "The specification does not define any weekend migration restriction or timezone rule for scheduling schema migrations."
+        }
+      ]
+    },
+    {
+      "example_id": "pending-08",
+      "human": null,
+      "judge": null,
+      "story": null,
+      "requirements": []
+    },
+    {
+      "example_id": "pending-09",
+      "human": null,
+      "judge": null,
+      "story": null,
+      "requirements": []
+    },
+    {
+      "example_id": "pending-10",
+      "human": null,
+      "judge": null,
+      "story": null,
+      "requirements": []
+    }
+  ]
+}

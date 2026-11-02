@@ -1,0 +1,14 @@
+{
+  "description": "Fixed phase-5 v2 gold-requirement classification sample, 2026-11-02. The later full report failed review and is not an approved end-to-end baseline. Null precision/recall must remain until a controlled full report and annotation/matching calibration are reviewed. The runner never writes this file.",
+  "requirements_n": 29,
+  "mode": "rag",
+  "case_ids": ["01-exports", "02-retention", "03-sharing", "04-bookings", "05-usability", "06-operations", "07-new-preset", "08-duplicate-export", "09-conflict-retention", "10-unclear-speed", "11-mind-change", "12-small-talk"],
+  "metrics": {
+    "retrieval_recall_at_5": 0.9655172413793104,
+    "status_accuracy": 0.896551724137931,
+    "conflict_f1": 0.7692307692307693,
+    "requirement_precision": null,
+    "requirement_recall": null
+  },
+  "tolerance": 0.05
+}

@@ -3,11 +3,31 @@ name: API checks
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -29,3 +49,35 @@ jobs:
         run: uv run --locked ruff check .
       - name: Check formatting
         run: uv run --locked ruff format --check .
+      - name: Check evaluation scripts
+        run: |
+          uv run --locked ruff check ../../evals
+          uv run --locked ruff format --check ../../evals
+
+  model-evals:
+    name: RAG regression on gold requirements (not end-to-end)
+    if: github.event_name == 'workflow_dispatch' || (vars.ENABLE_MODEL_EVALS == 'true' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/api
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      DATABASE_URL: ${{ secrets.EVAL_DATABASE_URL }}
+      LLM_MODEL: ${{ vars.LLM_MODEL }}
+      LLM_INPUT_USD_PER_MILLION: ${{ vars.LLM_INPUT_USD_PER_MILLION }}
+      LLM_OUTPUT_USD_PER_MILLION: ${{ vars.LLM_OUTPUT_USD_PER_MILLION }}
+      MAX_COST_PER_RUN_USD: "0.30"
+      LANGSMITH_TRACING: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: "0.13.6"
+      - run: uv python install 3.12
+      - run: uv sync --locked
+      - name: Check required evaluation credentials
+        run: test -n "$OPENAI_API_KEY" && test -n "$DATABASE_URL" && test -n "$LLM_MODEL"
+      - name: Measure RAG against the fixed baseline
+        run: uv run --locked python ../../evals/run_evals.py --check

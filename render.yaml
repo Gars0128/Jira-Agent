@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: discovery-jira-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: PUBLIC_DEMO
+        value: "true"
+      - key: JIRA_DRY_RUN
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+      - key: LLM_INPUT_USD_PER_MILLION
+        sync: false
+      - key: LLM_OUTPUT_USD_PER_MILLION
+        sync: false
+      - key: MAX_COST_PER_RUN_USD
+        value: "0.30"
+      - key: DAILY_BUDGET_USD
+        value: "1.00"
+      - key: LANGSMITH_API_KEY
+        sync: false
+      - key: LANGSMITH_TRACING
+        value: "true"

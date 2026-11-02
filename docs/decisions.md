@@ -1,5 +1,31 @@
 # Decision Log
 
+## 2026-11-02 — Complete remaining implementation with bounded parallel work
+
+**Decision:** the user authorized phases 6–11 together and requested agents.
+Assign disjoint workflow, web and evaluation/documentation ownership; integrate
+through explicit contracts. Keep phase acceptance and deployment verification
+separate. Development limits approved by the user are $0.30/run and $1/day.
+
+**Why:** one complete browser workflow is now more useful than pausing after each
+implementation step. Ponytail still selects the smallest complete solution:
+Postgres-backed run state/checkpoints/events, one bounded critic revision, public
+dry-run, conservative daily reservations and versioned preset caching.
+
+**Limits:** manual judge calibration requires ten real human ratings; a prepared
+Render/Vercel configuration is not a deployed demo. Real Jira writes and host
+virtualization changes remain outside automatic verification.
+
+## 2026-11-02 — Persist development lessons without a memory framework
+
+**Decision:** read [lessons.md](lessons.md) before work and update it after a
+recurring or non-obvious defect, alongside the shared fix and behavioral test.
+Keep authoritative phase checkpoints in the plan. Harness has no automatic
+error-recording hook in this repository.
+
+**Why:** a small tracked file survives new chats and can point to executable
+regressions. More instructions alone do not prevent a broken implementation.
+
 ## 2026-11-02 — Shared instructions and phased work
 
 **Decision:** `AGENTS.md` contains the shared Codex and Claude Code rules; `CLAUDE.md` imports it. README explains the whole product, `docs/spec.md` holds the target contract, and `docs/plan.md` records implementation order and acceptance status.
@@ -104,3 +130,29 @@
 
 **Rejected:** the `pgvector` Python package and SQLAlchemy (a vector literal is one line), LangChain vector stores (hide the SQL the user wants to learn), an HNSW index for 13 rows, per-requirement classification calls (more cost and latency for the same context), and silently dropping invalid references (hides a model error). Docker step 2.2 stays deferred; Neon does not verify the container.
 
+
+## 2026-11-02 — No environment auto-tracing
+
+**Decision:** `app.llm` calls `langsmith.configure(enabled=False)` at import. Only explicit `tracing_context(enabled=True)` blocks with hide-input/output clients trace.
+
+**Why:** `uv run --env-file` exports `LANGSMITH_TRACING=true`, so LangGraph `update_state`/resume calls and pytest fakes were auto-traced with the default client, uploading transcript text and test noise.
+
+## 2026-11-02 — Classification refs and Jira descriptions
+
+**Decision:** a classification may cite any excerpt sent in the shared `spec_excerpts` map; cited excerpts are appended to that requirement's evidence. IDs never sent still fail the run. Jira descriptions use ADF sections: user story, acceptance criteria list, and source evidence (requirement, quote, speaker, spec refs, analysis), plus a `discovery-agent` label.
+
+**Why:** excerpts are deduplicated across requirements, so the model legitimately saw neighbouring excerpts; rejecting those refs failed 2 of 6 real transcript runs. Tickets must carry the traceable evidence that the product promises.
+
+## 2026-11-02 — Any-conversation mode
+
+**Decision:** `/projects` adds `general` ("Any conversation (no specification)"). Its search returns no excerpts, so `classify` still runs but may assign only `new` or `unclear`; presets are not cached for it. No document upload yet.
+
+**Why:** users need to split an arbitrary call into stories without a project baseline. Reusing the same graph keeps one workflow. Phase-5 RAG eval after the prompt change matched the baseline exactly (N=29: recall@5 0.966, status accuracy 0.897, conflict F1 0.769). Quality on non-Harbor conversations is unmeasured: there are no gold cases for it.
+
+## 2026-11-02 — Cheaper runs and Jira handoff view
+
+**Decision:** after its single revision, `write_stories` goes straight to `human_review`; the second critique is skipped. Extraction now ignores jokes and ideas explicitly deferred to a later release. After Approve, the UI shows a Jira-style board column whose cards turn from "Creating…" into issue keys with links.
+
+**Why:** the post-revision critique could not change any output and the UI never displayed it, yet it cost a call. On one fictional custom transcript a run dropped from 6 calls / $0.084 / 60 s to 5 calls / $0.055 / 33 s, and a deferred waitlist no longer became a story. Jira pages refuse iframes, so the board is rendered locally.
+
+**Rejected:** `reasoning_effort=low`. One trial broke story constraints (a requirement implemented twice), failing the run. The extraction prompt change is not covered by the RAG eval, which bypasses extraction.

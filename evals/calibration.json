@@ -1,0 +1,5 @@
+{
+  "instructions": "Copy ten real story examples with a human 1-5 rating and the judge's rating. Do not fabricate scores. At least ten unique example_id rows are required. The runner reports mean absolute error; a reviewer must approve judge agreement before marking approved true.",
+  "approved": false,
+  "scores": []
+}

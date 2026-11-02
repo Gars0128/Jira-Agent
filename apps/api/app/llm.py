@@ -1,15 +1,21 @@
 import json
+import math
 from decimal import Decimal
 from typing import TypeVar
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_openai import ChatOpenAI
-from langsmith import trace, tracing_context
+from langsmith import configure, trace, tracing_context
 from openai import OpenAI
 from pydantic import BaseModel, Field, ValidationError
 
 from app.config import Settings
+
+# LANGSMITH_TRACING in the environment would auto-trace LangChain/LangGraph with a
+# default client that uploads transcripts; trace only inside explicit contexts
+# whose clients hide inputs and outputs.
+configure(enabled=False)
 
 Output = TypeVar("Output", bound=BaseModel)
 
@@ -129,6 +135,8 @@ class LLMHelper:
             return result
 
     def embed(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
         if self.usage.cost_usd is None:
             raise LLMError("Previous call cost is unknown; further calls are blocked")
         price = self.settings.embedding_usd_per_million
@@ -145,8 +153,9 @@ class LLMHelper:
                     response = self.embedder.embeddings.create(
                         model=self.settings.embedding_model, input=texts
                     )
-                tokens = response.usage.prompt_tokens
-                vectors = [item.embedding for item in response.data]
+                tokens = TokenCounts(
+                    input_tokens=response.usage.prompt_tokens, output_tokens=0
+                ).input_tokens
             except Exception:
                 self.usage.cost_usd = None
                 raise LLMError("Embedding call failed; cost is unknown") from None
@@ -155,7 +164,19 @@ class LLMHelper:
             span.add_metadata(self.usage.model_dump(mode="json"))
             if self.usage.cost_usd > self.settings.max_cost_per_run_usd:
                 raise LLMError("Run budget exceeded after provider usage accounting")
-            if len(vectors) != len(texts):
+            if len(response.data) != len(texts):
                 raise LLMError("Provider returned a different number of embeddings")
+            indexed = sorted(response.data, key=lambda item: item.index)
+            if [item.index for item in indexed] != list(range(len(texts))):
+                raise LLMError("Provider returned invalid embedding indices")
+            vectors = [item.embedding for item in indexed]
+            dimensions = len(vectors[0])
+            if not dimensions or any(
+                len(vector) != dimensions
+                or not all(math.isfinite(value) for value in vector)
+                or not any(vector)
+                for vector in vectors
+            ):
+                raise LLMError("Provider returned invalid embedding vectors")
             span.end(outputs={"count": len(vectors)})
             return vectors

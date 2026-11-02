@@ -6,3 +6,9 @@ __pycache__/
 .env
 .env.*
 !.env.example
+node_modules/
+.next/
+playwright-report/
+test-results/
+*.tsbuildinfo
+.test-tmp*/

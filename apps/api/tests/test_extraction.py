@@ -245,3 +245,15 @@ def test_settings_require_valid_agent_environment(settings: Settings) -> None:
             _env_file=None,
             **(settings.model_dump() | {"langsmith_agent_environment": "unknown"}),
         )
+
+
+def test_environment_tracing_flag_does_not_trace_outside_explicit_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from langsmith import tracing_context
+    from langsmith.utils import tracing_is_enabled
+
+    monkeypatch.setenv("LANGSMITH_TRACING", "true")
+    assert tracing_is_enabled() is False
+    with tracing_context(enabled=True):
+        assert tracing_is_enabled() is True

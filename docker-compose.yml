@@ -18,13 +18,19 @@ services:
       start_period: 10s
 
   api:
-    build: ./apps/api
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - .env
     environment:
       PGHOST: db
       PGPORT: "5432"
       PGDATABASE: ${POSTGRES_DB:?Copy .env.example to .env}
       PGUSER: ${POSTGRES_USER:?Copy .env.example to .env}
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+      PUBLIC_DEMO: "true"
       JIRA_DRY_RUN: "true"
     ports:
       - "127.0.0.1:8000:8000"

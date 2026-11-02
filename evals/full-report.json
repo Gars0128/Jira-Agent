@@ -1,0 +1,1071 @@
+{
+  "cases_n": 12,
+  "requested_cases_n": 12,
+  "gold_requirements_n": 29,
+  "predicted_requirements_n": 32,
+  "matched_requirements_n": 11,
+  "retrieval_n": 4,
+  "retrieval_recall_at_5": 1.0,
+  "status_accuracy": 0.8181818181818182,
+  "conflict_f1": 0.2857142857142857,
+  "conflict_counts": {
+    "tp": 2,
+    "fp": 7,
+    "fn": 3
+  },
+  "requirement_precision": 0.34375,
+  "requirement_recall": 0.3793103448275862,
+  "grounding_rate": 1.0,
+  "story_quality": 3.857142857142857,
+  "story_quality_n": 7,
+  "p95_latency_ms": 27709.992000000057,
+  "latency_n": 8,
+  "error_cases": [
+    {
+      "id": "05-usability",
+      "stage": "workflow",
+      "error": "Model cited a specification chunk it was not given"
+    }
+  ],
+  "mode": "full",
+  "judge_enabled": true,
+  "incomplete_reason": null,
+  "judge_calibrated": false,
+  "judge_calibration_mae": null,
+  "cost_usd": "0.18068246",
+  "unknown_cost_reservation_usd": "0.30",
+  "legacy_resume": true,
+  "samples": [
+    {
+      "id": "01-exports",
+      "requirements": [
+        {
+          "id": "REQ-001",
+          "text": "Export reservation reports as UTF-8 CSV using the active filters.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Keep the export as UTF-8 CSV using the active filters.",
+          "speaker": "Nora (cooperative lead)",
+          "status": "duplicate",
+          "spec_refs": [
+            "HD-EXPORT",
+            "HD-REPORTS"
+          ],
+          "note": "HD-EXPORT requires UTF-8 CSV exports using the active report filters, and HD-REPORTS requires exports to retain the current filter selection."
+        },
+        {
+          "id": "REQ-002",
+          "text": "Include a month-by-month reservation count in the report, grouped by reservation start month, including when the selected date filter spans multiple months.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Add a month-by-month reservation count to the report, grouped by reservation start month.",
+          "speaker": "Nora (cooperative lead)",
+          "status": "conflict",
+          "spec_refs": [
+            "HD-EXPORT",
+            "HD-REPORTS"
+          ],
+          "note": "HD-EXPORT states that a new monthly summary column is outside the baseline, while HD-REPORTS defines the report's existing row-based filtered output."
+        },
+        {
+          "id": "REQ-003",
+          "text": "Allow coordinators to export reservation reports; this request remains unresolved because broader exports have not been approved by the board.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Coordinators must be allowed to export reservation reports too.",
+          "speaker": "Nora (cooperative lead)",
+          "status": "conflict",
+          "spec_refs": [
+            "HD-EXPORT",
+            "HD-ACCEPTANCE"
+          ],
+          "note": "HD-EXPORT permits only administrators to export and identifies additional export roles as an access-policy change, which HD-ACCEPTANCE also tests by prohibiting coordinator export."
+        },
+        {
+          "id": "REQ-004",
+          "text": "Make exporting feel instant; required report size and time target are unresolved.",
+          "type": "non_functional",
+          "priority": "could",
+          "quote": "One other thing: make exporting feel instant.",
+          "speaker": "Owen (coordinator)",
+          "status": "unclear",
+          "spec_refs": [
+            "HD-USABILITY",
+            "HD-EXPORT"
+          ],
+          "note": "HD-USABILITY says terms such as \"instant\" require a measurable target, while HD-EXPORT only notes that large reports may take time to prepare."
+        }
+      ],
+      "stories": [],
+      "matches": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "judge_ratings": [],
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3847,
+        "output_tokens": 495,
+        "cost_usd": "0.01315088"
+      }
+    },
+    {
+      "id": "02-retention",
+      "requirements": [
+        {
+          "id": "REQ-001",
+          "text": "Retain audit events for 365 days instead of 180 days, subject to committee review and approval.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Keep audit events for three hundred sixty-five days instead of one hundred eighty days.",
+          "speaker": "Eli (administrator)",
+          "status": "conflict",
+          "spec_refs": [
+            "HD-AUDIT"
+          ],
+          "note": "HD-AUDIT sets audit-event retention at 180 days and states that longer retention changes the approved policy and requires explicit approval."
+        },
+        {
+          "id": "REQ-002",
+          "text": "Audit events must remain append-only; corrections must create a new audit event.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "Audit events must remain append-only; corrections should create a new event.",
+          "speaker": "Eli (administrator)",
+          "status": "duplicate",
+          "spec_refs": [
+            "HD-AUDIT"
+          ],
+          "note": "HD-AUDIT already requires audit records to be append-only and corrections to be represented by a new event referencing the affected action."
+        },
+        {
+          "id": "REQ-003",
+          "text": "Allow administrators to filter audit history by a single actor identifier value.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Allow administrators to filter audit history by actor identifier.",
+          "speaker": "Eli (administrator)",
+          "status": "new",
+          "spec_refs": [
+            "HD-AUDIT"
+          ],
+          "note": "HD-AUDIT provides record-specific audit history but states that the baseline does not include a general actor filter, so this administrator actor-filter capability is additional scope."
+        },
+        {
+          "id": "REQ-004",
+          "text": "Invitation tokens must not be recorded in the audit log, including as a result of the new filter.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "none of this should put invitation tokens into the audit log.",
+          "speaker": "Eli (administrator)",
+          "status": "duplicate",
+          "spec_refs": [
+            "HD-AUDIT"
+          ],
+          "note": "HD-AUDIT already prohibits recording invitation tokens in audit data."
+        }
+      ],
+      "stories": [
+        {
+          "id": "S1",
+          "title": "Filter Audit History by Actor Identifier",
+          "as_a": "administrator",
+          "i_want": "to filter audit history by a single actor identifier value",
+          "so_that": "I can view audit records associated with that actor",
+          "acceptance_criteria": [
+            "Given an administrator is viewing audit history, when the administrator applies a filter with one actor identifier value, then the audit history displays only records associated with that actor identifier.",
+            "Given an administrator has applied an actor identifier filter, when the administrator changes the filter to a different single actor identifier value, then the audit history displays only records associated with the newly specified actor identifier."
+          ],
+          "requirement_ids": [
+            "REQ-003"
+          ],
+          "idempotency_key": "e6b7c65df63409c57d9d47b121ae1bbb05a8af6b22e25cf7307e92ab7b5e6b46"
+        }
+      ],
+      "matches": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "judge_ratings": [
+        {
+          "score": 4,
+          "rationale": "The story is focused, valuable, and small, with clear actor, outcome, and two testable single-value filtering scenarios. It aligns with REQ-003 and does not add unsupported scope. Minor edits would make it fully test-ready: define what counts as an actor identifier (format/canonical matching) and clarify expected behavior for no matching records, invalid/empty values, and clearing the filter."
+        }
+      ],
+      "usage": {
+        "calls": 7,
+        "input_tokens": 5479,
+        "output_tokens": 943,
+        "cost_usd": "0.02180870"
+      }
+    },
+    {
+      "id": "03-sharing",
+      "requirements": [
+        {
+          "id": "REQ-001",
+          "text": "The product must allow anyone with a reservation sharing link to view that reservation without signing in. This remains a policy proposal and conflicts with the private-access rule; the committee must decide the privacy tradeoff.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Keep the public-link request visible so the committee sees the privacy tradeoff.",
+          "speaker": "Nora (cooperative lead)",
+          "status": "conflict",
+          "spec_refs": [
+            "HD-ACCESS",
+            "HD-ACCEPTANCE"
+          ],
+          "note": "The private-access rule requires authentication for reservation pages and explicitly excludes public sharing links and anonymous copied reservation URLs."
+        },
+        {
+          "id": "REQ-002",
+          "text": "The product must allow a coordinator to revoke an invitation before it expires.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Allow a coordinator to revoke an invitation before it expires.",
+          "speaker": "Owen (coordinator)",
+          "status": "new",
+          "spec_refs": [
+            "HD-INVITES"
+          ],
+          "note": "Manual revocation of an unexpired invitation is explicitly not specified in the baseline and is identified as a potential future feature."
+        },
+        {
+          "id": "REQ-003",
+          "text": "The product must reject acceptance of a revoked invitation, explain that it was revoked, and must not create an account.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Reject it and explain that it was revoked. It must not create an account.",
+          "speaker": "Owen (coordinator)",
+          "status": "new",
+          "spec_refs": [
+            "HD-INVITES"
+          ],
+          "note": "The invitation workflow defines handling for valid, expired, and used invitations but does not define revoked invitations or their acceptance response."
+        },
+        {
+          "id": "REQ-004",
+          "text": "Invitation expiry must remain seventy-two hours.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "Revocation is the concrete gap; seventy-two-hour expiry stays.",
+          "speaker": "Nora (cooperative lead)",
+          "status": "duplicate",
+          "spec_refs": [
+            "HD-INVITES"
+          ],
+          "note": "The invitation workflow already sets invitation expiry at seventy-two hours."
+        },
+        {
+          "id": "REQ-005",
+          "text": "External collaborators should receive appropriate access, but the required role, account model, pages, actions, and permission matrix remain unresolved and must not be guessed.",
+          "type": "functional",
+          "priority": "should",
+          "quote": "External collaborators should get the right access.",
+          "speaker": "Nora (cooperative lead)",
+          "status": "unclear",
+          "spec_refs": [
+            "HD-ACCESS"
+          ],
+          "note": "External-collaborator roles are not defined, and the specification requires a clear permission matrix rather than inferred permissions before such a role can be implemented."
+        }
+      ],
+      "stories": [
+        {
+          "id": "S1",
+          "title": "Revoke an unexpired invitation",
+          "as_a": "coordinator",
+          "i_want": "to revoke an invitation before it expires",
+          "so_that": "the invitation can no longer be accepted",
+          "acceptance_criteria": [
+            "Given an invitation is unexpired, When a coordinator revokes it, Then the invitation is recorded as revoked.",
+            "Given an invitation is revoked, When its expiration time has not yet passed, Then it remains unavailable for acceptance."
+          ],
+          "requirement_ids": [
+            "REQ-002"
+          ],
+          "idempotency_key": "edf4860c4b28436c8bcd74d65db59d914f3ded2a0b1f4c53d673bc958e6554d2"
+        },
+        {
+          "id": "S2",
+          "title": "Reject acceptance of a revoked invitation",
+          "as_a": "invitee",
+          "i_want": "to receive an explanation when I try to accept a revoked invitation",
+          "so_that": "I know why I cannot complete account creation",
+          "acceptance_criteria": [
+            "Given an invitation has been revoked, When an invitee attempts to accept it, Then the product rejects the acceptance and explains that the invitation was revoked.",
+            "Given an invitation has been revoked, When an invitee attempts to accept it, Then the product does not create an account."
+          ],
+          "requirement_ids": [
+            "REQ-003"
+          ],
+          "idempotency_key": "7bc4c01d1ced3bc4477dd78a4b819481a4f494ede94c702801ed1074a9ad1777"
+        }
+      ],
+      "matches": [
+        [
+          1,
+          2
+        ]
+      ],
+      "judge_ratings": [
+        {
+          "score": 4,
+          "rationale": "The story is independent, valuable, small, and directly traceable to REQ-002. Its acceptance criteria are clear and testable for revocation and continued non-acceptability before expiry. It correctly avoids inventing details such as authorization rules, UI behavior, or account-creation handling (the latter belongs to REQ-003). A minor edit would clarify whether revocation is allowed only while unexpired and define the expected outcome if a coordinator attempts to revoke an already expired invitation."
+        },
+        {
+          "score": 5,
+          "rationale": "The story is focused and INVEST-aligned: it covers one clear revoked-invitation outcome for a defined user, has direct value, and is small and testable. Both acceptance criteria are deterministic and map exactly to REQ-003: rejection with a revoked explanation and no account creation. It does not invent requirements; the prerequisite ability to revoke is separately covered by REQ-002."
+        }
+      ],
+      "usage": {
+        "calls": 8,
+        "input_tokens": 7034,
+        "output_tokens": 1021,
+        "cost_usd": "0.02566066"
+      }
+    },
+    {
+      "id": "04-bookings",
+      "requirements": [
+        {
+          "id": "REQ-001",
+          "text": "The system must allow reservations to start up to thirty calendar days after submission.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Allow reservations to start up to thirty calendar days after submission.",
+          "speaker": "Jun (member representative)",
+          "status": "conflict",
+          "spec_refs": [
+            "HD-BOOKING"
+          ],
+          "note": "HD-BOOKING sets a fourteen-calendar-day advance-booking limit for all roles, so allowing starts up to thirty days contradicts that limit."
+        },
+        {
+          "id": "REQ-002",
+          "text": "The system must limit reservation duration to three consecutive calendar days.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "Keep the maximum duration at three consecutive calendar days.",
+          "speaker": "Jun (member representative)",
+          "status": "duplicate",
+          "spec_refs": [
+            "HD-BOOKING"
+          ],
+          "note": "HD-BOOKING already limits reservations to three consecutive calendar days including the start date."
+        },
+        {
+          "id": "REQ-003",
+          "text": "The system must allow members to subscribe for an email notification when a selected item and date interval becomes available.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Let members subscribe to an email when a selected item and date interval become available.",
+          "speaker": "Jun (member representative)",
+          "status": "new",
+          "spec_refs": [
+            "HD-BOOKING",
+            "HD-NOTIFY"
+          ],
+          "note": "HD-BOOKING excludes subscriptions to newly available slots and HD-NOTIFY excludes waitlist notifications from the baseline."
+        },
+        {
+          "id": "REQ-004",
+          "text": "Availability notifications must be sent by email and include a portal link.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Send an email with a portal link.",
+          "speaker": "Jun (member representative)",
+          "status": "new",
+          "spec_refs": [
+            "HD-NOTIFY"
+          ],
+          "note": "HD-NOTIFY defines email and portal links for existing reservation notifications, but not for availability notifications."
+        },
+        {
+          "id": "REQ-005",
+          "text": "Availability notifications must not automatically create a reservation; members must submit a reservation manually after receiving the notification.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "The member must still submit a reservation, and another person may get there first.",
+          "speaker": "Jun (member representative)",
+          "status": "duplicate",
+          "spec_refs": [
+            "HD-BOOKING",
+            "HD-PURPOSE"
+          ],
+          "note": "HD-BOOKING and HD-PURPOSE require a server-validated submission to create a confirmed reservation, so a notification cannot itself reserve an item."
+        },
+        {
+          "id": "REQ-006",
+          "text": "Members must be able to unsubscribe from availability notifications.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Yes, members must be able to unsubscribe.",
+          "speaker": "Jun (member representative)",
+          "status": "new",
+          "spec_refs": [
+            "HD-NOTIFY"
+          ],
+          "note": "HD-NOTIFY requires opt-out behavior to be identified for any new notification, but does not specify an unsubscribe mechanism for availability notices."
+        },
+        {
+          "id": "REQ-007",
+          "text": "The expiry rule for availability-notification subscriptions must be clarified before it is finalized.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "I do not know the expiry rule; please ask us before settling it.",
+          "speaker": "Jun (member representative)",
+          "status": "unclear",
+          "spec_refs": [
+            "HD-INVITES"
+          ],
+          "note": "The requirement identifies that an expiry rule is undecided but provides no expiry duration or other testable rule for availability-notification subscriptions."
+        },
+        {
+          "id": "REQ-008",
+          "text": "Availability notifications must use email only and must not use SMS.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "No, email only. I want the same familiar channel, not another notification system.",
+          "speaker": "Jun (member representative)",
+          "status": "duplicate",
+          "spec_refs": [
+            "HD-NOTIFY"
+          ],
+          "note": "HD-NOTIFY already establishes email as the baseline notification channel and excludes SMS from the first release."
+        }
+      ],
+      "stories": [
+        {
+          "id": "S1",
+          "title": "Subscribe to item availability notifications",
+          "as_a": "member",
+          "i_want": "to subscribe to an email notification for a selected item and date interval",
+          "so_that": "I am notified when that item becomes available during the interval I need",
+          "acceptance_criteria": [
+            "Given I am viewing a selected item, when I provide a date interval and submit an availability-notification subscription, then the system records my subscription for that item and date interval.",
+            "Given I have an active availability-notification subscription for an item and date interval, when the item becomes available in that interval, then the system sends an email notification to me containing a portal link."
+          ],
+          "requirement_ids": [
+            "REQ-003",
+            "REQ-004"
+          ],
+          "idempotency_key": "3bd53baa6fd7de4f8fec20e8c3b1522985766abaecf5b55bec94728a8f5f9d54"
+        },
+        {
+          "id": "S2",
+          "title": "Unsubscribe from availability notifications",
+          "as_a": "member",
+          "i_want": "to unsubscribe from availability notifications",
+          "so_that": "I no longer receive availability emails I do not want",
+          "acceptance_criteria": [
+            "Given I have an active availability-notification subscription, when I unsubscribe from it, then the system marks the subscription as inactive.",
+            "Given an availability-notification subscription is inactive, when its selected item becomes available during its date interval, then the system does not send an availability email for that subscription."
+          ],
+          "requirement_ids": [
+            "REQ-006"
+          ],
+          "idempotency_key": "add78fc6eaa2b0f0320a43eca682e8f4abb626c6ba9d301673e49bce9565caee"
+        }
+      ],
+      "matches": [
+        [
+          2,
+          2
+        ],
+        [
+          5,
+          3
+        ]
+      ],
+      "judge_ratings": [
+        {
+          "score": 3,
+          "rationale": "The story is valuable and mostly testable: it identifies the member, item, interval, email channel, and portal-link content. However, it omits required related behavior: members must be able to unsubscribe (REQ-006), and it does not state that a notification does not create a reservation (REQ-005). More importantly, subscription expiry is explicitly undecided (REQ-007), leaving lifecycle behavior ambiguous. The criteria should also define what qualifies as availability within an interval and expected behavior for duplicate subscriptions or repeated availability events. No unsupported requirements should be added; the expiry rule needs stakeholder clarification."
+        },
+        {
+          "score": 4,
+          "rationale": "Focused, independent story with clear member value and two testable criteria: unsubscribing disables the subscription, and inactive subscriptions generate no availability email. It aligns with REQ-006 without expanding scope. Minor edits: \u201cmarks ... inactive\u201d assumes a particular internal state rather than specifying observable opt-out behavior, and the story does not state that a member may unsubscribe only their own subscription. These are small clarifications, not blockers."
+        }
+      ],
+      "stage": "complete",
+      "error": null,
+      "workflow_usage": {
+        "calls": 5,
+        "input_tokens": 5564,
+        "output_tokens": 2066,
+        "cost_usd": "0.03548242"
+      },
+      "workflow_latency_ms": 27709.992000000057,
+      "retrieved_ids": {
+        "REQ-001": [
+          "HD-BOOKING",
+          "HD-ACCEPTANCE",
+          "HD-PURPOSE",
+          "HD-REPORTS",
+          "HD-USABILITY"
+        ],
+        "REQ-002": [
+          "HD-BOOKING",
+          "HD-AUDIT",
+          "HD-PURPOSE",
+          "HD-ACCEPTANCE",
+          "HD-USABILITY"
+        ],
+        "REQ-003": [
+          "HD-NOTIFY",
+          "HD-BOOKING",
+          "HD-INVITES",
+          "HD-REPORTS",
+          "HD-PURPOSE"
+        ],
+        "REQ-004": [
+          "HD-NOTIFY",
+          "HD-INVITES",
+          "HD-ACCESS",
+          "HD-OPERATIONS",
+          "HD-USABILITY"
+        ],
+        "REQ-005": [
+          "HD-NOTIFY",
+          "HD-BOOKING",
+          "HD-REPORTS",
+          "HD-PURPOSE",
+          "HD-ACCESS"
+        ],
+        "REQ-006": [
+          "HD-NOTIFY",
+          "HD-ACCESS",
+          "HD-BOOKING",
+          "HD-PURPOSE",
+          "HD-INVITES"
+        ],
+        "REQ-007": [
+          "HD-INVITES",
+          "HD-BOOKING",
+          "HD-OPERATIONS",
+          "HD-AUDIT",
+          "HD-ACCEPTANCE"
+        ],
+        "REQ-008": [
+          "HD-NOTIFY",
+          "HD-OPERATIONS",
+          "HD-USABILITY",
+          "HD-INVITES",
+          "HD-PURPOSE"
+        ]
+      },
+      "usage": {
+        "calls": 8,
+        "input_tokens": 8115,
+        "output_tokens": 2405,
+        "cost_usd": "0.04432572"
+      }
+    },
+    {
+      "id": "05-usability",
+      "requirements": [],
+      "stories": [],
+      "matches": [],
+      "judge_ratings": [],
+      "stage": "workflow",
+      "error": "Model cited a specification chunk it was not given",
+      "usage": {
+        "calls": 3,
+        "input_tokens": 3837,
+        "output_tokens": 908,
+        "cost_usd": "0.01818984"
+      }
+    },
+    {
+      "id": "06-operations",
+      "requirements": [
+        {
+          "id": "REQ-001",
+          "text": "Provide a public read-only status page showing whether the reservation service is available.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Add a public read-only status page that shows whether the reservation service is available.",
+          "speaker": "Eli (administrator)",
+          "status": "conflict",
+          "spec_refs": [
+            "HD-OPERATIONS"
+          ],
+          "note": "The requirement conflicts with the baseline rule that there is no publicly accessible system-status page."
+        },
+        {
+          "id": "REQ-002",
+          "text": "The public status page must show service availability only and must not expose reservation data, member details, or any action that changes anything.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "No. Show service availability only, without reservation data, member details or an action to change anything.",
+          "speaker": "Eli (administrator)",
+          "status": "new",
+          "spec_refs": [
+            "HD-ACCESS"
+          ],
+          "note": "Although the access rules limit anonymous visitors to sign-in and a generic cooperative description, they do not specify a public status page with these restricted contents."
+        },
+        {
+          "id": "REQ-003",
+          "text": "Outbound email must be retried on HTTP 429 or 5xx responses no more than three times after the initial attempt, using exponential backoff.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Retry outbound email on 429 or 5xx at most three times after the initial attempt, with exponential backoff.",
+          "speaker": "Eli (administrator)",
+          "status": "duplicate",
+          "spec_refs": [
+            "HD-OPERATIONS"
+          ],
+          "note": "The specification already requires retries for outbound email HTTP 429 or 5xx failures at most three times after the initial attempt using exponential backoff."
+        },
+        {
+          "id": "REQ-004",
+          "text": "Database schema migrations must not be scheduled on Saturdays or Sundays, determined using the cooperative's configured local timezone.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "Do not schedule database schema migrations on Saturdays or Sundays.",
+          "speaker": "Nora (cooperative lead)",
+          "status": "conflict",
+          "spec_refs": [
+            "HD-OPERATIONS"
+          ],
+          "note": "The requirement conflicts with the baseline statement that there is no approved restriction on weekend schema migrations."
+        },
+        {
+          "id": "REQ-005",
+          "text": "The cooperative's configured local timezone must determine whether a database schema migration is scheduled on Saturday or Sunday.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "Use the cooperative's configured local timezone.",
+          "speaker": "Nora (cooperative lead)",
+          "status": "new",
+          "spec_refs": [
+            "HD-OPERATIONS"
+          ],
+          "note": "The specification does not define any weekend migration restriction or timezone rule for scheduling schema migrations."
+        },
+        {
+          "id": "REQ-006",
+          "text": "Monitoring should be provided, but the events to monitor, alert thresholds, and alert recipients remain unresolved and require clarification; alerts must not be deployed for every log line.",
+          "type": "non_functional",
+          "priority": "should",
+          "quote": "We should monitor everything too.",
+          "speaker": "Eli (administrator)",
+          "status": "unclear",
+          "spec_refs": [
+            "HD-OPERATIONS"
+          ],
+          "note": "The specification leaves monitoring scope, thresholds, and alert recipients undecided and requires those details before monitoring can be implemented or tested."
+        }
+      ],
+      "stories": [
+        {
+          "id": "S1",
+          "title": "Restrict public status page content",
+          "as_a": "public visitor",
+          "i_want": "to view service availability on the public status page without access to cooperative data or change actions",
+          "so_that": "I can check service status without exposing protected information or modifying the system",
+          "acceptance_criteria": [
+            "Given a public visitor opens the status page, When the page is displayed, Then it shows service availability.",
+            "Given a public visitor opens the status page, When the page is displayed, Then it does not show reservation data or member details.",
+            "Given a public visitor opens the status page, When the page is displayed, Then it provides no action that changes system data or state."
+          ],
+          "requirement_ids": [
+            "REQ-002"
+          ],
+          "idempotency_key": "8438c8824bb7e5825102b109850980a13144f103d28e02bda445517d85aad5f4"
+        },
+        {
+          "id": "S2",
+          "title": "Use cooperative local timezone for weekend migration scheduling",
+          "as_a": "cooperative administrator",
+          "i_want": "schema migration scheduling to evaluate Saturday and Sunday using the cooperative's configured local timezone",
+          "so_that": "weekend scheduling is determined according to the cooperative's local time",
+          "acceptance_criteria": [
+            "Given a schema migration is scheduled, When the system determines whether its scheduled time falls on Saturday or Sunday, Then it uses the cooperative's configured local timezone to determine the local day of week."
+          ],
+          "requirement_ids": [
+            "REQ-005"
+          ],
+          "idempotency_key": "79623b19e7823fcc8c78b96cef76a444936a745d92514848cbee1b701a0830f1"
+        }
+      ],
+      "matches": [
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "judge_ratings": [
+        {
+          "score": 3,
+          "rationale": "The story is valuable, small, and mostly testable: the criteria clearly cover availability visibility, exclusion of reservation/member data, and read-only behavior. However, it depends on a public status page whose creation is only stated in REQ-001, while the story traces only to REQ-002; REQ-001 is marked as conflicting with the baseline. The acceptance criteria also need a defined availability indicator/source and clearer verification scope for \u201cno action\u201d (for example, no state-changing UI controls or public API operations). Resolve the public-page conflict and link/clarify the enabling requirement before implementation."
+        },
+        {
+          "score": 4,
+          "rationale": "Aligned with REQ-005 and does not invent the separate weekend-prohibition behavior from REQ-004. The acceptance criterion is clear and testable, including timezone/day-boundary cases. Minor refinement: explicitly identify the scheduled timestamp and configured timezone source (and include a boundary example) to remove implementation ambiguity."
+        }
+      ],
+      "stage": "complete",
+      "error": null,
+      "workflow_usage": {
+        "calls": 5,
+        "input_tokens": 5573,
+        "output_tokens": 971,
+        "cost_usd": "0.02234062"
+      },
+      "workflow_latency_ms": 11209.863699999914,
+      "retrieved_ids": {
+        "REQ-001": [
+          "HD-REPORTS",
+          "HD-PURPOSE",
+          "HD-USABILITY",
+          "HD-ACCESS",
+          "HD-OPERATIONS"
+        ],
+        "REQ-002": [
+          "HD-ACCESS",
+          "HD-PURPOSE",
+          "HD-REPORTS",
+          "HD-USABILITY",
+          "HD-ACCEPTANCE"
+        ],
+        "REQ-003": [
+          "HD-OPERATIONS",
+          "HD-INVITES",
+          "HD-NOTIFY",
+          "HD-ACCEPTANCE",
+          "HD-BOOKING"
+        ],
+        "REQ-004": [
+          "HD-BOOKING",
+          "HD-OPERATIONS",
+          "HD-PURPOSE",
+          "HD-USABILITY",
+          "HD-EXPORT"
+        ],
+        "REQ-005": [
+          "HD-BOOKING",
+          "HD-PURPOSE",
+          "HD-OPERATIONS",
+          "HD-USABILITY",
+          "intro"
+        ],
+        "REQ-006": [
+          "HD-OPERATIONS",
+          "HD-NOTIFY",
+          "HD-ACCEPTANCE",
+          "HD-AUDIT",
+          "HD-USABILITY"
+        ]
+      },
+      "usage": {
+        "calls": 8,
+        "input_tokens": 7813,
+        "output_tokens": 1469,
+        "cost_usd": "0.03238874"
+      }
+    },
+    {
+      "id": "07-new-preset",
+      "requirements": [
+        {
+          "id": "REQ-001",
+          "text": "The product must save the user's chosen catalogue category between visits.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Save my chosen catalogue category between visits.",
+          "speaker": "Owen",
+          "status": "conflict",
+          "spec_refs": [
+            "HD-CATALOGUE"
+          ],
+          "note": "The requirement conflicts with the baseline rule that personal catalogue filter presets are not persisted between visits."
+        }
+      ],
+      "stories": [],
+      "matches": [],
+      "judge_ratings": [],
+      "stage": "complete",
+      "error": null,
+      "workflow_usage": {
+        "calls": 3,
+        "input_tokens": 1910,
+        "output_tokens": 109,
+        "cost_usd": "0.00508642"
+      },
+      "workflow_latency_ms": 2933.196300000418,
+      "retrieved_ids": {
+        "REQ-001": [
+          "HD-CATALOGUE",
+          "HD-PURPOSE",
+          "HD-BOOKING",
+          "HD-USABILITY",
+          "HD-AUDIT"
+        ]
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 1930,
+        "output_tokens": 109,
+        "cost_usd": "0.00508682"
+      }
+    },
+    {
+      "id": "08-duplicate-export",
+      "requirements": [
+        {
+          "id": "REQ-001",
+          "text": "Only administrators may export reservation reports.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "Only administrators may export reservation reports.",
+          "speaker": "Eli",
+          "status": "duplicate",
+          "spec_refs": [
+            "HD-EXPORT"
+          ],
+          "note": "HD-EXPORT already states that only administrators may export reservation reports."
+        }
+      ],
+      "stories": [],
+      "matches": [],
+      "judge_ratings": [],
+      "stage": "complete",
+      "error": null,
+      "workflow_usage": {
+        "calls": 3,
+        "input_tokens": 1911,
+        "output_tokens": 96,
+        "cost_usd": "0.00494628"
+      },
+      "workflow_latency_ms": 2674.023199999283,
+      "retrieved_ids": {
+        "REQ-001": [
+          "HD-EXPORT",
+          "HD-REPORTS",
+          "HD-ACCESS",
+          "HD-BOOKING",
+          "HD-AUDIT"
+        ]
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 1925,
+        "output_tokens": 96,
+        "cost_usd": "0.00494656"
+      }
+    },
+    {
+      "id": "09-conflict-retention",
+      "requirements": [
+        {
+          "id": "REQ-001",
+          "text": "The product must retain audit events for 365 days.",
+          "type": "constraint",
+          "priority": "must",
+          "quote": "Keep audit events for three hundred sixty-five days.",
+          "speaker": "Eli",
+          "status": "conflict",
+          "spec_refs": [
+            "HD-AUDIT"
+          ],
+          "note": "The approved audit retention policy is one hundred eighty days, and retaining audit data longer requires explicit approval."
+        }
+      ],
+      "stories": [],
+      "matches": [],
+      "judge_ratings": [],
+      "stage": "complete",
+      "error": null,
+      "workflow_usage": {
+        "calls": 3,
+        "input_tokens": 1730,
+        "output_tokens": 112,
+        "cost_usd": "0.00476242"
+      },
+      "workflow_latency_ms": 2946.2398999985453,
+      "retrieved_ids": {
+        "REQ-001": [
+          "HD-AUDIT",
+          "HD-OPERATIONS",
+          "HD-ACCEPTANCE",
+          "HD-INVITES",
+          "HD-CATALOGUE"
+        ]
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 1749,
+        "output_tokens": 112,
+        "cost_usd": "0.00476280"
+      }
+    },
+    {
+      "id": "10-unclear-speed",
+      "requirements": [
+        {
+          "id": "REQ-001",
+          "text": "The reservation form should be made much faster; the specific performance target needs clarification.",
+          "type": "non_functional",
+          "priority": "should",
+          "quote": "Make the reservation form much faster.",
+          "speaker": "Jun",
+          "status": "unclear",
+          "spec_refs": [
+            "HD-USABILITY"
+          ],
+          "note": "The baseline explicitly has no numeric response-time target, so \u201cmuch faster\u201d lacks a measurable performance criterion."
+        }
+      ],
+      "stories": [],
+      "matches": [],
+      "judge_ratings": [],
+      "stage": "complete",
+      "error": null,
+      "workflow_usage": {
+        "calls": 3,
+        "input_tokens": 1836,
+        "output_tokens": 115,
+        "cost_usd": "0.00500646"
+      },
+      "workflow_latency_ms": 3164.9593000001914,
+      "retrieved_ids": {
+        "REQ-001": [
+          "HD-USABILITY",
+          "HD-PURPOSE",
+          "HD-BOOKING",
+          "HD-ACCEPTANCE",
+          "HD-REPORTS"
+        ]
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 1860,
+        "output_tokens": 115,
+        "cost_usd": "0.00500694"
+      }
+    },
+    {
+      "id": "11-mind-change",
+      "requirements": [
+        {
+          "id": "REQ-001",
+          "text": "The product must send confirmations by email only.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "No, withdraw SMS. Use email confirmations only.",
+          "speaker": "Jun",
+          "status": "duplicate",
+          "spec_refs": [
+            "HD-NOTIFY"
+          ],
+          "note": "The notification baseline already provides email confirmations and excludes SMS from the first release."
+        }
+      ],
+      "stories": [],
+      "matches": [],
+      "judge_ratings": [],
+      "stage": "complete",
+      "error": null,
+      "workflow_usage": {
+        "calls": 3,
+        "input_tokens": 1665,
+        "output_tokens": 103,
+        "cost_usd": "0.00452442"
+      },
+      "workflow_latency_ms": 3314.5736000005854,
+      "retrieved_ids": {
+        "REQ-001": [
+          "HD-NOTIFY",
+          "HD-INVITES",
+          "HD-OPERATIONS",
+          "HD-USABILITY",
+          "HD-ACCEPTANCE"
+        ]
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 1684,
+        "output_tokens": 103,
+        "cost_usd": "0.00452480"
+      }
+    },
+    {
+      "id": "12-small-talk",
+      "requirements": [],
+      "stories": [],
+      "matches": [],
+      "judge_ratings": [],
+      "stage": "complete",
+      "error": null,
+      "workflow_usage": {
+        "calls": 1,
+        "input_tokens": 349,
+        "output_tokens": 11,
+        "cost_usd": "0.00083"
+      },
+      "workflow_latency_ms": 888.245400001324,
+      "retrieved_ids": {},
+      "usage": {
+        "calls": 1,
+        "input_tokens": 349,
+        "output_tokens": 11,
+        "cost_usd": "0.00083"
+      }
+    }
+  ],
+  "threshold_failures": [
+    "Baseline scope does not match evaluation mode",
+    "requirement_precision: fixed baseline must be measured and within 0-1",
+    "requirement_recall: fixed baseline must be measured and within 0-1",
+    "One or more evaluation cases failed",
+    "requirement_precision: measurement or fixed baseline missing",
+    "requirement_recall: measurement or fixed baseline missing",
+    "judge requires calibration against ten manual scores"
+  ],
+  "case_ids": [
+    "01-exports",
+    "02-retention",
+    "03-sharing",
+    "04-bookings",
+    "05-usability",
+    "06-operations",
+    "07-new-preset",
+    "08-duplicate-export",
+    "09-conflict-retention",
+    "10-unclear-speed",
+    "11-mind-change",
+    "12-small-talk"
+  ],
+  "thresholds_applied": true,
+  "quality_gate_audit": {
+    "method": "Offline scoring of the existing saved artifact; no model calls or metric recalculation.",
+    "baseline": "evals/baseline.json",
+    "scope_note": "The fixed baseline is RAG-only; full precision/recall baseline and human judge calibration remain unapproved."
+  }
+}

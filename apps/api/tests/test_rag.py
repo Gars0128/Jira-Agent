@@ -221,7 +221,7 @@ def test_full_graph_extracts_retrieves_and_classifies(
 @pytest.mark.skipif(
     not os.environ.get("TEST_DATABASE_URL"), reason="set TEST_DATABASE_URL"
 )
-def test_ingest_is_idempotent_and_retrieves_nearest(settings: Settings) -> None:
+def test_live_ingest_is_idempotent_and_retrieves_nearest(settings: Settings) -> None:
     project = f"test-{uuid4().hex[:8]}"
     chunks = [item for item in chunk_spec(SPEC) if item.id != "intro"]
     with psycopg.connect(os.environ["TEST_DATABASE_URL"], autocommit=True) as conn:
@@ -247,3 +247,64 @@ def test_ingest_is_idempotent_and_retrieves_nearest(settings: Settings) -> None:
     with pytest.raises(ValueError, match="not ingested"):
         with psycopg.connect(os.environ["TEST_DATABASE_URL"]) as conn:
             retrieve(conn, helper, project, ["x"])
+
+
+def test_ref_to_another_requirements_excerpt_is_accepted_and_shown(
+    helper_factory: Callable,
+) -> None:
+    fields = {"type": "functional", "priority": "must", "speaker": "Nora"}
+    extracted = {
+        "requirements": [
+            {"id": "R1", "text": "Export reports.", "quote": "Export reports."}
+            | fields,
+            {"id": "R2", "text": "Send alerts.", "quote": "Send alerts."} | fields,
+        ]
+    }
+    classified = {
+        "classifications": [
+            {"id": "R1", "status": "conflict", "spec_refs": ["HD-NOTIFY"], "note": "x"},
+            {"id": "R2", "status": "new", "spec_refs": [], "note": "y"},
+        ]
+    }
+    helper, _ = helper_factory([json.dumps(extracted), json.dumps(classified)], USAGE)
+    found = {"Export": "HD-EXPORT", "Send": "HD-NOTIFY"}
+
+    def search(texts: list[str]) -> list[list[RetrievedChunk]]:
+        return [[chunk(found[text.split()[0]])] for text in texts]
+
+    result = build_graph(helper, search).invoke(
+        {"transcript": "Nora: Export reports. Send alerts."}
+    )
+
+    assert result["requirements"][0].spec_refs == ["HD-NOTIFY"]
+    assert [c.id for c in result["retrieved"]["R1"]] == ["HD-EXPORT", "HD-NOTIFY"]
+    assert [c.id for c in result["retrieved"]["R2"]] == ["HD-NOTIFY"]
+
+
+def test_graph_without_specification_classifies_with_no_excerpts(
+    helper_factory: Callable,
+) -> None:
+    fields = {"type": "functional", "priority": "must", "speaker": "Nora"}
+    extracted = {
+        "requirements": [
+            {"id": "R1", "text": "Send a weekly digest.", "quote": "weekly digest"}
+            | fields
+        ]
+    }
+    classified = {
+        "classifications": [
+            {"id": "R1", "status": "new", "spec_refs": [], "note": "Concrete."}
+        ]
+    }
+    helper, requests = helper_factory(
+        [json.dumps(extracted), json.dumps(classified)], USAGE
+    )
+
+    result = build_graph(helper, lambda queries: [[] for _ in queries]).invoke(
+        {"transcript": "Nora: Send a weekly digest."}
+    )
+
+    assert result["requirements"][0].status == "new"
+    assert result["retrieved"] == {"R1": []}
+    sent = json.loads(requests[1]["messages"][1]["content"])
+    assert sent["spec_excerpts"] == {}

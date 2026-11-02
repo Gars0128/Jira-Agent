@@ -18,6 +18,14 @@ class Settings(BaseSettings):
     embedding_usd_per_million: Decimal = Field(default=Decimal("0.02"), gt=0)
     # Empty URL lets libpq use PG* variables, as in docker-compose.
     database_url: SecretStr = SecretStr("")
+    public_demo: bool = True
+    jira_dry_run: bool = True
+    jira_base_url: str = ""
+    jira_email: str = ""
+    jira_api_token: SecretStr = SecretStr("")
+    jira_project_key: str = ""
+    daily_budget_usd: Decimal = Field(default=Decimal("1.00"), gt=0)
+    max_pending_runs: int = Field(default=8, ge=1, le=100)
     langsmith_tracing: bool = False
     langsmith_api_key: SecretStr | None = None
     langsmith_agent_id: str = Field(

@@ -4,9 +4,96 @@
 
 We are building a web application that turns a client-call transcript into human-reviewed Jira user stories. It extracts requirements, links them to quotes, compares them against the project specification, exposes contradictions, and drafts tickets with acceptance criteria. A person reviews the result and decides what to send to Jira.
 
-**Status:** phase 4 extraction is implemented and verified with a real OpenAI call and a saved LangSmith trace; it awaits the user's walkthrough. Docker step 2.2 remains deferred and remote CI execution unverified. RAG, classification, stories, approval, UI and deployment are still planned. Two minutes is the target full-workflow duration, not a measured result.
+**Status:** the local workflow includes extraction, Neon-backed RAG, stories, a bounded critic, persisted approval, Jira previews, HTTP/SSE, and Next.js/TypeScript. Automated and live database checks pass; the full model-quality gate does not yet pass. Manual acceptance is tracked in the [plan](docs/plan.md). Docker and deployment remain deferred.
 
 The sections below describe the **whole target product**. Phased development gradually implements this complete workflow.
+
+## Run the complete application locally
+
+![Recorded local dry-run workflow](docs/demo/demo.gif)
+
+Latest review: backend automated checks, isolated Neon persistence/concurrency
+checks, six frontend unit checks and four browser checks passed. Ruff, ESLint,
+TypeScript and the web production build passed. The local exports smoke reached
+review in 17.3 seconds at approximately $0.019; cached analysis used zero model
+calls. These functional checks do not replace the failed model-quality evaluation.
+
+Preserve existing keys in the ignored root `.env`. Configure a direct Neon
+`DATABASE_URL` with SSL, the existing OpenAI model/prices, and these user-approved
+development limits:
+
+```dotenv
+MAX_COST_PER_RUN_USD=0.30
+DAILY_BUDGET_USD=1.00
+PUBLIC_DEMO=true
+JIRA_DRY_RUN=true
+```
+
+The daily budget reserves the per-run maximum before admitting work, settles
+known usage, and retains unknown-cost reservations. Provider billing can differ
+from configured estimates. Public mode always returns previews; Jira keys are
+unnecessary.
+
+First terminal, from the repository root:
+
+```powershell
+cd apps/api
+python -m uv sync --locked
+python -m uv run --env-file ../../.env python -m app.rag.ingest ../../data/demo/harbor-desk/spec.md
+python -m uv run --env-file ../../.env uvicorn app.main:app --reload
+```
+
+Open <http://127.0.0.1:8000/ready> once. It initializes the run store/checkpointer
+and starts the persisted-run worker. `/health` proves liveness; `/ready` also needs
+valid configuration and database access. Unchanged ingestion skips embeddings.
+
+Second terminal, from the repository root; use Node 24:
+
+```powershell
+cd apps/web
+npm.cmd ci
+$env:API_URL = "http://127.0.0.1:8000"
+npm.cmd run dev
+```
+
+Open <http://localhost:3000>, select the exports preset and run analysis. Inspect
+coordinator export as a conflict with `HD-EXPORT` evidence, review stories, edit
+a criterion, and approve to obtain previews. Repeat approval and restart the API
+while awaiting review to check persistence and duplicate protection. The server
+validates edits and recomputes idempotency keys. Eligible repeated presets reuse
+cached analysis before review; its key includes transcript, specification, model
+and workflow code.
+
+Three classification disagreements remain in the 29-requirement sample. A missing
+story can reflect classification; inspect evidence and questions before approval.
+The [case study](docs/case-study.md) records measured results and evaluation limits.
+The later 12-case full run **did not meet the quality gate**: precision 0.344,
+recall 0.379, conflict F1 0.286 and one rejected evidence reference. Matching and
+gold annotation need human review; the working local interface does not establish
+production model quality. Seven real judge scores remain uncalibrated.
+
+Checks from `apps/api`: `python -m uv run --locked pytest`,
+`python -m uv run --locked ruff check . ../../evals`, and
+`python -m uv run --locked ruff format --check . ../../evals`.
+From `apps/web`: `npm.cmd run lint`, `npm.cmd run typecheck`, `npm.cmd test`,
+and `npm.cmd run build`. These checks make no paid model calls.
+
+## Deploy and verify
+
+Deployment is deferred by the user. These are preparation instructions for later;
+current acceptance focuses on tests and the local interface.
+
+The root `render.yaml` describes the Docker API; supply private environment values
+in Render and preserve public dry-run. Its Docker context is the repository root
+to include fictional demo assets. In Vercel choose root `apps/web`, Node 24, and
+set server-side `API_URL` to the Render HTTPS URL **before building**. Keep keys
+and database URLs out of `NEXT_PUBLIC_*` variables.
+
+Ingest the deployed specification, check readiness, and perform the whole browser
+workflow including edited approval, restart recovery, cache and budget rejection.
+Record the public URL, actual duration and GIF after these checks. Hosting,
+real Jira writes, and the calibrated quality gate remain separately verifiable
+acceptance work.
 
 ## Who it helps and why
 
@@ -156,7 +243,7 @@ We check completion in two ways:
 | Story quality | Mean ≥ 3.5/5; judge calibrated on 10 manual scores |
 | Cost/run and p95 latency | Measure and report; configure numeric budgets during implementation |
 
-The baseline follows the first real evaluation. No model-quality metrics have been measured, and there is no deployed demo. Add GIF and case study after a working implementation. Checks on fixture structure and quotes do not measure model precision, recall, or story quality.
+The fixed phase-5 sample measured retrieval recall@5 **28/29 (0.966)**, status accuracy **26/29 (0.897)**, and conflict F1 **0.769** (TP 5, FP 3, FN 0), at approximately **$0.068**. Extraction was bypassed: this is not an end-to-end baseline. Full precision/recall and ten manual judge ratings remain to be reviewed. See the [case study](docs/case-study.md); no public deployment is claimed.
 
 ## How we will build and learn
 
@@ -176,11 +263,11 @@ The baseline follows the first real evaluation. No model-quality metrics have be
 
 The [detailed plan](docs/plan.md) preserves the original scope and lists checks, manual acceptance, and learning exercises for each phase. The original two-day estimate does not limit our learning pace.
 
-Each phase uses small steps. The agent explains inputs, code, and expected outputs, implements the step, runs checks, and provides reproducible manual instructions. The user tries them, asks questions, and confirms progression. Passing tests alone does not close a phase. The earlier two-agent CI/demo-data and translation batch is finished; work has returned to sequential steps.
+The user authorized phases 6–11 together with parallel agents. Implementation still uses explicit contracts, checks and persisted checkpoints. Passing tests does not replace manual acceptance; the user can return to individual learning exercises below.
 
 ## Current status and local development
 
-Phase 4 provides a working extraction CLI; phase 5 adds spec retrieval and classification against Neon pgvector (in progress). The HTTP API still has only `/health`. Docker is deliberately deferred, and remote CI execution is unverified. See the [plan](docs/plan.md) for current checkpoints. Phases 6–11 have not started.
+Use the complete-application instructions above for the current workflow. The following sections preserve earlier learning exercises. Docker remains deferred; remote CI execution requires separate verification. See the [plan](docs/plan.md) for the current checkpoint.
 
 ### Run the API without Docker
 
@@ -191,7 +278,7 @@ From the repository root in PowerShell:
 ```powershell
 cd apps/api
 python -m uv sync --locked
-python -m uv run uvicorn app.main:app --reload
+python -m uv run --env-file ../../.env uvicorn app.main:app --reload
 ```
 
 Open <http://127.0.0.1:8000/health>. Expect HTTP `200` with:

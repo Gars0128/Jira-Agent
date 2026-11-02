@@ -1,6 +1,6 @@
 # Instructions for Codex and Claude Code
 
-Read this file in full before each task, then the [plan](docs/plan.md) and relevant sections of the [specification](docs/spec.md). README is the human entry point; this file contains shared agent instructions.
+Read this file in full before each task, then the [plan](docs/plan.md), [development lessons](docs/lessons.md), and relevant sections of the [specification](docs/spec.md). README is the human entry point; this file contains shared agent instructions.
 
 ## Working together
 
@@ -19,8 +19,9 @@ Read this file in full before each task, then the [plan](docs/plan.md) and relev
 ## Current checkpoint
 
 - **Docker step 2.2 is deferred by the user's decision, not completed.** Do not enable the hypervisor, change Windows boot settings, reboot, or retry Docker unless requested. The reason, outstanding checks, and resumption criteria are recorded in the [plan](docs/plan.md).
-- Phase 4 implementation is complete and awaits the user's walkthrough. The user authorized completing the remaining phase in one batch with investigation, tests and code review. A real OpenAI extraction and LangSmith server-side trace retrieval succeeded; see the plan for evidence and limitations. Do not start phase 5 without confirmation.
-- Revisit the deferred database setup before work that needs a live database. Do not silently replace local Postgres with a cloud service.
+- The user authorized phases 6–11 together with parallel agents. Neon is approved. Keep implementation, automated verification, manual acceptance and deployment distinct in the plan.
+- User-approved development limits are $0.30/run and $1/day. Preserve public forced dry-run. New paid limits and real Jira writes require explicit authorization.
+- Deployment is deferred by the user: finish checks and the local interface; keep hosting configuration prepared without provisioning or publishing services.
 
 ## Engineering constraints
 
@@ -34,6 +35,7 @@ Read this file in full before each task, then the [plan](docs/plan.md) and relev
 - Check idempotency before Jira creation; retry 429/5xx with exponential backoff, at most three retries. See the specification for the contract.
 - Run evals before merging prompt or model changes. Until an eval runner exists, state that model quality has not been measured.
 - Record non-obvious choices in [docs/decisions.md](docs/decisions.md).
+- After a recurring or non-obvious defect, fix the shared cause and add a behavioral regression check first; record cause, fix, check and limit in [development lessons](docs/lessons.md). Never record secrets. Harness guidance does not write memory automatically.
 
 ## Using skills
 
