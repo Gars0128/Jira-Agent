@@ -5,7 +5,12 @@ description = "Discovery to Jira API"
 requires-python = "==3.12.*"
 dependencies = [
     "fastapi",
+    "langchain-core>=1.7.3",
+    "langchain-openai>=1.7.3",
+    "langgraph>=1.2.19",
+    "langsmith>=0.14.17",
     "pydantic",
+    "pydantic-settings>=2.16.2",
     "uvicorn",
 ]
 

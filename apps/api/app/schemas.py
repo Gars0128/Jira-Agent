@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 NonBlankString = Annotated[str, StringConstraints(pattern=r"\S")]
 
 
-class Requirement(BaseModel):
+class ExtractedRequirement(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     id: NonBlankString
@@ -14,6 +14,15 @@ class Requirement(BaseModel):
     priority: Literal["must", "should", "could"]
     quote: NonBlankString
     speaker: NonBlankString
+
+
+class Requirement(ExtractedRequirement):
     status: Literal["new", "duplicate", "conflict", "unclear"] | None = None
     spec_refs: list[NonBlankString] = Field(default_factory=list)
     note: str | None = None
+
+
+class ExtractionOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    requirements: list[ExtractedRequirement]

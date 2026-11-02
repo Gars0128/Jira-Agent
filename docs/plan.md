@@ -1,6 +1,6 @@
 # Phased Plan
 
-Current work: **phase 4, step 4.1 — the Requirement contract**. Phase 3 was accepted by the user after reviewing and committing the demo corpus. Docker step 2.2 remains deferred; CI step 2.3 still needs an observed remote run. The earlier parallel batch is finished. Continue through small steps with manual acceptance; phases 5–11 have not started.
+Current work: **phase 4 implemented, awaiting the user's walkthrough**. The user explicitly authorized completing the whole phase with investigation, code review and tests. A real OpenAI call and LangSmith server-side verification succeeded. Docker step 2.2 remains deferred and remote CI execution is not independently verified. Phases 5–11 have not started.
 
 The original two-day MVP target is an estimate, not a deadline promise. We progress through observable results and accept phases together. If a phase is too large for one clear manual check, split it into smaller steps before implementation.
 
@@ -83,23 +83,29 @@ Local verification for the current batch: pytest reports **6 passed** (one healt
 
 ## Phase 4. Contracts and requirement extraction
 
-**Status:** in progress. Original item 1.5 and the shared LLM helper. Step 4.1 passed local checks and awaits manual review.
+**Status:** implemented and verified, awaiting manual acceptance. Original item 1.5 and the shared LLM helper. RAG, stories, Jira and the HTTP extraction route are not included.
 
 Small steps:
 
-1. **4.1 — Requirement contract:** implement the agreed fields, reject blank required text, invalid types/enums and unknown fields; preserve quote text. Validate all 29 gold requirements with the same model. No LLM call or transcript grounding yet.
-2. **4.2 — Grounding:** check quotes against the transcript with whitespace/case normalization, preserving source quotes. Add tests for empty, invented and valid quotes. Not started.
-3. **4.3 — LLM helper:** select provider/model, configure environment, account for tokens/cost and enforce the budget; test with a provider substitute. Not started.
-4. **4.4 — Extraction:** structured model output through the helper, followed by grounding; inspect one real run when credentials are available. Not started.
+1. **4.1 — Requirement contract:** accepted. The user confirmed valid input is accepted and `priority="urgent"` produces ValidationError.
+2. **4.2 — Grounding:** implemented in `app/grounding.py`, awaiting manual review. Filter structurally valid requirements by nonempty quote membership with whitespace/case normalization; preserve objects, order and source text. Reuse the same grounding logic in corpus checks. This verifies quote presence, not meaning, correct speaker attribution or whether a request was withdrawn.
+3. **4.3 — LLM helper:** implemented: LangChain/OpenAI, validated env settings, token/cost accounting, budget admission/overrun checks, disabled SDK retries, unknown-cost blocking, optional LangSmith tracing and sanitized errors.
+4. **4.4 — Extraction:** implemented: real `START → extract → END` LangGraph, structured output, Pydantic validation, duplicate-ID rejection and grounding. CLI returns requirements, drops, usage, latency and trace URL. Real run succeeded.
 
 Add Story and RunResult contracts when their first consumer is implemented, before exposing corresponding API payloads. Do not prebuild unused models in step 4.1.
 
 Step 4.1 verification: 24 tests passed, including contract validation of all 29 gold requirements; Ruff lint and format checks passed. No LLM, prompt, model, Docker or database integration was changed. Manual practice is in the README Requirement contract section. Review confirmed one shared contract rather than repeated enum rules, strict inputs, quote preservation and independent reference lists.
 
+Step 4.2 verification: 36 tests passed, including 12 grounding checks and all 29 gold quotes across 12 cases. Ruff lint and formatting passed. Tests cover normalization, empty/invented quotes, disconnected words, punctuation differences, original object/order preservation, and empty or fully unsupported results. The README console exercise expects True/False/False. No dependencies, LLM calls, Docker settings or database integration changed.
+
 - Deliverable: Pydantic models, an LLM helper with cost tracking and budget enforcement, structured output, `extract`, and the grounding filter.
 - Checks: valid/invalid model outputs, exact quotes under whitespace/case normalization, empty/invented quotes, provider errors, and budget exhaustion. Use provider substitutes in tests and perform one real run when a key is available.
 - Manual acceptance: inspect extracted requirements, verify every quote in one transcript, and inspect run cost.
 - Done when: contracts pass, post-filter grounding is 1.0 on the checked sample with N reported, and a real run is confirmed.
+
+Final phase 4 verification: **63 tests pass**, Ruff lint/format pass. Offline HTTP tests exercise the real LangChain structured client and LangGraph: invalid output, accounting, budget rejection/overrun, provider errors without retries, unknown usage, duplicate IDs and enabled tracing failures. Independent standards/spec reviews found path portability and tracing-result-loss defects; both were fixed, including bounded flush/close.
+
+Real smoke evidence (2026-11-02): run `7c3f88ee-e9d6-4a9a-bc4d-cb2c7c8746c2`, transcript `01-exports.md`, 4 retained/grounded requirements, 798 input / 253 output tokens, estimated $0.004632, 3983 ms. LangSmith retrieval confirmed root name `requirement_extraction` and status `success`. Two paid smoke calls totalled estimated $0.008286. No full-corpus LLM recall, precision, F1 or judge score is claimed. User review of requirements and the saved trace remains pending.
 
 ## Phase 5. RAG and classification
 

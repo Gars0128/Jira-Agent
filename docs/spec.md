@@ -15,7 +15,7 @@ The MVP includes one fictional client, one specification, six transcripts, at le
 - Next.js App Router, TypeScript strict mode, and Tailwind; web hosting on Vercel.
 - Python 3.12, FastAPI, and LangGraph; Docker API hosting on Render. Long-running, stateful runs are hosted separately from the web application.
 - Postgres with pgvector on Neon: specification chunks and LangGraph checkpoints. Locally, Compose uses the `pgvector/pgvector` image.
-- LLM API: extraction, classification, stories, embeddings, and judging. Provider and models are not yet selected.
+- LLM API: phase 4 uses OpenAI via LangChain for extraction, with model and prices in env. Classification, stories, embeddings and judging are later consumers.
 - LangSmith: traces, cost, and eval datasets.
 - Jira Cloud REST API v3: writes only after human approval.
 
@@ -90,6 +90,12 @@ class Story(BaseModel):
 Quotes must come from the original transcript without rewriting. Code checks non-empty substring membership after whitespace/case normalization and discards ungrounded requirements. `spec_refs` contains retrieved chunk IDs; `note` explains conflicts or ambiguity. Acceptance criteria must be testable, preferably Given/When/Then.
 
 Step 4.1 implements `Requirement` in `apps/api/app/schemas.py`: strict input types, forbidden unknown fields, and at least one non-whitespace character in IDs, text, quote, speaker and each spec reference. Validation preserves the original strings, including quote whitespace. This contract checks structure only; transcript membership is checked separately by the grounding step. `status` may remain null and `spec_refs` empty before classification. Story and RunResult are planned contracts, not yet implemented.
+
+Step 4.2 implements `is_quote_grounded` and `filter_grounded_requirements` in `apps/api/app/grounding.py`. They compare casefolded, whitespace-collapsed text and reject empty normalized quotes. The filter accepts validated Requirement objects and preserves them unchanged in input order. It does not assess semantic support, speaker attribution or withdrawal of a request; connecting the filter to extraction is step 4.4.
+
+Steps 4.3–4.4 implement a CLI and LangGraph `START → extract → END`. `ExtractedRequirement` contains the six extraction fields; `Requirement` adds classification fields. `ExtractionOutput` wraps the list for native structured output. The graph validates output, rejects duplicate IDs and grounds quotes. `app/llm.py` owns all model calls and run accounting. Settings read process environment; `uv --env-file` loads root `.env` explicitly.
+
+LangSmith uses native agent/environment addressing with hidden I/O. The LLM wrapper sanitizes errors before tracing. URL/flush/close failures produce generic warnings without losing paid results. SDK retries are disabled. Admission cost is a byte-based estimate, not an external billing guarantee; usage is accounted before output validation, overruns abort and unknown cost blocks subsequent calls.
 
 `idempotency_key` is the SHA-256 of the normalized title and requirement IDs. Define normalization and serialization with tests during implementation. Editing and approval must not bypass validation or create duplicates on repeated requests.
 

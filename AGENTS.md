@@ -19,7 +19,7 @@ Read this file in full before each task, then the [plan](docs/plan.md) and relev
 ## Current checkpoint
 
 - **Docker step 2.2 is deferred by the user's decision, not completed.** Do not enable the hypervisor, change Windows boot settings, reboot, or retry Docker unless requested. The reason, outstanding checks, and resumption criteria are recorded in the [plan](docs/plan.md).
-- Phase 3 was accepted by the user. Current work is phase 4, starting with step 4.1: the `Requirement` contract and validation tests. Work sequentially with manual checkpoints; the earlier two-agent batch is finished and does not authorize permanent autonomous operation.
+- Phase 4 implementation is complete and awaits the user's walkthrough. The user authorized completing the remaining phase in one batch with investigation, tests and code review. A real OpenAI extraction and LangSmith server-side trace retrieval succeeded; see the plan for evidence and limitations. Do not start phase 5 without confirmation.
 - Revisit the deferred database setup before work that needs a live database. Do not silently replace local Postgres with a cloud service.
 
 ## Engineering constraints

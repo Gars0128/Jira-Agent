@@ -4,7 +4,7 @@
 
 We are building a web application that turns a client-call transcript into human-reviewed Jira user stories. It extracts requirements, links them to quotes, compares them against the project specification, exposes contradictions, and drafts tickets with acceptance criteria. A person reviews the result and decides what to send to Jira.
 
-**Status:** phase 1, API step 2.1 and phase 3 demo data are accepted. Phase 4 has started with the Requirement contract; step 4.1 awaits manual review. Docker step 2.2 is deferred and the first remote CI run remains unverified. There is no AI analysis or deployed demo yet. Two minutes is the target workflow duration, not a measured result.
+**Status:** phase 4 extraction is implemented and verified with a real OpenAI call and a saved LangSmith trace; it awaits the user's walkthrough. Docker step 2.2 remains deferred and remote CI execution unverified. RAG, classification, stories, approval, UI and deployment are still planned. Two minutes is the target full-workflow duration, not a measured result.
 
 The sections below describe the **whole target product**. Phased development gradually implements this complete workflow.
 
@@ -137,7 +137,7 @@ FastAPI + LangGraph / Docker on Render
 | LangSmith | Inspect execution and evaluate the agent |
 | Jira API | Create approved tickets in the configured real-write mode |
 
-**We will learn LangChain and LangGraph separately.** LangChain provides model, tool, and agent components and integrations. LangGraph manages graph execution and state and can be used without LangChain. LangGraph is required by our plan; specific LangChain components will be selected when implementing integrations. Start with the official [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview) and [LangChain overview](https://docs.langchain.com/oss/python/langchain/overview).
+**LangChain and LangGraph are separate parts of the implementation.** Phase 4 uses `langchain-core` messages and `langchain-openai` for model calls. LangGraph manages state and the `START → extract → END` workflow; later phases extend that graph. Start with the official [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview) and [LangChain overview](https://docs.langchain.com/oss/python/langchain/overview).
 
 ## MVP scope and definition of done
 
@@ -180,7 +180,7 @@ Each phase uses small steps. The agent explains inputs, code, and expected outpu
 
 ## Current status and local development
 
-Phase 3 demo data is accepted and phase 4 has started. The API still has only `/health`; the new Requirement model validates data in Python and tests, with no extraction endpoint or LLM call yet. Docker is deliberately deferred, and remote CI execution is unverified. See the [plan](docs/plan.md) for current checkpoints. Phases 5–11 have not started.
+Phase 4 provides a working extraction CLI. The HTTP API still has only `/health`; extraction is not exposed as an endpoint yet. Docker is deliberately deferred, and remote CI execution is unverified. See the [plan](docs/plan.md) for current checkpoints. Phases 5–11 have not started.
 
 ### Run the API without Docker
 
@@ -211,13 +211,13 @@ python -m uv run ruff check .
 python -m uv run ruff format --check .
 ```
 
-All collected tests must pass, Ruff must report no errors, and no files should require formatting. Step 4.1 reports 24 passing tests: health, corpus integrity, corruption checks, and the Requirement contract.
+All collected tests must pass, Ruff must report no errors, and no files should require formatting. Phase 4 reports 63 passing tests, including offline HTTP integration through the real LangChain client and LangGraph, cost/error behavior and LangSmith failure handling. Tests need no real keys or paid calls.
 
 **What happens:** the browser sends `GET /health`. FastAPI calls `health` in `apps/api/app/main.py` and serializes the returned Python dictionary as JSON. An endpoint is a request-handler address. `TestClient` checks the HTTP status and response without starting a separate server. `/health` currently proves API liveness, not database or AI readiness.
 
 ### Requirement contract: step 4.1
 
-[`Requirement`](apps/api/app/schemas.py) defines the fields accepted by later extraction and classification steps. It rejects blank required strings, invalid types/enums and unknown fields. Before classification, `status` defaults to null and `spec_refs` to an independent empty list. Quote text is preserved exactly. Validating this model does not prove that a quote occurs in the transcript; grounding is the next step.
+[`Requirement`](apps/api/app/schemas.py) defines the fields accepted by later extraction and classification steps. It rejects blank required strings, invalid types/enums and unknown fields. Before classification, `status` defaults to null and `spec_refs` to an independent empty list. Quote text is preserved exactly. Validating this model does not prove that a quote occurs in the transcript; the separate grounding helper checks that.
 
 From `apps/api`, start a Python console:
 
@@ -247,6 +247,72 @@ Requirement.model_validate(payload)
 ```
 
 Expect `ValidationError` identifying `priority`; only `must`, `should`, and `could` are allowed. This modifies a dictionary in the console, not the fixture file. Leave the console with `exit()`. No server, Docker, database or API key is needed. To run only the contract tests, use `python -m uv run --locked pytest tests/test_schemas.py`.
+
+### Quote grounding: step 4.2
+
+[`is_quote_grounded`](apps/api/app/grounding.py) checks whether a nonempty quote occurs in the transcript after casefolding and collapsing whitespace. Punctuation and wording must still match. `filter_grounded_requirements` applies this rule to a list of validated Requirement objects, returning grounded items in their original order without modifying their fields. Empty requirements return an empty list; an empty transcript cannot support any requirement.
+
+From `apps/api`, run `python -m uv run python`. At the `>>>` prompt, paste:
+
+```python
+from app.grounding import is_quote_grounded
+
+transcript = "Nora: Export\n  reports."
+print(is_quote_grounded("EXPORT reports.", transcript))
+print(is_quote_grounded("Email reports.", transcript))
+print(is_quote_grounded("   ", transcript))
+```
+
+Expect `True`, `False`, `False`: the first quote exists despite case/whitespace differences, the second is invented, and the third is empty after normalization. Exit with `exit()`. To run only these tests, use `python -m uv run --locked pytest tests/test_grounding.py`.
+
+The same helper verifies all 29 gold requirements across 12 cases and is connected to the extraction node. Quote presence alone does not prove the requirement's interpretation, its speaker or whether the request was withdrawn. Fixture tests separately verify speaker attribution.
+
+### Real extraction: steps 4.3–4.4
+
+```text
+transcript → LangGraph extract node
+                 → shared LLM helper → LangChain ChatOpenAI structured output
+                 → Pydantic validation → grounding filter
+           → requirements, dropped IDs, tokens, cost estimate and trace URL
+```
+
+Only six extraction fields are requested from the model. `Requirement` adds `status=null`, `spec_refs=[]` and `note=null`; classification is phase 5. Small talk and withdrawn requests are excluded by the prompt, while vague wishes are retained without invented targets. These are model behaviors to evaluate, not deterministic guarantees of grounding.
+
+Create `.env` in the repository root if absent, preserving existing settings:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+Add `OPENAI_API_KEY` locally. Keep model, rates, output limit and budget from `.env.example`, or update the rates when changing model. The example uses `gpt-5.6-terra` at standard text rates of $2 input / $12 output per million tokens, checked on 2026-11-02 against the [official model page](https://developers.openai.com/api/docs/models/gpt-5.6-terra). Model access depends on the account. Never paste keys into chat, commit them or put them in CLI arguments.
+
+For LangSmith, create an external agent through **+ Agent → Observability**, ID `discovery-jira`. Create its API key and configure root `.env`:
+
+```dotenv
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=your-private-langsmith-key
+LANGSMITH_AGENT_ID=discovery-jira
+LANGSMITH_AGENT_ENVIRONMENT=local
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+```
+
+Do not combine agent addressing with `LANGSMITH_PROJECT`/`LANGCHAIN_PROJECT`. Use your region's endpoint and, if needed, `LANGSMITH_WORKSPACE_ID`. See [agent tracing setup](https://docs.langchain.com/langsmith/log-traces-to-agent). Trace inputs/outputs are hidden; graph steps and accounting metadata remain inspectable. CLI transport logs are suppressed to avoid credential fragments, with generic errors reported instead.
+
+Run from the repository root:
+
+```powershell
+cd apps/api
+python -m uv sync --locked
+python -m uv run --locked --env-file ../../.env python -m app.extract ../../data/demo/harbor-desk/transcripts/01-exports.md
+```
+
+The JSON result contains requirements, dropped IDs, calls, input/output tokens, `cost_usd`, `latency_ms`, `run_id`, `trace_url` and `trace_warning`. Settings read process environment; `uv --env-file` explicitly loads the root file. With tracing disabled extraction still works and the URL is null. Errors exit 1 and include available accounting; configuration errors never dump keys or input values.
+
+The helper checks an admission estimate before sending, caps output tokens, disables SDK retries, accounts reported usage before validating output, and aborts on a cost overrun. Transport errors or missing usage set cost to null and block reuse. Configured prices are estimates; cached input is conservatively charged at the full rate. The byte-based admission estimate is not an exact billing cap: an in-flight call can overrun it. Each CLI invocation starts a fresh budget; daily limits are phase 11.
+
+LangSmith URL/flush/close failures cannot discard a completed extraction or replace its primary error. Warnings expose delivery uncertainty; a URL alone is not delivery proof. The pinned SDK's synchronous URL method emits a deprecation warning; migrate it when adopting the async SmithDB runtime API.
+
+Verified smoke test (2026-11-02): one fictional transcript, four grounded requirements, zero drops, 798 input / 253 output tokens, estimated $0.004632, 3983 ms. Server-side LangSmith retrieval confirmed the matching trace status `success`. The first prompt missed the vague performance wish; the revised prompt retained it on rerun. This is one manual smoke case, not a full-corpus recall/F1 baseline. Full model-quality evals remain phase 10.
 
 ### CI and demo-data review
 

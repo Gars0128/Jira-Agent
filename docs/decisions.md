@@ -71,3 +71,27 @@
 **Why:** one executable contract keeps future model output and current gold fixtures aligned. Structural validation needs no provider, credentials, database or network call. Quote membership depends on the transcript and belongs in the next grounding step.
 
 **Rejected:** duplicate enum validation in fixtures, custom parser wrappers, adding unused Story/RunResult models now, or claiming that a structurally valid requirement is grounded.
+
+## 2026-11-02 — Deterministic quote grounding
+
+**Decision:** use casefolding and whitespace collapsing for quote substring checks, reject empty normalized quotes, and return only grounded Requirement objects. Preserve original objects and input order. Reuse the production helper in fixture checks; fixture speaker attribution remains an additional check.
+
+**Why:** the grounding rule is deterministic and testable without an LLM. Exact wording must remain auditable, so do not rewrite quotes, remove punctuation, use fuzzy matching or combine disconnected text fragments to force a match. Normalization affects comparison only.
+
+**Rejected:** another copy of normalization in tests, a model-based judge for quote presence, and treating presence as proof of correct meaning, speaker identity or an active request. Those limitations remain visible during extraction review.
+
+## 2026-11-02 — Full extraction phase with one model boundary
+
+**Decision:** complete phase 4 in the batch requested by the user. Use LangChain/OpenAI, native JSON-schema structured output, six-field extraction records, one LangGraph extract node and a CLI. Extend Requirement from the extraction model so classification fields cannot be invented during extraction. One per-run helper owns requests and accounting, disables retries and blocks further calls after unknown usage or budget exhaustion.
+
+**Why:** this exercises the production libraries without introducing later RAG, HTTP run routes or persistence. Account raw usage before validation so malformed responses are still charged. Configured rates and byte-based admission are estimates, not a strict provider billing cap. Small-talk/retraction handling is prompted behavior, not a grounding guarantee.
+
+**Rejected:** another agent framework, simulated LangGraph, classification fields in extraction output, failed-call cost reported as zero, or a quality baseline inferred from one smoke case.
+
+## 2026-11-02 — Native LangSmith addressing and failure isolation
+
+**Decision:** use the registered agent and local environment, explicitly loaded root env, hidden trace I/O, and sanitized LLM spans with accounting metadata. Catch URL/flush/close failures; bound queue waits. Suppress SDK transport logs only at CLI startup. Independent reviews found and verified fixes for env-path portability and loss of paid results during tracing failures.
+
+**Why:** the user has an agent-based workspace. The real trace was retrieved from the server rather than treating its URL as proof. The user's `.env` was moved from `apps/api` to the root without overwriting another file; keys remain ignored and were not displayed.
+
+**Limit:** pinned LangSmith synchronous URL lookup emits a deprecation warning and is supported until 2027-01-31. Migrate to the async SmithDB URL API with the async runtime. A trace outage must never force repetition of an already paid model call.

@@ -5,14 +5,11 @@ from typing import Any
 
 import pytest
 
+from app.grounding import filter_grounded_requirements, is_quote_grounded
 from app.schemas import Requirement
 
 ROOT = Path(__file__).resolve().parents[3]
 CASES = sorted((ROOT / "evals/cases").glob("*.json"))
-
-
-def normalized(text: str) -> str:
-    return " ".join(text.casefold().split())
 
 
 def validate_case(case: dict[str, Any]) -> None:
@@ -31,20 +28,19 @@ def validate_case(case: dict[str, Any]) -> None:
     assert transcript.strip()
 
     requirements = case["requirements"]
+    models = [Requirement.model_validate(item) for item in requirements]
+    assert filter_grounded_requirements(models, transcript) == models
     ids = {item["id"] for item in requirements}
     assert len(ids) == len(requirements)
     for item in requirements:
-        Requirement.model_validate(item)
         assert item["spec_refs"] and set(item["spec_refs"]) <= section_ids
-        quote = normalized(item["quote"])
-        assert quote and quote in normalized(transcript)
         speaker_lines = [
             line.split(":", 1)[1]
             for line in transcript.splitlines()
             if line.startswith((f"{item['speaker']}:", f"{item['speaker']} ("))
             and ":" in line
         ]
-        assert any(quote in normalized(line) for line in speaker_lines)
+        assert any(is_quote_grounded(item["quote"], line) for line in speaker_lines)
         if item["status"] in {"conflict", "unclear"}:
             assert item["note"] and case["questions"]
 
