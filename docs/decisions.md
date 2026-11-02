@@ -95,3 +95,12 @@
 **Why:** the user has an agent-based workspace. The real trace was retrieved from the server rather than treating its URL as proof. The user's `.env` was moved from `apps/api` to the root without overwriting another file; keys remain ignored and were not displayed.
 
 **Limit:** pinned LangSmith synchronous URL lookup emits a deprecation warning and is supported until 2027-01-31. Migrate to the async SmithDB URL API with the async runtime. A trace outage must never force repetition of an already paid model call.
+
+## 2026-11-02 — Neon pgvector and phase 5 RAG
+
+**Decision:** use the user's Neon Postgres (pgvector) through one `DATABASE_URL` and psycopg 3; an empty URL falls back to libpq `PG*` variables so Compose keeps working. Chunk by `## ` headings with stable `HD-*` IDs, embed with OpenAI `text-embedding-3-small` through the shared helper, store an untyped `vector` with the model name, and search by exact cosine distance. Re-ingestion replaces a project's rows in one locked transaction and skips embedding when nothing changed. Classification is one structured LLM call per run; references are checked in code against the retrieved chunks.
+
+**Why:** heading IDs equal the gold `spec_refs`, so recall@5 is measurable without a mapping table. Thirteen chunks need no ANN index. The model name column prevents mixing vectors from different embedding models. psycopg is also what the phase 7 Postgres checkpointer uses.
+
+**Rejected:** the `pgvector` Python package and SQLAlchemy (a vector literal is one line), LangChain vector stores (hide the SQL the user wants to learn), an HNSW index for 13 rows, per-requirement classification calls (more cost and latency for the same context), and silently dropping invalid references (hides a model error). Docker step 2.2 stays deferred; Neon does not verify the container.
+

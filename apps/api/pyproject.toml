@@ -9,6 +9,8 @@ dependencies = [
     "langchain-openai>=1.7.3",
     "langgraph>=1.2.19",
     "langsmith>=0.14.17",
+    "openai>=3.42.1",
+    "psycopg[binary]>=3.2",
     "pydantic",
     "pydantic-settings>=2.16.2",
     "uvicorn",

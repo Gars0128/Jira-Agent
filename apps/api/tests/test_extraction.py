@@ -1,32 +1,18 @@
 import json
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from decimal import Decimal
 from typing import Any
 
-import httpx
 import pytest
 from langchain_core.messages import HumanMessage
-from langchain_openai import ChatOpenAI
 from langsmith import Client
 from pydantic import ValidationError
 
 from app.config import Settings
 from app.extract import run_extraction
-from app.graph.graph import build_extraction_graph
-from app.llm import LLMError, LLMHelper
+from app.graph.graph import build_graph
+from app.llm import LLMError
 from app.schemas import ExtractionOutput
-
-
-@pytest.fixture
-def settings() -> Settings:
-    return Settings(
-        _env_file=None,
-        openai_api_key="test-not-a-real-key",
-        llm_model="gpt-4.1-mini",
-        llm_input_usd_per_million="0.4",
-        llm_output_usd_per_million="1.6",
-        langsmith_tracing=False,
-    )
 
 
 def requirement(quote: str, id: str = "R1") -> dict[str, str]:
@@ -38,56 +24,6 @@ def requirement(quote: str, id: str = "R1") -> dict[str, str]:
         "quote": quote,
         "speaker": "Nora",
     }
-
-
-@pytest.fixture
-def helper_factory(settings: Settings) -> Iterator[Callable]:
-    clients = []
-
-    def create(
-        content: str,
-        usage: dict[str, int] | None = None,
-        status_code: int = 200,
-    ) -> tuple[LLMHelper, list[dict[str, Any]]]:
-        requests: list[dict[str, Any]] = []
-
-        def respond(request: httpx.Request) -> httpx.Response:
-            requests.append(json.loads(request.content))
-            if status_code != 200:
-                return httpx.Response(
-                    status_code,
-                    json={"error": {"message": "private-transcript SECRET-KEY"}},
-                )
-            body = {
-                "id": "chatcmpl-offline",
-                "object": "chat.completion",
-                "created": 1,
-                "model": "gpt-4.1-mini",
-                "choices": [
-                    {
-                        "index": 0,
-                        "message": {"role": "assistant", "content": content},
-                        "finish_reason": "stop",
-                    }
-                ],
-                "usage": usage,
-            }
-            return httpx.Response(200, json=body)
-
-        client = httpx.Client(transport=httpx.MockTransport(respond))
-        clients.append(client)
-        model = ChatOpenAI(
-            model=settings.llm_model,
-            api_key="test-not-a-real-key",
-            http_client=client,
-            max_retries=0,
-            max_completion_tokens=settings.llm_max_output_tokens,
-        )
-        return LLMHelper(settings, model), requests
-
-    yield create
-    for client in clients:
-        client.close()
 
 
 USAGE = {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150}
@@ -120,7 +56,7 @@ def test_langgraph_extraction_grounds_and_accounts(helper_factory: Callable) -> 
 
 def test_graph_has_real_extract_node(helper_factory: Callable) -> None:
     helper, _ = helper_factory('{"requirements": []}', USAGE)
-    graph = build_extraction_graph(helper)
+    graph = build_graph(helper)
 
     assert set(graph.get_graph().nodes) == {"__start__", "extract", "__end__"}
     result = run_extraction("Nora: Good morning.", helper)

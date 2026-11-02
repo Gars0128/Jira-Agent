@@ -26,3 +26,18 @@ class ExtractionOutput(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     requirements: list[ExtractedRequirement]
+
+
+class Classification(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    id: NonBlankString
+    status: Literal["new", "duplicate", "conflict", "unclear"]
+    spec_refs: list[NonBlankString]
+    note: str
+
+
+class ClassificationOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    classifications: list[Classification]

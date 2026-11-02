@@ -6,6 +6,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_openai import ChatOpenAI
 from langsmith import trace, tracing_context
+from openai import OpenAI
 from pydantic import BaseModel, Field, ValidationError
 
 from app.config import Settings
@@ -30,9 +31,23 @@ class TokenCounts(BaseModel):
 
 
 class LLMHelper:
-    def __init__(self, settings: Settings, model: BaseChatModel | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        model: BaseChatModel | None = None,
+        embedder: OpenAI | None = None,
+    ) -> None:
         self.settings = settings
         self.usage = Usage()
+        self.embedder = (
+            embedder
+            if embedder is not None
+            else OpenAI(
+                api_key=settings.openai_api_key.get_secret_value(),
+                max_retries=0,
+                timeout=60,
+            )
+        )
         self.model = (
             model
             if model is not None
@@ -112,3 +127,35 @@ class LLMHelper:
                 raise LLMError("Model returned invalid structured output") from None
             span.end(outputs={"validated": True})
             return result
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        if self.usage.cost_usd is None:
+            raise LLMError("Previous call cost is unknown; further calls are blocked")
+        price = self.settings.embedding_usd_per_million
+        # Bytes bound tokens from above for these English inputs.
+        estimate = sum(len(text.encode("utf-8")) for text in texts) * price / 1_000_000
+        if self.usage.cost_usd + estimate > self.settings.max_cost_per_run_usd:
+            raise LLMError(
+                "Run budget cannot cover the estimated request; call blocked"
+            )
+        with trace("embeddings", run_type="embedding", inputs={}) as span:
+            self.usage.calls += 1
+            try:
+                with tracing_context(enabled=False):
+                    response = self.embedder.embeddings.create(
+                        model=self.settings.embedding_model, input=texts
+                    )
+                tokens = response.usage.prompt_tokens
+                vectors = [item.embedding for item in response.data]
+            except Exception:
+                self.usage.cost_usd = None
+                raise LLMError("Embedding call failed; cost is unknown") from None
+            self.usage.input_tokens += tokens
+            self.usage.cost_usd += tokens * price / 1_000_000
+            span.add_metadata(self.usage.model_dump(mode="json"))
+            if self.usage.cost_usd > self.settings.max_cost_per_run_usd:
+                raise LLMError("Run budget exceeded after provider usage accounting")
+            if len(vectors) != len(texts):
+                raise LLMError("Provider returned a different number of embeddings")
+            span.end(outputs={"count": len(vectors)})
+            return vectors

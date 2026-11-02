@@ -6,15 +6,20 @@ from pathlib import Path
 from time import perf_counter
 from uuid import uuid4
 
+import psycopg
 from langsmith import Client, agent_address, trace, tracing_context
 from pydantic import ValidationError
 
 from app.config import Settings
-from app.graph.graph import build_extraction_graph
+from app.graph.graph import Search, build_graph
 from app.llm import LLMError, LLMHelper
+from app.rag.ingest import connect
+from app.rag.retrieve import retrieve
 
 
-def run_extraction(transcript: str, helper: LLMHelper) -> dict[str, object]:
+def run_extraction(
+    transcript: str, helper: LLMHelper, search: Search | None = None
+) -> dict[str, object]:
     if not transcript.strip() or len(transcript) > 20_000:
         raise ValueError("Transcript must contain 1 to 20000 characters of text")
     settings = helper.settings
@@ -45,9 +50,7 @@ def run_extraction(transcript: str, helper: LLMHelper) -> dict[str, object]:
             else None,
         ):
             with trace("requirement_extraction", run_id=run_id, inputs={}) as span:
-                result = build_extraction_graph(helper).invoke(
-                    {"transcript": transcript}
-                )
+                result = build_graph(helper, search).invoke({"transcript": transcript})
                 span.add_metadata(helper.usage.model_dump(mode="json"))
                 span.end(outputs={"requirement_count": len(result["requirements"])})
                 trace_url = None
@@ -61,6 +64,10 @@ def run_extraction(transcript: str, helper: LLMHelper) -> dict[str, object]:
             "run_id": str(run_id),
             "requirements": [item.model_dump() for item in result["requirements"]],
             "dropped_requirement_ids": result["dropped_requirement_ids"],
+            "retrieved": {
+                id: [chunk.model_dump() for chunk in chunks]
+                for id, chunks in result.get("retrieved", {}).items()
+            },
             **helper.usage.model_dump(mode="json"),
             "latency_ms": round((perf_counter() - started) * 1000),
             "trace_url": trace_url,
@@ -88,18 +95,31 @@ def main() -> int:
         description="Extract requirements through LangGraph"
     )
     parser.add_argument("transcript", type=Path)
+    parser.add_argument(
+        "--project", help="also retrieve and classify against this ingested spec"
+    )
     args = parser.parse_args()
     helper: LLMHelper | None = None
     try:
         settings = Settings()
         text = args.transcript.read_text(encoding="utf-8")
         helper = LLMHelper(settings)
-        print(json.dumps(run_extraction(text, helper), indent=2))
+        if args.project is None:
+            print(json.dumps(run_extraction(text, helper), indent=2))
+            return 0
+        with connect(settings) as conn:
+
+            def search(queries: list[str]) -> list:
+                return retrieve(conn, helper, args.project, queries)
+
+            print(json.dumps(run_extraction(text, helper, search), indent=2))
         return 0
     except ValidationError:
         error = "Invalid configuration; check keys, model, positive prices and budget"
     except OSError:
         error = "Cannot read the UTF-8 transcript file"
+    except psycopg.Error:
+        error = "Database error; check DATABASE_URL and run ingestion first"
     except (LLMError, ValueError) as exc:
         error = str(exc)
     print(

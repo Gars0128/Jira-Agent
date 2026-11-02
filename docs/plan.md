@@ -1,6 +1,6 @@
 # Phased Plan
 
-Current work: **phase 4 implemented, awaiting the user's walkthrough**. The user explicitly authorized completing the whole phase with investigation, code review and tests. A real OpenAI call and LangSmith server-side verification succeeded. Docker step 2.2 remains deferred and remote CI execution is not independently verified. Phases 5–11 have not started.
+Current work: **phase 5 in progress** (code done offline, waiting for the Neon connection); phase 4 still awaits the user's walkthrough. The user explicitly authorized completing the whole phase with investigation, code review and tests. A real OpenAI call and LangSmith server-side verification succeeded. Docker step 2.2 remains deferred and remote CI execution is not independently verified. Phases 6–11 have not started.
 
 The original two-day MVP target is an estimate, not a deadline promise. We progress through observable results and accept phases together. If a phase is too large for one clear manual check, split it into smaller steps before implementation.
 
@@ -42,7 +42,7 @@ Explain technical terms before first use. Check library APIs against official do
 - Docker Desktop initially returned Engine HTTP 500 and then displayed “Virtualization support not detected.” Container startup cannot currently be verified.
 - Compose configuration validation passed: `docker compose --env-file .env.example config --quiet`. Health dependencies, loopback ports, environment wiring, and a named database volume were inspected. This does not prove container behavior.
 - Still unverified: image build, API/database container startup, pgvector SQL behavior, and database persistence after container recreation.
-- **Do not enable the hypervisor, modify boot settings, reboot, or retry Docker unless the user asks.** No cloud database has been provisioned as a substitute.
+- **Do not enable the hypervisor, modify boot settings, reboot, or retry Docker unless the user asks.** On 2026-11-02 the user chose Neon as the phase 5 database; this does not close step 2.2.
 - Resume only after the user requests it and Docker Engine is available. Run the saved README container checks, including SQL and persistence, before accepting step 2.2. Revisit this choice before database-dependent phase 5 or earlier work requiring a live database.
 
 ## Phase 1. Instructions and plan
@@ -109,7 +109,26 @@ Real smoke evidence (2026-11-02): run `7c3f88ee-e9d6-4a9a-bc4d-cb2c7c8746c2`, tr
 
 ## Phase 5. RAG and classification
 
-**Status:** not started. Original items 1.4 and 1.6. Resolve the live-database checkpoint before implementation requiring Postgres.
+**Status:** in progress. Original items 1.4 and 1.6. The user chose Neon (cloud Postgres with pgvector) instead of waiting for local Docker on 2026-11-02.
+
+1. **5.1 — chunking:** implemented in `app/rag/chunking.py`. One chunk per `## ` heading, ID taken from the stable `HD-*` prefix (slug otherwise), text before the first heading becomes `intro`. Sections over 2000 characters are packed by paragraph into `ID#1`, `ID#2`; an oversized paragraph is cut at fixed offsets. Harbor Desk yields 13 chunks covering every gold reference.
+2. **5.2 — ingestion:** `app/rag/ingest.py` creates the extension and `spec_chunks` table, embeds through the shared helper (`text-embedding-3-small`, cost accounted) and replaces a project's chunks in one transaction under an advisory lock. Unchanged text and model skip embedding entirely.
+3. **5.3 — retrieval:** `retrieve(conn, helper, project_id, queries, k=5)` embeds all queries in one call and orders by cosine distance. Refuses a project that is not ingested instead of returning nothing.
+4. **5.4 — `retrieve_spec` + `classify`:** graph is `extract → retrieve_spec → classify` when a project is given. One LLM call classifies all requirements; code rejects missing/extra IDs, references to chunks that were not retrieved, and duplicate/conflict without a reference.
+5. **5.5 — measurement:** `evals/run_evals.py` runs retrieval and classification on the 29 gold requirements (extraction is bypassed so errors are attributed to this phase). Reports recall@5, status accuracy and conflict F1 with N; no thresholds until phase 10.
+
+Verification (2026-11-02, Neon `discovery` database): 72 tests pass offline plus the live database test (10/10 in `test_rag.py` with `TEST_DATABASE_URL`); Ruff lint/format pass. Ingestion stored 13 chunks for 2,397 embedding tokens (~$0.00005); a second run reported `changed: false` at zero cost. Query "Can coordinators export reports?" returned `HD-EXPORT` first (distance 0.415). Full run on `01-exports.md`: 3 calls, $0.0131, 7.8 s, LangSmith trace URL returned; coordinator export classified `conflict` → `HD-EXPORT`, monthly count wrongly `conflict` (gold `new`).
+
+The first full run was blocked by the budget admission check because every requirement repeated its excerpts; excerpts are now sent once and referenced by ID.
+
+Evals on gold requirements (extraction bypassed), N=29:
+
+| Prompt | Recall@5 | Status accuracy | Conflict F1 | Cost |
+|---|---|---|---|---|
+| v1 | 0.97 | 0.83 | 0.67 (tp 5, fp 5, fn 0) | $0.068 |
+| v2: "outside baseline / not approved" means new | 0.97 | 0.90 | 0.77 (tp 5, fp 3, fn 0) | $0.068 |
+
+Remaining misses: `05-usability R2`, `07-new-preset R1` (spec says presets are not persisted; gold says new) and `06-operations R1` (public status page judged against `HD-ACCESS`; `HD-OPERATIONS` not in top 5, the only retrieval miss). Prompt tuning stopped here to avoid fitting 29 examples; the user decides whether these are model or gold errors. Runs are single samples, not averaged.
 
 - Deliverable: heading-based specification chunking with a fixed-size fallback, embeddings in pgvector, `retrieve(query, k=5)`, `retrieve_spec`, and `classify` with chunk references.
 - Checks: chunking, repeated ingestion, retrieval recall@5, labels against gold cases, and stored database data. Run evals for modified prompts/models.

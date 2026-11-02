@@ -180,7 +180,7 @@ Each phase uses small steps. The agent explains inputs, code, and expected outpu
 
 ## Current status and local development
 
-Phase 4 provides a working extraction CLI. The HTTP API still has only `/health`; extraction is not exposed as an endpoint yet. Docker is deliberately deferred, and remote CI execution is unverified. See the [plan](docs/plan.md) for current checkpoints. Phases 5–11 have not started.
+Phase 4 provides a working extraction CLI; phase 5 adds spec retrieval and classification against Neon pgvector (in progress). The HTTP API still has only `/health`. Docker is deliberately deferred, and remote CI execution is unverified. See the [plan](docs/plan.md) for current checkpoints. Phases 6–11 have not started.
 
 ### Run the API without Docker
 
@@ -313,6 +313,34 @@ The helper checks an admission estimate before sending, caps output tokens, disa
 LangSmith URL/flush/close failures cannot discard a completed extraction or replace its primary error. Warnings expose delivery uncertainty; a URL alone is not delivery proof. The pinned SDK's synchronous URL method emits a deprecation warning; migrate it when adopting the async SmithDB runtime API.
 
 Verified smoke test (2026-11-02): one fictional transcript, four grounded requirements, zero drops, 798 input / 253 output tokens, estimated $0.004632, 3983 ms. Server-side LangSmith retrieval confirmed the matching trace status `success`. The first prompt missed the vague performance wish; the revised prompt retained it on rerun. This is one manual smoke case, not a full-corpus recall/F1 baseline. Full model-quality evals remain phase 10.
+
+### RAG and classification: phase 5
+
+```text
+spec.md → chunk by "## HD-*" heading → embed → spec_chunks (pgvector)
+requirement text + quote → embed → top-5 chunks by cosine distance
+requirements + their chunks → classify (new | duplicate | conflict | unclear)
+           → code check: every spec_ref was actually retrieved
+```
+
+A **chunk** is one retrievable piece of the spec, here one `##` section. An **embedding** is a list of numbers whose distance reflects meaning, so "coordinators export reports" lands near `HD-EXPORT` without sharing exact words. **Top-k** returns the k nearest chunks; `distance` closer to 0 means more similar.
+
+Create a database in the [Neon console](https://console.neon.tech) (Databases → New database, e.g. `discovery`), open **Connect**, turn connection pooling off and copy the URL. Put it into root `.env` only:
+
+```dotenv
+DATABASE_URL=postgresql://user:password@host/discovery?sslmode=require
+```
+
+From `apps/api`:
+
+```powershell
+python -m uv run --env-file ../../.env python -m app.rag.ingest ../../data/demo/harbor-desk/spec.md
+python -m uv run --env-file ../../.env python -m app.rag.retrieve harbor-desk "Can coordinators export reports?"
+python -m uv run --env-file ../../.env python -m app.extract ../../data/demo/harbor-desk/transcripts/01-exports.md --project harbor-desk
+python -m uv run --env-file ../../.env python ../../evals/run_evals.py
+```
+
+Expect: ingestion reports 13 chunks and `changed: true`, then `changed: false` on a second run with zero cost. Retrieval puts `HD-EXPORT` first. The full run gives every requirement a `status`, `spec_refs`, `note` and its `retrieved` chunks; R1 (coordinator export) should be a `conflict` citing `HD-EXPORT`. The eval prints recall@5, status accuracy and conflict F1 with N, plus each mismatch. The database test runs only when `TEST_DATABASE_URL` is set.
 
 ### CI and demo-data review
 
