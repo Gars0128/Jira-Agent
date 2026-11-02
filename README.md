@@ -4,7 +4,7 @@
 
 We are building a web application that turns a client-call transcript into human-reviewed Jira user stories. It extracts requirements, links them to quotes, compares them against the project specification, exposes contradictions, and drafts tickets with acceptance criteria. A person reviews the result and decides what to send to Jira.
 
-**Status:** phase 1 and API step 2.1 are accepted. Docker step 2.2 is deferred; its files exist, but container execution is unverified. CI and demo data are the current work batch, pending checks and manual acceptance. There is no AI analysis or deployed demo yet. Two minutes is the target workflow duration, not a measured result.
+**Status:** phase 1, API step 2.1 and phase 3 demo data are accepted. Phase 4 has started with the Requirement contract; step 4.1 awaits manual review. Docker step 2.2 is deferred and the first remote CI run remains unverified. There is no AI analysis or deployed demo yet. Two minutes is the target workflow duration, not a measured result.
 
 The sections below describe the **whole target product**. Phased development gradually implements this complete workflow.
 
@@ -176,11 +176,11 @@ The baseline follows the first real evaluation. No model-quality metrics have be
 
 The [detailed plan](docs/plan.md) preserves the original scope and lists checks, manual acceptance, and learning exercises for each phase. The original two-day estimate does not limit our learning pace.
 
-Each phase uses small steps. The agent explains inputs, code, and expected outputs, implements the step, runs checks, and provides reproducible manual instructions. The user tries them, asks questions, and confirms progression. Passing tests alone does not close a phase. The user explicitly authorized the current CI/demo-data batch to run alongside the English documentation update; this is a bounded exception, not permanent autopilot.
+Each phase uses small steps. The agent explains inputs, code, and expected outputs, implements the step, runs checks, and provides reproducible manual instructions. The user tries them, asks questions, and confirms progression. Passing tests alone does not close a phase. The earlier two-agent CI/demo-data and translation batch is finished; work has returned to sequential steps.
 
 ## Current status and local development
 
-Phase 1 and step 2.1 are accepted. The API has one endpoint and a test. Dockerfile, Compose, init SQL, and an env example exist, but Docker is deliberately deferred. CI and phase 3 demo data are the current batch; see the [plan](docs/plan.md) for the acceptance checkpoint. Phases 4–11 have not started. A local check does not prove a GitHub Actions run passed.
+Phase 3 demo data is accepted and phase 4 has started. The API still has only `/health`; the new Requirement model validates data in Python and tests, with no extraction endpoint or LLM call yet. Docker is deliberately deferred, and remote CI execution is unverified. See the [plan](docs/plan.md) for current checkpoints. Phases 5–11 have not started.
 
 ### Run the API without Docker
 
@@ -211,9 +211,42 @@ python -m uv run ruff check .
 python -m uv run ruff format --check .
 ```
 
-All collected tests must pass, Ruff must report no errors, and no files should require formatting. The accepted initial API step had one passing health test; the demo-data batch adds fixture checks.
+All collected tests must pass, Ruff must report no errors, and no files should require formatting. Step 4.1 reports 24 passing tests: health, corpus integrity, corruption checks, and the Requirement contract.
 
 **What happens:** the browser sends `GET /health`. FastAPI calls `health` in `apps/api/app/main.py` and serializes the returned Python dictionary as JSON. An endpoint is a request-handler address. `TestClient` checks the HTTP status and response without starting a separate server. `/health` currently proves API liveness, not database or AI readiness.
+
+### Requirement contract: step 4.1
+
+[`Requirement`](apps/api/app/schemas.py) defines the fields accepted by later extraction and classification steps. It rejects blank required strings, invalid types/enums and unknown fields. Before classification, `status` defaults to null and `spec_refs` to an independent empty list. Quote text is preserved exactly. Validating this model does not prove that a quote occurs in the transcript; grounding is the next step.
+
+From `apps/api`, start a Python console:
+
+```powershell
+python -m uv run python
+```
+
+Paste this example to load the first accepted gold requirement:
+
+```python
+import json
+from pathlib import Path
+from app.schemas import Requirement
+
+case = json.loads(Path("../../evals/cases/01-exports.json").read_text(encoding="utf-8"))
+payload = case["requirements"][0]
+requirement = Requirement.model_validate(payload)
+print(requirement.status)
+print(requirement.quote)
+```
+
+Expect `conflict` and the coordinator-export quote from the case. Now deliberately supply a priority outside the agreed vocabulary:
+
+```python
+payload["priority"] = "urgent"
+Requirement.model_validate(payload)
+```
+
+Expect `ValidationError` identifying `priority`; only `must`, `should`, and `could` are allowed. This modifies a dictionary in the console, not the fixture file. Leave the console with `exit()`. No server, Docker, database or API key is needed. To run only the contract tests, use `python -m uv run --locked pytest tests/test_schemas.py`.
 
 ### CI and demo-data review
 

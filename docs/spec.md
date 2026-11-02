@@ -89,6 +89,8 @@ class Story(BaseModel):
 
 Quotes must come from the original transcript without rewriting. Code checks non-empty substring membership after whitespace/case normalization and discards ungrounded requirements. `spec_refs` contains retrieved chunk IDs; `note` explains conflicts or ambiguity. Acceptance criteria must be testable, preferably Given/When/Then.
 
+Step 4.1 implements `Requirement` in `apps/api/app/schemas.py`: strict input types, forbidden unknown fields, and at least one non-whitespace character in IDs, text, quote, speaker and each spec reference. Validation preserves the original strings, including quote whitespace. This contract checks structure only; transcript membership is checked separately by the grounding step. `status` may remain null and `spec_refs` empty before classification. Story and RunResult are planned contracts, not yet implemented.
+
 `idempotency_key` is the SHA-256 of the normalized title and requirement IDs. Define normalization and serialization with tests during implementation. Editing and approval must not bypass validation or create duplicates on repeated requests.
 
 `RunResult` must contain requirements, stories, open questions, status, cost, latency, trace URL, and the Jira/dry-run result. Define its full model in the contracts phase.

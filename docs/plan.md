@@ -1,6 +1,6 @@
 # Phased Plan
 
-Current work: **phase 2 scaffold and phase 3 demo data**, with step 2.2 deliberately deferred. Phase 1 and step 2.1 are accepted. The user authorized two agents for this bounded batch: CI/demo data and English documentation. Checks and manual acceptance remain required; phases 4–11 are not authorized yet.
+Current work: **phase 4, step 4.1 — the Requirement contract**. Phase 3 was accepted by the user after reviewing and committing the demo corpus. Docker step 2.2 remains deferred; CI step 2.3 still needs an observed remote run. The earlier parallel batch is finished. Continue through small steps with manual acceptance; phases 5–11 have not started.
 
 The original two-day MVP target is an estimate, not a deadline promise. We progress through observable results and accept phases together. If a phase is too large for one clear manual check, split it into smaller steps before implementation.
 
@@ -10,7 +10,7 @@ Statuses: `not started` → `in progress` → `awaiting manual acceptance` → `
 
 The [README](../README.md) describes the entire product; the [specification](spec.md) holds technical requirements. Phases divide implementation without reducing the original scope.
 
-Choose one small result within the phase. Explain the data flow and how to observe the output, implement it, run checks, and report. The user repeats a short exercise, discusses the result, and confirms the next step. If a concept or result remains unclear, stay with that step and explain it. The current explicitly authorized parallel batch is an exception to sequential implementation, not to manual acceptance.
+Choose one small result within the phase. Explain the data flow and how to observe the output, implement it, run checks, and report. The user repeats a short exercise, discusses the result, and confirms the next step. If a concept or result remains unclear, stay with that step and explain it. The earlier explicitly authorized parallel batch was a bounded exception to sequential implementation, not to manual acceptance.
 
 Every report needs changed files, actual command results, manual instructions with expected output, a brief explanation of the new concept, and remaining limitations. Use examples from the project; do not build a separate teaching framework.
 
@@ -69,7 +69,7 @@ Explain technical terms before first use. Check library APIs against official do
 
 ## Phase 3. Demo data and gold labels
 
-**Status:** awaiting manual acceptance. The corpus and local integrity checks are prepared. Original items 1.2–1.3.
+**Status:** accepted by the user after reviewing and committing the corpus. Original items 1.2–1.3.
 
 - Deliverable: one fictional client specification of roughly five pages, six realistic transcripts with small talk, changes of mind, and 3–4 planted specification conflicts. Six transcript-based gold cases plus six short synthetic cases.
 - Project: `harbor-desk`; specification and transcripts under `data/demo/harbor-desk/`, gold JSON under `evals/cases/`.
@@ -83,7 +83,18 @@ Local verification for the current batch: pytest reports **6 passed** (one healt
 
 ## Phase 4. Contracts and requirement extraction
 
-**Status:** not started. Original item 1.5 and the shared LLM helper.
+**Status:** in progress. Original item 1.5 and the shared LLM helper. Step 4.1 passed local checks and awaits manual review.
+
+Small steps:
+
+1. **4.1 — Requirement contract:** implement the agreed fields, reject blank required text, invalid types/enums and unknown fields; preserve quote text. Validate all 29 gold requirements with the same model. No LLM call or transcript grounding yet.
+2. **4.2 — Grounding:** check quotes against the transcript with whitespace/case normalization, preserving source quotes. Add tests for empty, invented and valid quotes. Not started.
+3. **4.3 — LLM helper:** select provider/model, configure environment, account for tokens/cost and enforce the budget; test with a provider substitute. Not started.
+4. **4.4 — Extraction:** structured model output through the helper, followed by grounding; inspect one real run when credentials are available. Not started.
+
+Add Story and RunResult contracts when their first consumer is implemented, before exposing corresponding API payloads. Do not prebuild unused models in step 4.1.
+
+Step 4.1 verification: 24 tests passed, including contract validation of all 29 gold requirements; Ruff lint and format checks passed. No LLM, prompt, model, Docker or database integration was changed. Manual practice is in the README Requirement contract section. Review confirmed one shared contract rather than repeated enum rules, strict inputs, quote preservation and independent reference lists.
 
 - Deliverable: Pydantic models, an LLM helper with cost tracking and budget enforcement, structured output, `extract`, and the grounding filter.
 - Checks: valid/invalid model outputs, exact quotes under whitespace/case normalization, empty/invented quotes, provider errors, and budget exhaustion. Use provider substitutes in tests and perform one real run when a key is available.

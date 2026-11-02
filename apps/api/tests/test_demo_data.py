@@ -5,6 +5,8 @@ from typing import Any
 
 import pytest
 
+from app.schemas import Requirement
+
 ROOT = Path(__file__).resolve().parents[3]
 CASES = sorted((ROOT / "evals/cases").glob("*.json"))
 
@@ -32,10 +34,7 @@ def validate_case(case: dict[str, Any]) -> None:
     ids = {item["id"] for item in requirements}
     assert len(ids) == len(requirements)
     for item in requirements:
-        assert item["id"] and item["text"].strip() and item["speaker"].strip()
-        assert item["type"] in {"functional", "non_functional", "constraint"}
-        assert item["priority"] in {"must", "should", "could"}
-        assert item["status"] in {"new", "duplicate", "conflict", "unclear"}
+        Requirement.model_validate(item)
         assert item["spec_refs"] and set(item["spec_refs"]) <= section_ids
         quote = normalized(item["quote"])
         assert quote and quote in normalized(transcript)

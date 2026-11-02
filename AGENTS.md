@@ -19,7 +19,7 @@ Read this file in full before each task, then the [plan](docs/plan.md) and relev
 ## Current checkpoint
 
 - **Docker step 2.2 is deferred by the user's decision, not completed.** Do not enable the hypervisor, change Windows boot settings, reboot, or retry Docker unless requested. The reason, outstanding checks, and resumption criteria are recorded in the [plan](docs/plan.md).
-- The user authorized two parallel work streams for the current batch only: step 2.3 (CI) and phase 3 (demo data), alongside the English documentation update. This does not authorize subsequent phases or permanent autonomous operation. Keep manual acceptance pending.
+- Phase 3 was accepted by the user. Current work is phase 4, starting with step 4.1: the `Requirement` contract and validation tests. Work sequentially with manual checkpoints; the earlier two-agent batch is finished and does not authorize permanent autonomous operation.
 - Revisit the deferred database setup before work that needs a live database. Do not silently replace local Postgres with a cloud service.
 
 ## Engineering constraints

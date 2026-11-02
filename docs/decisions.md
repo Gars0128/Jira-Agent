@@ -63,3 +63,11 @@
 **Why:** requirements and contradictions can be reviewed manually before building extraction or RAG. A small-talk-only case and a withdrawn-request case help distinguish product requests from incidental conversation. Corruption checks prove that invalid quotes, speakers, spec references, and story links are rejected.
 
 **Rejected:** implementing the fictional portal, presenting fixture checks as model-quality evals, generating Jira tasks for unapproved policy changes, or closing the deferred Docker checkpoint because independent tests pass.
+
+## 2026-11-02 — Requirement contract before extraction
+
+**Decision:** start phase 4 with one Pydantic Requirement model in `app/schemas.py`. Reject unknown fields, invalid types/enums and blank required strings without trimming quotes. Reuse the model in corpus validation and declare Pydantic as a direct dependency; it is already installed through FastAPI.
+
+**Why:** one executable contract keeps future model output and current gold fixtures aligned. Structural validation needs no provider, credentials, database or network call. Quote membership depends on the transcript and belongs in the next grounding step.
+
+**Rejected:** duplicate enum validation in fixtures, custom parser wrappers, adding unused Story/RunResult models now, or claiming that a structurally valid requirement is grounded.
