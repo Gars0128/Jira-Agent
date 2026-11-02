@@ -1,0 +1,25 @@
+{
+  "id": "09-conflict-retention",
+  "project_id": "harbor-desk",
+  "spec_path": "data/demo/harbor-desk/spec.md",
+  "transcript": "Eli: Keep audit events for three hundred sixty-five days.",
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Propose 365-day audit retention.",
+      "type": "constraint",
+      "priority": "must",
+      "quote": "Keep audit events for three hundred sixty-five days.",
+      "speaker": "Eli",
+      "status": "conflict",
+      "spec_refs": [
+        "HD-AUDIT"
+      ],
+      "note": "The baseline is 180 days; this repeats an existing conflict theme."
+    }
+  ],
+  "expected_stories": [],
+  "questions": [
+    "Is the proposed 365-day retention approved?"
+  ]
+}

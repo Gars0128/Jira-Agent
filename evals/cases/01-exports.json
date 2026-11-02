@@ -1,0 +1,80 @@
+{
+  "id": "01-exports",
+  "project_id": "harbor-desk",
+  "spec_path": "data/demo/harbor-desk/spec.md",
+  "transcript_path": "data/demo/harbor-desk/transcripts/01-exports.md",
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Allow coordinators to export reservation reports.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Coordinators must be allowed to export reservation reports too.",
+      "speaker": "Nora",
+      "status": "conflict",
+      "spec_refs": [
+        "HD-EXPORT"
+      ],
+      "note": "The baseline restricts export to administrators. Board approval is explicitly pending."
+    },
+    {
+      "id": "R2",
+      "text": "Export UTF-8 CSV using the active report filters.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Keep the export as UTF-8 CSV using the active filters.",
+      "speaker": "Nora",
+      "status": "duplicate",
+      "spec_refs": [
+        "HD-EXPORT"
+      ],
+      "note": "PDF was withdrawn; scheduled report email was explicitly excluded from this request."
+    },
+    {
+      "id": "R3",
+      "text": "Show a month-by-month reservation count grouped by reservation start month.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Add a month-by-month reservation count to the report, grouped by reservation start month.",
+      "speaker": "Nora",
+      "status": "new",
+      "spec_refs": [
+        "HD-REPORTS"
+      ],
+      "note": "The baseline has a filter-matched overall count, not a monthly breakdown."
+    },
+    {
+      "id": "R4",
+      "text": "Clarify the export performance target.",
+      "type": "non_functional",
+      "priority": "should",
+      "quote": "make exporting feel instant.",
+      "speaker": "Owen",
+      "status": "unclear",
+      "spec_refs": [
+        "HD-USABILITY"
+      ],
+      "note": "No report size or measurable response-time target is agreed."
+    }
+  ],
+  "expected_stories": [
+    {
+      "id": "S1",
+      "title": "Show monthly reservation counts",
+      "as_a": "coordinator",
+      "i_want": "see reservation counts grouped by start month",
+      "so_that": "I can report monthly usage without manual calculation",
+      "requirement_ids": [
+        "R3"
+      ],
+      "acceptance_criteria": [
+        "Given a report interval spanning multiple months, when the report is opened, then it shows one count for each reservation start month in that interval.",
+        "Given active report filters, when monthly counts are shown, then only matching reservations contribute to the counts."
+      ]
+    }
+  ],
+  "questions": [
+    "Does the board approve coordinator export access?",
+    "What report size and maximum response time define instant export?"
+  ]
+}

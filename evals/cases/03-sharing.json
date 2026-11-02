@@ -1,0 +1,80 @@
+{
+  "id": "03-sharing",
+  "project_id": "harbor-desk",
+  "spec_path": "data/demo/harbor-desk/spec.md",
+  "transcript_path": "data/demo/harbor-desk/transcripts/03-sharing.md",
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Propose anonymous access to a reservation through a sharing link.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Let anyone with a reservation sharing link view that reservation without signing in.",
+      "speaker": "Owen",
+      "status": "conflict",
+      "spec_refs": [
+        "HD-ACCESS"
+      ],
+      "note": "The baseline requires sign-in and explicitly excludes public reservation links. The policy is not approved. A named-collector alternative was discussed but not agreed."
+    },
+    {
+      "id": "R2",
+      "text": "Allow coordinators to invite prospective members by email.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Coordinators must still be able to invite prospective members by email.",
+      "speaker": "Owen",
+      "status": "duplicate",
+      "spec_refs": [
+        "HD-INVITES"
+      ],
+      "note": null
+    },
+    {
+      "id": "R3",
+      "text": "Allow coordinators to revoke unexpired invitations.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Allow a coordinator to revoke an invitation before it expires.",
+      "speaker": "Owen",
+      "status": "new",
+      "spec_refs": [
+        "HD-INVITES"
+      ],
+      "note": "Manual revocation is not in the baseline. Acceptance of a revoked invitation must fail without account creation. Invitation reminders were excluded."
+    },
+    {
+      "id": "R4",
+      "text": "Clarify permissions for external collaborators.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "External collaborators should get the right access.",
+      "speaker": "Nora",
+      "status": "unclear",
+      "spec_refs": [
+        "HD-ACCESS"
+      ],
+      "note": "No collaborator role or permission matrix is defined."
+    }
+  ],
+  "expected_stories": [
+    {
+      "id": "S1",
+      "title": "Revoke a pending invitation",
+      "as_a": "coordinator",
+      "i_want": "revoke an invitation before expiry",
+      "so_that": "an invitation sent by mistake cannot create an account",
+      "requirement_ids": [
+        "R3"
+      ],
+      "acceptance_criteria": [
+        "Given an unused unexpired invitation, when a coordinator revokes it, then it is marked revoked.",
+        "Given a revoked invitation, when someone attempts acceptance, then account creation is rejected with a revoked-invitation explanation."
+      ]
+    }
+  ],
+  "questions": [
+    "Should anonymous reservation links be permitted despite the private-access baseline?",
+    "Which pages and actions should external collaborators access, and through which account role?"
+  ]
+}

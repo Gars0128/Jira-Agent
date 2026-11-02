@@ -1,41 +1,47 @@
-# Инструкции для Codex и Claude Code
+# Instructions for Codex and Claude Code
 
-Перед любой задачей прочитай этот файл полностью, затем [план](docs/plan.md) и относящиеся к задаче разделы [спецификации](docs/spec.md). README — точка входа для человека; этот файл — общие правила для агентов.
+Read this file in full before each task, then the [plan](docs/plan.md) and relevant sections of the [specification](docs/spec.md). README is the human entry point; this file contains shared agent instructions.
 
-## Работа в тандеме
+## Working together
 
-- Обсуждение и отчёты — на русском. Имена API, классов и полей — на английском.
-- Работай только над текущей согласованной фазой. Пользовательская просьба начать фазу разрешает её реализацию и необходимые проверки.
-- Перед изменениями коротко объясни цель, объём и способ проверки. Читай затрагиваемые файлы и вызывающий код.
-- Делай минимальное полное изменение. Не добавляй зависимости, абстракции и возможности «на будущее».
-- После реализации запусти подходящие проверки. При ошибке исправь её и повтори затронутые проверки; не скрывай ограничения окружения.
-- Заверши отчётом: что изменено, команды и результаты проверок, шаги ручной проверки, оставшиеся ограничения.
-- После отчёта остановись. Следующую фазу начинай только после подтверждения пользователя.
-- Объясняй решения простыми словами, чтобы пользователь мог учиться и проверять результат.
-- Внутри фазы двигайся небольшими проверяемыми шагами: объяснение → реализация → проверки → практика пользователя → обсуждение. Перед следующим шагом дождись подтверждения; не проходи крупную фазу одним непрозрачным пакетом изменений.
-- Новые понятия вводи на текущем коде: что поступает на вход, что делает шаг, что меняется на выходе, где увидеть результат. Для LangGraph показывай state, nodes, edges, interrupt и checkpoints постепенно, по мере их появления. Не предполагай предварительное знание LangChain/LangGraph.
-- Не отмечай фазу принятой до ручного подтверждения. Не выдавай планируемые функции, метрики и деплой за готовые.
+- Keep repository documentation, API names, classes, and fields in English. Discuss the work and report to the user in Russian.
+- Work only on the agreed phase or explicitly authorized batch. A request to start a phase authorizes its implementation and necessary checks.
+- Before editing, briefly explain the goal, scope, and verification. Read the affected files and their callers.
+- Make the smallest complete change. Do not add dependencies, abstractions, or features for hypothetical future use.
+- Run appropriate checks after implementation. Fix failures and rerun affected checks; report environment limitations explicitly.
+- Finish with changed files, actual commands and results, manual verification steps, and remaining limitations.
+- Stop after reporting. Begin the next phase only after the user's confirmation.
+- Explain decisions in plain language so the user can learn and verify the result.
+- Within a phase, use small steps: explanation → implementation → checks → user practice → discussion. Wait for confirmation before the next step; do not deliver a large phase as an opaque batch.
+- Introduce concepts through current code: inputs, processing, outputs, and where to observe the result. Explain LangGraph state, nodes, edges, interrupts, and checkpoints as they appear. Do not assume prior LangChain or LangGraph knowledge.
+- Do not mark a phase accepted before manual confirmation. Never present planned features, metrics, or deployment as completed work.
 
-## Инженерные ограничения
+## Current checkpoint
 
-- Все демоданные вымышленные. Не используй реальные клиентские имена, разговоры и документы.
-- Секреты и настройки — через окружение; `.env` не коммитить. Не выводить секреты в логи.
-- Python: аннотации типов, `ruff`, `pytest`. TypeScript: strict mode и ESLint. Конкретные команды добавлять вместе с соответствующим кодом и конфигурацией.
-- Нетривиальная логика требует небольшой проверки поведения. Для правок документации достаточно проверки ссылок, согласованности и diff.
-- Все LLM-вызовы проходят через общий helper: учёт токенов и стоимости, остановка при превышении `MAX_COST_PER_RUN_USD`.
-- Grounding проверяется кодом: пустые цитаты и цитаты, отсутствующие в нормализованном тексте разговора, отбрасываются. Исходную цитату сохранять без переписывания.
-- Jira-записи разрешены только в `create_tickets`, после `human_review` и запроса Approve. `JIRA_DRY_RUN=true` по умолчанию; публичное демо всегда `dry-run`.
-- Проверять ключ идемпотентности до Jira create; повторять 429/5xx с экспоненциальной задержкой, максимум три повтора. Точные контракты — в спецификации.
-- Изменение промпта или модели требует прогона evals перед merge. До появления eval runner явно сообщать, что качество ещё не измерено.
-- Неочевидные решения фиксировать в [docs/decisions.md](docs/decisions.md).
+- **Docker step 2.2 is deferred by the user's decision, not completed.** Do not enable the hypervisor, change Windows boot settings, reboot, or retry Docker unless requested. The reason, outstanding checks, and resumption criteria are recorded in the [plan](docs/plan.md).
+- The user authorized two parallel work streams for the current batch only: step 2.3 (CI) and phase 3 (demo data), alongside the English documentation update. This does not authorize subsequent phases or permanent autonomous operation. Keep manual acceptance pending.
+- Revisit the deferred database setup before work that needs a live database. Do not silently replace local Postgres with a cloud service.
 
-## Применение навыков
+## Engineering constraints
 
-- **Ponytail:** минимальная полная реализация в пределах фазы.
-- **Matt Pocock:** выбирать конкретный навык по задаче: уточнение требований, TDD, диагностика, объяснение или ревью. Не запускать весь набор автоматически.
-- **Thermonuclear Review:** отдельное строгое ревью поддерживаемости по явному запросу пользователя.
-- **Agent Harness Construction:** применять при проектировании инструментов нашего агента, формата их ответов и восстановления после ошибок.
-- **pstack:** установлен в Claude Code; использовать совместимые сценарии по необходимости. Не считать его полностью доступным в Codex.
-- Наличие навыка не означает, что он применён. Не включать автономное выполнение или параллельных агентов только потому, что установлен плагин. Работа по фазам и указания пользователя имеют приоритет.
+- All demo data is fictional. Never use real client names, conversations, or documents.
+- Read secrets and configuration from the environment. Never commit `.env` or print secrets in logs.
+- Python: type hints, `ruff`, and `pytest`. TypeScript: strict mode and ESLint. Add concrete commands with the corresponding implementation and configuration.
+- Non-trivial logic needs a small behavioral check. For documentation changes, check links, consistency, and the diff.
+- Route every LLM call through one helper that records tokens and cost and enforces `MAX_COST_PER_RUN_USD`.
+- Check grounding in code: discard empty quotes and quotes absent from the transcript after whitespace/case normalization. Preserve the original quote text.
+- Write to Jira only from `create_tickets`, after `human_review` and an Approve request. Default `JIRA_DRY_RUN=true`; the public demo always uses dry-run.
+- Check idempotency before Jira creation; retry 429/5xx with exponential backoff, at most three retries. See the specification for the contract.
+- Run evals before merging prompt or model changes. Until an eval runner exists, state that model quality has not been measured.
+- Record non-obvious choices in [docs/decisions.md](docs/decisions.md).
 
-Навыки установлены на уровне пользователя и могут отсутствовать на другом компьютере. Основные правила проекта записаны здесь и не требуют установки плагинов.
+## Using skills
+
+- **Ponytail:** the smallest complete implementation within the agreed scope.
+- **Matt Pocock:** choose the specific skill needed for requirements, TDD, diagnosis, teaching, or review. Do not run the whole collection automatically.
+- **Thermonuclear Review:** a separate strict maintainability review, only on an explicit user request.
+- **Agent Harness Construction:** use when designing our agent's tools, output formats, and recovery behavior. Keep project checkpoints in the plan rather than introducing another memory system.
+- **pstack:** installed in Claude Code; use compatible workflows when useful. Do not assume full Codex support.
+- An installed skill is not necessarily an applied skill. Do not enable autonomous execution or parallel agents merely because a plugin exists. User instructions and phase boundaries take priority.
+
+Skills are installed per user and may be absent on another computer. The project's essential rules are recorded here and do not require plugins.

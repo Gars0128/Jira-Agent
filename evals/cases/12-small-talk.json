@@ -1,0 +1,9 @@
+{
+  "id": "12-small-talk",
+  "project_id": "harbor-desk",
+  "spec_path": "data/demo/harbor-desk/spec.md",
+  "transcript": "Mira: Did you bring an umbrella?\nOwen: Yes, and the coffee is still warm.\nMira: Good. We have no product requests today.",
+  "requirements": [],
+  "expected_stories": [],
+  "questions": []
+}

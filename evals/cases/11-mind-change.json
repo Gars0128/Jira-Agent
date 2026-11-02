@@ -1,0 +1,23 @@
+{
+  "id": "11-mind-change",
+  "project_id": "harbor-desk",
+  "spec_path": "data/demo/harbor-desk/spec.md",
+  "transcript": "Jun: Maybe send SMS confirmations.\nJun: No, withdraw SMS. Use email confirmations only.",
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Use the existing email channel for confirmations.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Use email confirmations only.",
+      "speaker": "Jun",
+      "status": "duplicate",
+      "spec_refs": [
+        "HD-NOTIFY"
+      ],
+      "note": "The SMS proposal was explicitly withdrawn; do not extract it as an active requirement."
+    }
+  ],
+  "expected_stories": [],
+  "questions": []
+}

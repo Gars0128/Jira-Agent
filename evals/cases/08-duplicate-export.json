@@ -1,0 +1,23 @@
+{
+  "id": "08-duplicate-export",
+  "project_id": "harbor-desk",
+  "spec_path": "data/demo/harbor-desk/spec.md",
+  "transcript": "Eli: Only administrators may export reservation reports.",
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Restrict report export to administrators.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Only administrators may export reservation reports.",
+      "speaker": "Eli",
+      "status": "duplicate",
+      "spec_refs": [
+        "HD-EXPORT"
+      ],
+      "note": null
+    }
+  ],
+  "expected_stories": [],
+  "questions": []
+}

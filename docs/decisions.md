@@ -1,33 +1,65 @@
-# Журнал решений
+# Decision Log
 
-## 2026-11-02 — Общие инструкции и работа по фазам
+## 2026-11-02 — Shared instructions and phased work
 
-**Решение:** `AGENTS.md` — общие правила Codex и Claude Code; `CLAUDE.md` импортирует их. README объясняет продукт, `docs/spec.md` хранит целевой контракт, `docs/plan.md` — порядок работы и статус приёмки.
+**Decision:** `AGENTS.md` contains the shared Codex and Claude Code rules; `CLAUDE.md` imports it. README explains the whole product, `docs/spec.md` holds the target contract, and `docs/plan.md` records implementation order and acceptance status.
 
-**Почему:** пользователь хочет учиться в тандеме, проверять каждый этап вручную и подтверждать переход дальше. Короткая инструкция с точными ссылками помогает агенту находить нужные требования без дублирования всей спецификации.
+**Why:** the user wants to learn collaboratively, verify each stage manually, and confirm progression. A short instruction file with precise references helps agents find requirements without duplicating the full specification.
 
-**Отклонено:** две независимые инструкции для разных агентов, автоматическая реализация всего двухдневного плана и отметка «готово» после одних только тестов.
+**Rejected:** independent instruction sets for each agent, automatically implementing the entire two-day plan, and marking work complete based only on tests.
 
-## 2026-11-02 — Инструменты доступны по необходимости
+## 2026-11-02 — Apply tools as needed
 
-**Решение:** использовать конкретные скиллы под задачу, сохраняя правила фаз. Полный ECC, автоматические хуки и постоянный режим нескольких агентов не являются частью проекта. В репозиторий не копируем пользовательские наборы навыков.
+**Decision:** choose individual skills for the task while preserving phase boundaries. Full ECC, automatic hooks, and permanent multi-agent operation are not project requirements. Do not copy personal skill collections into the repository.
 
-**Почему:** инструкция проекта должна работать на другом компьютере; наличие набора инструментов не требует запуска всех его сценариев. Ponytail задаёт минимальный объём изменения; идеи Harness используются для явных результатов, проверок и условий остановки.
+**Why:** project instructions must work on another computer; an installed toolbox does not require every workflow to run. Ponytail sets the minimum complete scope. Harness ideas provide explicit outputs, checks, checkpoints, and stop conditions.
 
-**Отклонено:** делать установку всех персональных плагинов обязательным условием работы над репозиторием.
+**Rejected:** requiring every personal plugin before someone can work on the repository.
 
-## 2026-11-02 — Полная картина в README и обучение внутри этапов
+## 2026-11-02 — Complete README and learning within phases
 
-**Решение:** README самостоятельно описывает весь целевой продукт от входа до Jira preview, интерфейс, внутренний процесс, архитектуру и готовность. Подробный план делит реализацию на фазы с небольшой ручной практикой внутри каждой.
+**Decision:** README independently explains the entire target product from input to Jira preview, including UI, internal workflow, architecture, and acceptance. The detailed plan divides implementation into phases with small manual exercises.
 
-**Почему:** пользователь должен видеть целый проект и понимать каждый шаг, включая незнакомые LangGraph, LangChain и RAG. Документация текущей фазы не должна подменять описание итогового результата.
+**Why:** the user needs the full picture and an explanation of each step, including unfamiliar LangGraph, LangChain, and RAG concepts. Documentation of the current stage must not replace the final product description.
 
-**Отклонено:** README только с текущим этапом и ссылками на общую картину; реализация целой крупной фазы без промежуточного обсуждения и практики пользователя.
+**Rejected:** a README limited to current work and links; implementing a large phase without intermediate discussion and user practice.
 
-## 2026-11-02 — Первый шаг API и воспроизводимое окружение
+## 2026-11-02 — First API step and reproducible environment
 
-**Решение:** начать фазу 2 с одного `GET /health` и HTTP-теста. Использовать Python 3.12 через uv, `pyproject.toml` и зафиксированный `uv.lock`; runtime-зависимости — FastAPI и Uvicorn, dev-зависимости — pytest, HTTPX2 и Ruff. Установленная версия Starlette использует HTTPX2 для TestClient и предупреждает об устаревании HTTPX. В README uv вызывается через `python -m uv`, поскольку на текущем компьютере модуль установлен, а команда `uv` отсутствует в PATH.
+**Decision:** start phase 2 with one `GET /health` endpoint and an HTTP test. Use Python 3.12 through uv, `pyproject.toml`, and a committed `uv.lock`. Runtime dependencies are FastAPI and Uvicorn; development dependencies are pytest, HTTPX2, and Ruff. The installed Starlette version uses HTTPX2 for TestClient and warns that HTTPX is deprecated. README invokes uv as `python -m uv` because the module is installed but `uv` is not on PATH on the current machine.
 
-**Почему:** пользователь может запустить сервис и проверить один понятный контракт до появления Docker, БД и AI. `/health` возвращает `{"status":"ok"}` и пока проверяет только доступность API.
+**Why:** the user can launch the service and verify one clear contract before Docker, the database, or AI. `/health` returns `{"status":"ok"}` and currently checks API liveness only.
 
-**Отклонено:** настройка всей инфраструктуры за один шаг, фиктивная проверка ещё не подключённой БД и использование установленного Python 3.13 вместо согласованного Python 3.12.
+**Rejected:** configuring all infrastructure at once, pretending to check a database that is not connected, and using the installed Python 3.13 instead of the agreed Python 3.12.
+
+## 2026-11-02 — Local API and Postgres containers
+
+**Decision:** Compose defines the API and Postgres 17 with pgvector 0.8.7. A named volume stores database files; init SQL enables the vector extension on first database creation. The API image uses uv 0.13.6 and the lockfile without development dependencies, runs as a non-root user, and has a restricted build context.
+
+**Why:** this provides a reproducible local setup without installing Postgres directly on Windows. The database healthcheck and `service_healthy` dependency define startup order; a separate API healthcheck checks HTTP. Ports bind to loopback only. Secrets come from ignored `.env`; separate `PG*` variables avoid manually assembling a URL containing a password.
+
+**Rejected:** adding a SQL driver and pool before application queries exist, storing the database in the container layer, and including `.env` or the local Windows `.venv` in the image. Step 2.2 passes database settings to the API but does not open a SQL connection; `/health` remains a liveness check. Container behavior is still unverified.
+
+## 2026-11-02 — Defer Docker and continue independent work
+
+**Decision:** leave Docker step 2.2 deferred at the user's request. Do not change Windows boot settings or enable the hypervisor. Keep the durable resumption checkpoint in [the plan](plan.md), with a short reminder in `AGENTS.md`.
+
+**Why:** the user confirmed `hypervisorlaunchtype Off`. Firmware virtualization and the WSL/Virtual Machine Platform components are enabled, but the Windows hypervisor is not running. Docker's initial Engine HTTP 500 was followed by its virtualization error. CI and fictional demo data can be prepared without a local database.
+
+**Rejected:** declaring Docker complete after configuration validation, silently provisioning cloud Postgres, adding a separate memory framework, or changing host settings to unblock development.
+
+## 2026-11-02 — English documentation and a bounded parallel batch
+
+**Decision:** maintain one English documentation set and keep user-facing explanations in Russian. For this batch, the user explicitly authorized two agents: one for step 2.3 and phase 3, and another for documentation. Acceptance still requires integration checks and the user's manual review.
+
+**Why:** English makes the portfolio accessible to a wider audience. Independent file ownership lets CI/data work proceed alongside translation without duplicate documentation or conflicting edits.
+
+**Rejected:** maintaining parallel Russian copies, treating delegation as permanent autonomy, or claiming GitHub Actions passed before a remote run has been observed.
+
+## 2026-11-02 — Fictional reference corpus and CI without Docker
+
+**Decision:** use Harbor Desk, a fictional equipment-reservation portal, as input data for Discovery → Jira. Store six conversations and twelve gold cases with stable specification section references. Gold stories cover new requirements; unresolved conflicts and unclear requests remain questions. This annotation convention does not yet define implemented runtime behavior. Check fixture integrity with pytest and run the same checks in the API workflow without Docker or LLM credentials.
+
+**Why:** requirements and contradictions can be reviewed manually before building extraction or RAG. A small-talk-only case and a withdrawn-request case help distinguish product requests from incidental conversation. Corruption checks prove that invalid quotes, speakers, spec references, and story links are rejected.
+
+**Rejected:** implementing the fictional portal, presenting fixture checks as model-quality evals, generating Jira tasks for unapproved policy changes, or closing the deferred Docker checkpoint because independent tests pass.

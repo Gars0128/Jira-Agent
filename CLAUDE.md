@@ -1,7 +1,7 @@
 # Discovery → Jira Agent
 
-Прочитай и соблюдай общую инструкцию для агентов:
+Read and follow the shared agent instructions:
 
 @AGENTS.md
 
-Не дублируй правила в этом файле. Текущая фаза и критерии приёмки находятся в [docs/plan.md](docs/plan.md).
+Do not duplicate those rules here. The current checkpoint and acceptance criteria are in [docs/plan.md](docs/plan.md).

@@ -1,0 +1,81 @@
+{
+  "id": "04-bookings",
+  "project_id": "harbor-desk",
+  "spec_path": "data/demo/harbor-desk/spec.md",
+  "transcript_path": "data/demo/harbor-desk/transcripts/04-bookings.md",
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Propose extending the advance-booking window to 30 calendar days.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Allow reservations to start up to thirty calendar days after submission.",
+      "speaker": "Jun",
+      "status": "conflict",
+      "spec_refs": [
+        "HD-BOOKING"
+      ],
+      "note": "The approved window is 14 calendar days for every role; the change still needs approval. Recurring reservations were withdrawn."
+    },
+    {
+      "id": "R2",
+      "text": "Retain the three-consecutive-day maximum reservation duration.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Keep the maximum duration at three consecutive calendar days.",
+      "speaker": "Jun",
+      "status": "duplicate",
+      "spec_refs": [
+        "HD-BOOKING"
+      ],
+      "note": null
+    },
+    {
+      "id": "R3",
+      "text": "Let members subscribe to email availability alerts for a chosen item and interval.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Let members subscribe to an email when a selected item and date interval become available.",
+      "speaker": "Jun",
+      "status": "new",
+      "spec_refs": [
+        "HD-NOTIFY"
+      ],
+      "note": "The baseline excludes waitlist alerts. Email links must not reserve automatically; subscription expiry is unresolved."
+    },
+    {
+      "id": "R4",
+      "text": "Allow members to unsubscribe from availability alerts.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "members must be able to unsubscribe.",
+      "speaker": "Jun",
+      "status": "new",
+      "spec_refs": [
+        "HD-NOTIFY"
+      ],
+      "note": null
+    }
+  ],
+  "expected_stories": [
+    {
+      "id": "S1",
+      "title": "Subscribe to slot availability emails",
+      "as_a": "member",
+      "i_want": "subscribe to email alerts for a selected item and interval and cancel my subscription",
+      "so_that": "I can try booking when a slot opens",
+      "requirement_ids": [
+        "R3",
+        "R4"
+      ],
+      "acceptance_criteria": [
+        "Given an active subscription, when the selected interval becomes available, then the subscriber receives an email with a portal link and no automatic reservation is created.",
+        "Given a subscription, when its member unsubscribes, then subsequent matching availability events do not send alerts to that subscription."
+      ]
+    }
+  ],
+  "questions": [
+    "Is the 30-day advance-booking window approved?",
+    "When should an availability subscription expire?"
+  ]
+}

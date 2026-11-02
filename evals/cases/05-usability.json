@@ -1,0 +1,79 @@
+{
+  "id": "05-usability",
+  "project_id": "harbor-desk",
+  "spec_path": "data/demo/harbor-desk/spec.md",
+  "transcript_path": "data/demo/harbor-desk/transcripts/05-usability.md",
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Keep reservation actions keyboard accessible with visible focus.",
+      "type": "non_functional",
+      "priority": "must",
+      "quote": "All core reservation actions must work with a keyboard and visible focus.",
+      "speaker": "Jun",
+      "status": "duplicate",
+      "spec_refs": [
+        "HD-USABILITY"
+      ],
+      "note": null
+    },
+    {
+      "id": "R2",
+      "text": "Let each member save and clear one personal category-only catalogue preset between visits.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Let each member save one personal catalogue filter preset between visits.",
+      "speaker": "Owen",
+      "status": "new",
+      "spec_refs": [
+        "HD-CATALOGUE"
+      ],
+      "note": "Subsequent clarification limits the preset to category, excludes dates and retains alphabetical ordering."
+    },
+    {
+      "id": "R3",
+      "text": "Clarify what making the reservation form faster means.",
+      "type": "non_functional",
+      "priority": "should",
+      "quote": "The reservation form should be faster.",
+      "speaker": "Jun",
+      "status": "unclear",
+      "spec_refs": [
+        "HD-USABILITY"
+      ],
+      "note": "No bottleneck, metric or target is agreed; do not invent a two-second target."
+    },
+    {
+      "id": "R4",
+      "text": "Show a text label alongside status colors.",
+      "type": "non_functional",
+      "priority": "must",
+      "quote": "Keep a text label next to any status color.",
+      "speaker": "Jun",
+      "status": "duplicate",
+      "spec_refs": [
+        "HD-USABILITY"
+      ],
+      "note": null
+    }
+  ],
+  "expected_stories": [
+    {
+      "id": "S1",
+      "title": "Remember a personal catalogue category",
+      "as_a": "member",
+      "i_want": "save and clear one category filter preset between visits",
+      "so_that": "I can return to my usual equipment category",
+      "requirement_ids": [
+        "R2"
+      ],
+      "acceptance_criteria": [
+        "Given a saved category preset, when the member returns to the catalogue, then the category is restored while dates are not restored and alphabetical ordering remains.",
+        "Given a saved preset, when the member clears it and returns again, then no category preset is applied."
+      ]
+    }
+  ],
+  "questions": [
+    "Which observed reservation task is slow, and what measurable target would improve it?"
+  ]
+}

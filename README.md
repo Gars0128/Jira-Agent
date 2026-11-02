@@ -2,191 +2,191 @@
 
 > From a messy client call to reviewed Jira tickets in 2 minutes — every requirement traced back to the transcript.
 
-Мы строим веб-приложение, которое превращает текст клиентского звонка в проверенные человеком пользовательские истории для Jira. Оно извлекает требования, связывает их с цитатами, сравнивает со спецификацией проекта, показывает противоречия и готовит задачи с критериями приёмки. Человек проверяет результат и решает, что отправлять в Jira.
+We are building a web application that turns a client-call transcript into human-reviewed Jira user stories. It extracts requirements, links them to quotes, compares them against the project specification, exposes contradictions, and drafts tickets with acceptance criteria. A person reviews the result and decides what to send to Jira.
 
-**Статус:** фаза 1 принята; фаза 2 в работе. Реализован минимальный API с `/health`, первый шаг ожидает ручной проверки. Анализ разговоров и опубликованное демо пока отсутствуют. Две минуты — целевое время пользовательского сценария, пока не измеренное.
+**Status:** phase 1 and API step 2.1 are accepted. Docker step 2.2 is deferred; its files exist, but container execution is unverified. CI and demo data are the current work batch, pending checks and manual acceptance. There is no AI analysis or deployed demo yet. Two minutes is the target workflow duration, not a measured result.
 
-Ниже описан **весь целевой проект**. Поэтапная разработка означает, что мы постепенно реализуем этот сценарий, сохраняя общую цель.
+The sections below describe the **whole target product**. Phased development gradually implements this complete workflow.
 
-## Для кого и какую проблему решаем
+## Who it helps and why
 
-После discovery-звонка аналитику, PM или инженеру нужно отделить требования от обсуждений, проверить договорённости по действующей спецификации и перенести результат в задачи. В разговоре бывают small talk, неясные пожелания, изменения решений и противоречия. Их легко потерять при ручном конспектировании.
+After a discovery call, an analyst, PM, or engineer must separate requirements from discussion, compare them with existing agreements, and turn the result into actionable tickets. Conversations contain small talk, vague requests, changes of mind, and contradictions that are easy to lose in manual notes.
 
-Наш результат — проверяемая цепочка: **реплика в разговоре → требование → сравнение со спецификацией → история → подтверждённая задача**. Приложение помогает подготовить решение, а последнее слово остаётся за человеком.
+Our result is a verifiable chain: **transcript statement → requirement → specification comparison → story → approved ticket**. The application supports the decision; a human makes the final call.
 
-Проект также должен показать работодателю навыки discovery, AI engineering и full-stack: RAG, LangGraph, структурированные ответы модели, оценку качества, трассировку, контроль стоимости, надёжную интеграцию и работающий интерфейс.
+The project also demonstrates discovery, AI engineering, and full-stack skills to a hiring manager: RAG, LangGraph, structured model output, evaluations, tracing, cost controls, reliable integration, and a usable interface.
 
-## Полный сценарий: от входа до результата
+## Complete workflow: input to result
 
-### 1. Открыть демо и выбрать исходные данные
+### 1. Open the demo and choose inputs
 
-Посетитель открывает сайт без регистрации. Выбирает вымышленный проект, видит его описание и спецификацию, затем выбирает один из шести разговоров или вставляет собственный текст без реальных клиентских данных.
+A visitor opens the site without registering, chooses a fictional project, sees its description and specification, and selects one of six transcripts or pastes text without real client data.
 
-Спецификация — уже зафиксированные договорённости. Разговор — новый источник пожеланий, которые нужно с ними сопоставить. В MVP своя спецификация через UI не загружается: анализ идёт относительно выбранного демопроекта.
+The specification contains existing agreements. The transcript introduces requests to compare against them. The MVP does not support uploading another specification through the UI; analysis uses the selected demo project.
 
-### 2. Запустить анализ и видеть ход работы
+### 2. Run the analysis and watch progress
 
-После **Run** интерфейс показывает последовательность шагов: извлечение требований, поиск в спецификации, классификация, подготовка историй и проверка критиком. События поступают с API через SSE, поэтому пользователь видит продвижение и возможную ошибку.
+After **Run**, the UI shows requirement extraction, specification retrieval, classification, story drafting, and critic review. SSE events from the API show progress and any error.
 
-### 3. Проверить требования и их происхождение
+### 3. Check requirements and evidence
 
-Появляется таблица требований: текст, тип, приоритет, говорящий, цитата и статус. При выборе требования соответствующая цитата подсвечивается в разговоре. Требование без подтверждённой цитаты отбрасывается кодом.
+A requirements table shows text, type, priority, speaker, quote, and status. Selecting a requirement highlights its quote in the transcript. Code discards requirements without a verified quote.
 
-Приложение ищет относящиеся к требованию фрагменты спецификации и присваивает статус:
+The application retrieves relevant specification chunks and assigns a status:
 
-| Статус | Что означает для проверяющего |
+| Status | Meaning for the reviewer |
 |---|---|
-| `new` | Новое требование относительно найденных договорённостей |
-| `duplicate` | Требование уже описано в спецификации |
-| `conflict` | Требование противоречит спецификации; нужно разобрать расхождение |
-| `unclear` | Недостаточно данных для уверенного решения; нужно уточнение |
+| `new` | A new requirement relative to the retrieved agreements |
+| `duplicate` | Already described in the specification |
+| `conflict` | Contradicts the specification; the difference needs review |
+| `unclear` | Insufficient information for a confident decision; clarification is needed |
 
-Для обоснования видны найденные фрагменты спецификации. Результат классификации — вывод агента, который человек может проверить по исходным текстам.
+Retrieved specification excerpts make the classification inspectable. Each status is an agent judgment that a person can check against the source texts.
 
-### 4. Разобрать истории и открытые вопросы
+### 4. Review stories and open questions
 
-Агент готовит пользовательские истории в формате «Как …, я хочу …, чтобы …» и проверяемые acceptance criteria, предпочтительно Given/When/Then. Истории ссылаются на требования. Отдельно показаны вопросы, которые нужно вернуть клиенту, например для разрешения конфликта.
+The agent drafts stories in the form “As a …, I want …, so that …” with testable acceptance criteria, preferably Given/When/Then. Stories reference their source requirements. A separate list holds questions to return to the client, including unresolved conflicts.
 
-Критик проверяет подготовленные истории и может отправить их на доработку не более одного раза. После этого выполнение останавливается на **human review**. Решения по конфликтам не должны скрываться за уверенно сформулированным текстом истории.
+A critic reviews the drafts and can request revision at most once. Execution then pauses for **human review**. A confidently written story must not hide an unresolved decision.
 
-### 5. Отредактировать и подтвердить
+### 5. Edit and approve
 
-Пользователь редактирует истории и критерии приёмки. До нажатия **Approve** задачи в Jira не создаются. Сервер проверяет присланные изменения и только затем возобновляет сохранённый прогон.
+The reviewer edits stories and acceptance criteria. No Jira tickets are created before **Approve**. The server validates the edits before resuming the saved run.
 
-### 6. Получить Jira preview или созданные задачи
+### 6. Receive a Jira preview or created tickets
 
-В публичном демо всегда включён **dry-run**: пользователь видит предпросмотр того, какие задачи были бы созданы, без записи в Jira.
+The public demo always uses **dry-run**: it previews the tickets that would be created without writing to Jira.
 
-В отдельно настроенном режиме с реальной Jira после подтверждения создаются задачи и возвращаются ссылки. Повторное подтверждение не должно создавать дубликаты; временные ошибки API обрабатываются ограниченными повторами.
+In a separately configured real-Jira mode, approval creates tickets and returns their links. Repeated approval must not create duplicates. Temporary API errors receive bounded retries.
 
-### 7. Посмотреть, что произошло внутри
+### 7. Inspect what happened
 
-Панель **Under the hood** показывает найденные chunks спецификации, стоимость прогона, время выполнения и ссылку на LangSmith trace. Это позволяет проследить путь от входного текста до результата и разбирать ошибки.
+The **Under the hood** panel shows retrieved specification chunks, run cost, latency, and a LangSmith trace link. This makes the path from source text to result visible and helps investigate mistakes.
 
-## Как должен выглядеть интерфейс
+## What the interface should contain
 
-Это один связный рабочий сценарий со следующими областями; точную компоновку согласуем при разработке UI:
+These areas form one connected workflow. We will agree on the exact layout during UI implementation.
 
-| Область | Что в ней находится |
+| Area | Contents |
 |---|---|
-| Исходные данные | Проект, выбор разговора, текст разговора, кнопка Run |
-| Ход выполнения | Timeline шагов, текущий статус и сообщение об ошибке |
-| Требования | Таблица статусов, цитата с подсветкой, связанные фрагменты спецификации |
-| Проверка человеком | Истории, редактор критериев, открытые вопросы, кнопка Approve |
-| Результат | Jira preview либо ссылки на созданные задачи |
-| Under the hood | Retrieved chunks, стоимость, latency и trace URL |
+| Inputs | Project, transcript picker, transcript text, Run button |
+| Progress | Step timeline, current status, and error messages |
+| Requirements | Status table, highlighted quotes, related specification excerpts |
+| Human review | Stories, acceptance-criteria editor, questions, Approve button |
+| Result | Jira preview or links to created tickets |
+| Under the hood | Retrieved chunks, cost, latency, and trace URL |
 
-## Один пример от начала до конца
+## One example from start to finish
 
-Иллюстрация на вымышленных данных, ещё не утверждённый демокейс:
+This is an illustration using fictional data, not an accepted demo fixture:
 
-- В спецификации записано: «Экспорт отчётов доступен только администраторам».
-- В разговоре звучит: «Теперь экспорт должен быть доступен и менеджерам».
-- Агент извлекает требование, сохраняет эту цитату, находит ограничение в спецификации и показывает `conflict`.
-- Открытый вопрос: «Подтверждаем расширение доступа к экспорту для менеджеров?»
-- Черновая история: «Как менеджер, я хочу экспортировать отчёт, чтобы передать его коллегам». Пример критерия: «Given подтверждённый доступ менеджера, When он запускает экспорт, Then получает файл отчёта».
-- Человек проверяет расхождение, корректирует историю после уточнения решения и нажимает Approve. В публичном демо появляется preview задачи.
+- Specification: “Report exports are available to administrators only.”
+- Transcript: “Exports should now be available to managers too.”
+- The agent extracts the requirement, preserves the quote, retrieves the restriction, and shows `conflict`.
+- Open question: “Do we approve expanding report-export access to managers?”
+- Draft story: “As a manager, I want to export a report so that I can share it with colleagues.” Example criterion: “Given approved manager access, when the manager exports a report, then a report file is returned.”
+- The reviewer checks the difference, adjusts the story after clarifying the decision, and clicks Approve. The public demo returns a ticket preview.
 
-Цель примера — показать, зачем нужны и доказательства, и человеческое подтверждение.
+The example shows why both evidence and human approval are necessary.
 
-## Что делает агент внутри
+## What the agent does internally
 
-Один запуск анализа — один **run** с общим состоянием: исходный текст, требования, найденные chunks, истории, вопросы, стоимость и статус выполнения.
+One analysis is one **run** with shared state: source text, requirements, retrieved chunks, stories, questions, cost, and execution status.
 
 ```text
 extract → retrieve_spec → classify → write_stories → critic
                                         ↑             │
-                                        └─ доработка ─┘  максимум один раз
+                                        └─ revision ──┘  at most once
 
-critic → human_review [ожидание Approve] → create_tickets
+critic → human_review [wait for Approve] → create_tickets
 ```
 
-| Шаг | Вход → результат |
+| Step | Input → output |
 |---|---|
-| `extract` | Разговор → структурированные требования; код отбрасывает неподтверждённые цитаты |
-| `retrieve_spec` | Требования → наиболее подходящие фрагменты спецификации из pgvector |
-| `classify` | Требования и фрагменты → статусы, ссылки на chunks и пояснения |
-| `write_stories` | Проверенные требования → истории, критерии и вопросы |
-| `critic` | Черновики → замечания и максимум один возврат на доработку |
-| `human_review` | Подготовленный результат → сохранённая пауза для проверки человеком |
-| `create_tickets` | Подтверждённые истории → dry-run preview или Jira-задачи |
+| `extract` | Transcript → structured requirements; code removes unverified quotes |
+| `retrieve_spec` | Requirements → relevant specification chunks from pgvector |
+| `classify` | Requirements and chunks → statuses, chunk references, and explanations |
+| `write_stories` | Checked requirements → stories, acceptance criteria, and questions |
+| `critic` | Drafts → review findings and at most one revision request |
+| `human_review` | Prepared result → saved pause for a person to review |
+| `create_tickets` | Approved stories → dry-run preview or Jira tickets |
 
-Состояние графа сохраняется в Postgres через checkpointer, чтобы продолжить прогон после перезапуска. Каждый LLM-вызов учитывает токены и стоимость; превышение бюджета останавливает прогон с ошибкой.
+A Postgres checkpointer persists graph state so execution can resume after a restart. Every LLM call records token usage and cost; exceeding the budget ends the run with an error.
 
-## Архитектура и роли технологий
+## Architecture and technology roles
 
 ```text
-Браузер: Next.js / Vercel
+Browser: Next.js / Vercel
     │ POST /runs, GET state, POST approve
-    ↓                         ↑ SSE: события выполнения
-FastAPI + LangGraph / Docker на Render
-    ├─ Postgres + pgvector / Neon: chunks и checkpoints
+    ↓                         ↑ SSE: execution events
+FastAPI + LangGraph / Docker on Render
+    ├─ Postgres + pgvector / Neon: chunks and checkpoints
     ├─ LLM API: extraction, classification, stories, embeddings, judge
-    ├─ LangSmith: traces и eval datasets
-    └─ Jira Cloud REST API v3: только после Approve
+    ├─ LangSmith: traces and eval datasets
+    └─ Jira Cloud REST API v3: only after Approve
 ```
 
-| Технология | Зачем она нам |
+| Technology | Its role |
 |---|---|
-| Next.js, TypeScript, Tailwind | Интерфейс ввода, проверки и редактирования результата |
-| FastAPI, Python 3.12 | HTTP API и запуск обработки |
-| LangGraph | Явные шаги, переходы, состояние, пауза и возобновление агента |
-| RAG | Поиск относящихся к требованию фрагментов перед ответом модели |
-| Embeddings и pgvector | Представление текста векторами и поиск близких фрагментов |
-| Pydantic | Проверка структуры требований, историй и входящих данных |
-| LangSmith | Просмотр выполнения и оценка качества агента |
-| Jira API | Создание подтверждённых задач в настроенном реальном режиме |
+| Next.js, TypeScript, Tailwind | Input, review, and editing UI |
+| FastAPI, Python 3.12 | HTTP API and processing entry point |
+| LangGraph | Explicit steps, transitions, state, pauses, and resumption |
+| RAG | Retrieve relevant source excerpts before the model answers |
+| Embeddings and pgvector | Represent text as vectors and find related excerpts |
+| Pydantic | Validate requirements, stories, and request structure |
+| LangSmith | Inspect execution and evaluate the agent |
+| Jira API | Create approved tickets in the configured real-write mode |
 
-**LangChain и LangGraph будем разбирать отдельно.** LangChain предоставляет компоненты и интеграции для моделей, инструментов и агентов. LangGraph управляет выполнением графа и его состоянием; его можно использовать без LangChain. В нашем плане обязателен LangGraph, а конкретные компоненты LangChain выберем при реализации интеграции. Начальные материалы: [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview) и [LangChain overview](https://docs.langchain.com/oss/python/langchain/overview).
+**We will learn LangChain and LangGraph separately.** LangChain provides model, tool, and agent components and integrations. LangGraph manages graph execution and state and can be used without LangChain. LangGraph is required by our plan; specific LangChain components will be selected when implementing integrations. Start with the official [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview) and [LangChain overview](https://docs.langchain.com/oss/python/langchain/overview).
 
-## Объём MVP и критерии готовности
+## MVP scope and definition of done
 
-В MVP входят один вымышленный проект, одна спецификация примерно на пять страниц, шесть разговоров с изменениями решений и 3–4 заложенными конфликтами, минимум 12 размеченных eval-кейсов, весь UI-сценарий и деплой. Вне объёма: аудио, авторизация, несколько пользователей, Linear/Trello, story points, реальные клиентские данные и сложная дизайн-система.
+The MVP includes one fictional project, a specification of roughly five pages, six transcripts with changes of mind and 3–4 planted conflicts, at least 12 labeled eval cases, the full UI workflow, and deployment. Audio, authentication, multiple users, Linear/Trello, story points, real client data, and an elaborate design system are out of scope.
 
-Готовность проверяем двумя способами:
+We check completion in two ways:
 
-1. **Работающий сценарий:** новый посетитель открывает Vercel URL, без регистрации запускает preset, находит требование с цитатой и конфликт, редактирует историю, подтверждает и получает preview менее чем за две минуты.
-2. **Измеренное качество:** evals запускаются на размеченных кейсах, README показывает реальные значения с размером выборки N, стоимостью и временем. CI останавливает изменения при провале порогов.
+1. **Working workflow:** a new visitor opens the Vercel URL without registration, runs a preset, inspects a grounded requirement and conflict, edits a story, approves it, and receives a preview in less than two minutes.
+2. **Measured quality:** evals run against labeled cases; README reports actual values with sample size N, cost, and latency. CI fails changes that fall below thresholds.
 
-| Проверка | Цель |
+| Check | Target |
 |---|---|
-| Grounding rate | 1.0 после фильтра; пустой результат не считается доказательством качества |
-| Requirement precision / recall | Не ниже зафиксированного baseline − 0.05 |
-| Conflict detection F1 | Не ниже зафиксированного baseline − 0.05 |
-| Story quality | Средняя оценка ≥ 3.5/5; judge откалиброван на 10 ручных оценках |
-| Cost/run и p95 latency | Измеряем и публикуем; численные лимиты уточняем при реализации |
+| Grounding rate | 1.0 after filtering; an empty result is not evidence of quality |
+| Requirement precision / recall | At least the fixed baseline − 0.05 |
+| Conflict detection F1 | At least the fixed baseline − 0.05 |
+| Story quality | Mean ≥ 3.5/5; judge calibrated on 10 manual scores |
+| Cost/run and p95 latency | Measure and report; configure numeric budgets during implementation |
 
-Baseline появляется после первого прогона. Сейчас метрики не измерены, демо не опубликовано, GIF и case study будут добавлены после работающей реализации.
+The baseline follows the first real evaluation. No model-quality metrics have been measured, and there is no deployed demo. Add GIF and case study after a working implementation. Checks on fixture structure and quotes do not measure model precision, recall, or story quality.
 
-## Как построим проект и будем учиться
+## How we will build and learn
 
-| Фаза | Что получаем |
+| Phase | Deliverable |
 |---|---|
-| 1. Инструкции и план | Целый сценарий, правила работы и критерии приёмки |
-| 2. Локальный каркас | API `/health`, Docker, Postgres и CI |
-| 3. Демоданные и эталоны | Спецификация, разговоры и 12+ размеченных случаев |
-| 4. Извлечение | Контракты, первый LLM-вызов, требования с цитатами и стоимость |
-| 5. RAG и классификация | Поиск по спецификации и обнаружение конфликтов |
-| 6. Истории и критик | Истории, критерии, вопросы и ограниченная доработка |
-| 7. Human review и Jira | Полный граф, сохранение состояния, Approve, preview и Jira-клиент |
-| 8. API и наблюдаемость | Runs, SSE, ошибки и LangSmith trace |
-| 9. Интерфейс | Сценарий от ввода до результата в браузере |
-| 10. Качество | Evals, baseline, пороги и CI с проверкой качества |
-| 11. Деплой | Публичное демо, бюджет, cache, GIF и case study |
+| 1. Instructions and plan | Complete workflow, working rules, and acceptance criteria |
+| 2. Local scaffold | API `/health`, Docker, Postgres, and CI |
+| 3. Demo data and gold labels | Specification, transcripts, and 12+ labeled cases |
+| 4. Extraction | Contracts, first LLM call, quoted requirements, and cost |
+| 5. RAG and classification | Specification retrieval and conflict detection |
+| 6. Stories and critic | Stories, criteria, questions, and bounded revision |
+| 7. Human review and Jira | Full graph, persistence, approval, preview, and Jira client |
+| 8. API and observability | Runs, SSE, errors, and a LangSmith trace |
+| 9. Interface | Complete browser workflow |
+| 10. Quality | Evals, baseline, thresholds, and quality gates in CI |
+| 11. Deployment | Public demo, budget, cache, GIF, and case study |
 
-Все пункты исходного плана сохранены в [подробном плане](docs/plan.md). Для каждой фазы там указаны результат, проверки, ручная приёмка и учебная практика. Ориентир «два дня» из исходного задания не ограничивает темп нашего обучения.
+The [detailed plan](docs/plan.md) preserves the original scope and lists checks, manual acceptance, and learning exercises for each phase. The original two-day estimate does not limit our learning pace.
 
-Внутри фазы берём один небольшой шаг. Я объясняю входные данные, выполняемый код и ожидаемый результат; реализую шаг, запускаю проверки и даю воспроизводимые действия для тебя. Ты пробуешь их руками, мы разбираем вопросы и ошибки. К следующему шагу переходим после твоего подтверждения. Простое «тесты зелёные» не закрывает этап.
+Each phase uses small steps. The agent explains inputs, code, and expected outputs, implements the step, runs checks, and provides reproducible manual instructions. The user tries them, asks questions, and confirms progression. Passing tests alone does not close a phase. The user explicitly authorized the current CI/demo-data batch to run alongside the English documentation update; this is a bounded exception, not permanent autopilot.
 
-## Текущий статус и запуск
+## Current status and local development
 
-Фаза 1 принята. В фазе 2 создан FastAPI-сервис с одним endpoint и его тестом. Docker, БД и CI ещё не подключены; фазы 3–11 не начаты.
+Phase 1 and step 2.1 are accepted. The API has one endpoint and a test. Dockerfile, Compose, init SQL, and an env example exist, but Docker is deliberately deferred. CI and phase 3 demo data are the current batch; see the [plan](docs/plan.md) for the acceptance checkpoint. Phases 4–11 have not started. A local check does not prove a GitHub Actions run passed.
 
-### Запуск API: первый шаг фазы 2
+### Run the API without Docker
 
-Нужны Python для вызова uv и сам [uv](https://docs.astral.sh/uv/getting-started/installation/). Команды ниже вызывают uv как Python-модуль; если он отсутствует, установи его командой `python -m pip install uv`. uv автоматически установит Python 3.12, если тот ещё не доступен, и создаст `.venv` внутри `apps/api`. Первый запуск требует интернета. Версии зависимостей зафиксированы в `uv.lock`.
+You need Python to invoke [uv](https://docs.astral.sh/uv/getting-started/installation/). These commands use uv as a Python module; if absent, install it with `python -m pip install uv`. uv installs Python 3.12 if unavailable and creates `.venv` inside `apps/api`. The first setup requires internet access. `uv.lock` fixes dependency versions.
 
-Из корня репозитория в PowerShell:
+From the repository root in PowerShell:
 
 ```powershell
 cd apps/api
@@ -194,15 +194,15 @@ python -m uv sync --locked
 python -m uv run uvicorn app.main:app --reload
 ```
 
-Открой <http://127.0.0.1:8000/health>. Ожидаемый HTTP-статус — `200`, тело ответа:
+Open <http://127.0.0.1:8000/health>. Expect HTTP `200` with:
 
 ```json
 {"status":"ok"}
 ```
 
-Также можно открыть <http://127.0.0.1:8000/docs> и выполнить `GET /health` через интерактивную документацию. Для остановки сервера нажми `Ctrl+C`.
+Open <http://127.0.0.1:8000/docs> to call `GET /health` through the interactive documentation. Stop the server with `Ctrl+C`.
 
-В отдельном терминале из корня репозитория выполни проверки:
+In another terminal, starting at the repository root:
 
 ```powershell
 cd apps/api
@@ -211,19 +211,79 @@ python -m uv run ruff check .
 python -m uv run ruff format --check .
 ```
 
-Ожидается один пройденный тест, отсутствие ошибок Ruff и отсутствие файлов, требующих форматирования.
+All collected tests must pass, Ruff must report no errors, and no files should require formatting. The accepted initial API step had one passing health test; the demo-data batch adds fixture checks.
 
-**Что здесь происходит:** браузер отправляет HTTP-запрос `GET /health`. FastAPI вызывает функцию `health` в `apps/api/app/main.py` и превращает возвращённый словарь Python в JSON-ответ. Endpoint — адрес обработчика запроса. Тест проверяет HTTP-статус и тело ответа через `TestClient`, без запуска отдельного сервера. `/health` пока подтверждает только доступность API, не готовность БД или AI.
+**What happens:** the browser sends `GET /health`. FastAPI calls `health` in `apps/api/app/main.py` and serializes the returned Python dictionary as JSON. An endpoint is a request-handler address. `TestClient` checks the HTTP status and response without starting a separate server. `/health` currently proves API liveness, not database or AI readiness.
 
-После ручной проверки этого шага подключим Docker и Postgres; CI добавим отдельным шагом в той же фазе.
+### CI and demo-data review
 
-## С чего читать
+The CI workflow at [`.github/workflows/api.yml`](.github/workflows/api.yml) runs locked dependency installation, pytest, Ruff checks, and formatting on pushes and pull requests. It needs no LLM keys or Docker. Its commands pass locally; remote execution must be verified in GitHub Actions after the changes are pushed and has not been observed yet.
 
-| Документ | Назначение |
+The fictional demo project is `harbor-desk`: an equipment-reservation portal used as input for Discovery → Jira. We are not implementing that portal. Its [baseline specification](data/demo/harbor-desk/spec.md), six transcripts, and 12 gold JSON cases provide reference inputs and expected analysis results. Six cases reference transcript files; six synthetic cases include inline transcripts. Specification references use stable `HD-*` heading IDs until runtime chunking is implemented.
+
+For manual review, compare [the reporting conversation](data/demo/harbor-desk/transcripts/01-exports.md) with [its gold case](evals/cases/01-exports.json) and the `HD-EXPORT` section of the specification. Find the quote asking for coordinator exports: the baseline allows only administrators, so the gold label is `conflict`. The same case includes `new`, `duplicate`, and `unclear` requirements. Then inspect [the mind-change case](evals/cases/11-mind-change.json): the withdrawn SMS suggestion must not become an active requirement.
+
+Gold expected stories are evaluation expectations, not runtime Jira payloads. In these fixtures, only new requirements get expected stories; duplicates do not create extra stories, while conflicts and unclear requests stay open for clarification. This annotation convention does not implement or finalize the runtime story policy.
+
+Run `python -m uv run --locked pytest` from `apps/api` to check the health endpoint, corpus references, nonempty quotes attributed to their speakers, and story links. The corpus checks cover 12 cases and include four deliberate corruption checks. They verify fixture integrity, not model precision/recall, conflict F1, or story quality; no LLM has been evaluated yet.
+
+### Docker and Postgres: deferred step 2.2
+
+**Do not run this setup now.** The user chose to leave the Windows hypervisor disabled. Full diagnostic facts, outstanding checks, and resumption criteria are in the [Docker checkpoint](docs/plan.md#docker-checkpoint-step-22). Do not change host settings or retry Docker without a new request. API tests, CI preparation, and demo-data work can continue without containers.
+
+Keep the following instructions for when the user resumes this step. Docker Desktop must be running Linux containers with Compose v2. Execute from the **repository root**; if the terminal is in `apps/api`, first run `cd ../..`. Stop local Uvicorn with `Ctrl+C` to free port 8000. Port 5432 must also be available.
+
+Create local settings once without overwriting an existing `.env`:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker compose config --quiet
+docker compose up --build -d --wait
+docker compose ps
+```
+
+The password in `.env.example` is a public example for local development only. `.env` is ignored by Git. Never reuse this password for a deployed database. The first run downloads images and dependencies. Expect two `healthy` services: `api` and `db`.
+
+Check <http://127.0.0.1:8000/health> and <http://127.0.0.1:8000/docs>. Expect the same `{"status":"ok"}` response and interactive documentation. Then open psql, the database SQL console. `discovery` is the default user and database from `.env.example`; replace `-U` and `-d` values if you changed them.
+
+```powershell
+docker compose exec db psql -U discovery -d discovery
+```
+
+Run these inside psql. The first queries should return version `0.8.7` and distance `0`. The remaining commands create a practice table for the persistence check:
+
+```sql
+SELECT extversion FROM pg_extension WHERE extname = 'vector';
+SELECT '[1,2,3]'::vector <-> '[1,2,3]'::vector AS distance;
+CREATE TABLE IF NOT EXISTS infrastructure_check (id integer PRIMARY KEY);
+INSERT INTO infrastructure_check VALUES (1) ON CONFLICT DO NOTHING;
+\q
+```
+
+Check persistence after deleting and recreating the containers:
+
+```powershell
+docker compose down
+docker compose up -d --wait
+docker compose exec db psql -U discovery -d discovery
+```
+
+Inside psql, `SELECT * FROM infrastructure_check;` should return row `1`. The practice table is only for this check; afterwards, run `DROP TABLE infrastructure_check;` and exit with `\q`.
+
+Use `docker compose down` to stop; the named volume remains. **Do not add `-v` when preserving data:** it deletes the database volume. Changing `.env` does not change the password of an existing database. Init SQL runs only for an empty volume; an existing database can enable the extension manually with `CREATE EXTENSION IF NOT EXISTS vector;` in psql.
+
+If startup fails, inspect `docker compose ps` and `docker compose logs --tail 50 api db`. An unavailable Engine must be resolved before retrying; a port conflict requires freeing the port. After Python changes, rebuild with `docker compose up --build -d --wait`; the image does not enable autoreload.
+
+**What happens:** Dockerfile defines an image containing Python, dependencies, and application code. A container runs that image. Compose places the API and database on a shared network: the API uses `db:5432`; a host program uses `127.0.0.1:5432`. A named volume stores Postgres files separately from the container. pgvector adds the vector type needed for later RAG work.
+
+The API receives `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, and `PGPASSWORD`, but it does not execute SQL yet. Application database integration comes with the first storage/search feature. `JIRA_DRY_RUN=true` is passed as a safe container setting; the Jira client is not implemented.
+
+## Documentation map
+
+| Document | Purpose |
 |---|---|
-| [AGENTS.md](AGENTS.md) | Правила работы Codex и Claude Code, проверки и границы этапов |
-| [CLAUDE.md](CLAUDE.md) | Точка входа Claude Code в общие инструкции |
-| [Спецификация](docs/spec.md) | Объём MVP, архитектура, контракты и требования к качеству |
-| [План по фазам](docs/plan.md) | Порядок реализации, проверки и ручная приёмка |
-| [Решения](docs/decisions.md) | Принятые решения и их причины |
-
+| [AGENTS.md](AGENTS.md) | Shared agent rules, checks, and phase boundaries |
+| [CLAUDE.md](CLAUDE.md) | Claude Code entry point for the shared instructions |
+| [Specification](docs/spec.md) | MVP scope, architecture, contracts, and quality requirements |
+| [Phased plan](docs/plan.md) | Implementation order, checks, and manual acceptance |
+| [Decision log](docs/decisions.md) | Decisions and their reasons |

@@ -1,35 +1,35 @@
-# Спецификация Discovery → Jira Agent
+# Discovery → Jira Agent Specification
 
-Основано на инструкции пользователя от 02.11.2026. Это целевой контракт MVP, а не описание уже реализованных функций. Порядок работы и текущий статус — в [плане](plan.md).
+Based on the user's instructions dated 2026-11-02. This is the target MVP contract, not a claim that every feature exists. See the [plan](plan.md) for implementation order and current status.
 
-## Цель и объём
+## Goal and scope
 
-Демо превращает неструктурированный текст разговора в проверенные человеком Jira user stories. Основной сценарий без регистрации должен занимать менее двух минут: выбор проекта и разговора → извлечение требований с цитатами → проверка по спецификации → редактирование историй → Approve → Jira preview.
+The demo turns an unstructured client-call transcript into human-reviewed Jira user stories. The main workflow requires no registration and should take less than two minutes: choose a project and transcript → extract requirements with quotes → compare against the specification → edit stories → Approve → Jira preview.
 
-Проект должен показывать discovery, RAG, LangGraph, structured output, evals с порогом, LangSmith traces, стоимость прогона, human-in-the-loop, идемпотентность, retries и работающий Next.js UI.
+The project must demonstrate discovery, RAG, LangGraph, structured output, evals with a pass threshold, LangSmith traces, per-run cost, human-in-the-loop, idempotency, retries, and a working Next.js UI.
 
-В MVP входят один вымышленный клиент, одна спецификация, шесть разговоров, минимум 12 размеченных eval-кейсов и опубликованное демо. Вне объёма: аудиотранскрипция, авторизация и multi-user, Linear/Trello, story points, реальные клиентские данные и сложная дизайн-система.
+The MVP includes one fictional client, one specification, six transcripts, at least 12 labeled eval cases, and a deployed demo. Out of scope: audio transcription, authentication and multi-user support, Linear/Trello, story points, real client data, and an elaborate design system.
 
-## Архитектура
+## Architecture
 
-- Next.js App Router + TypeScript strict + Tailwind; UI на Vercel.
-- Python 3.12 + FastAPI + LangGraph; Docker API на Render. Долгоживущие stateful-прогоны размещаются отдельно от web-хостинга.
-- Postgres + pgvector на Neon: spec chunks и LangGraph checkpoints. Локально — Compose с образом `pgvector/pgvector`.
-- LLM API: extraction, stories, classification, embeddings и judge. Провайдер и модели ещё не выбраны.
-- LangSmith: traces, стоимость и eval datasets.
-- Jira Cloud REST API v3: запись только после подтверждения человеком.
+- Next.js App Router, TypeScript strict mode, and Tailwind; web hosting on Vercel.
+- Python 3.12, FastAPI, and LangGraph; Docker API hosting on Render. Long-running, stateful runs are hosted separately from the web application.
+- Postgres with pgvector on Neon: specification chunks and LangGraph checkpoints. Locally, Compose uses the `pgvector/pgvector` image.
+- LLM API: extraction, classification, stories, embeddings, and judging. Provider and models are not yet selected.
+- LangSmith: traces, cost, and eval datasets.
+- Jira Cloud REST API v3: writes only after human approval.
 
 ```text
 extract → retrieve_spec → classify → write_stories → critic
-                                         ↑           │
-                                         └─ максимум один возврат
-                                                     ↓
-                           human_review (interrupt) → create_tickets
+                                        ↑             │
+                                        └─ revision ──┘  at most once
+
+critic → human_review [wait for Approve] → create_tickets
 ```
 
-`human_review` использует LangGraph `interrupt`; возобновление — только через `POST /runs/{id}/approve`. Checkpointer — `langgraph-checkpoint-postgres`, чтобы прогон переживал рестарт. Критик может вернуть истории на доработку не более одного раза.
+`human_review` uses LangGraph `interrupt`; resumption is allowed only through `POST /runs/{id}/approve`. Use `langgraph-checkpoint-postgres` so runs survive restarts. The critic may return stories for revision at most once.
 
-## Планируемая структура репозитория
+## Planned repository layout
 
 ```text
 apps/
@@ -38,7 +38,7 @@ apps/
       main.py
       graph/          # nodes.py, state.py, graph.py
       rag/            # ingest.py, chunking.py, retrieve.py
-      jira/client.py  # dry-run и реальная запись
+      jira/client.py  # dry-run and real writes
       schemas.py
       config.py
     tests/
@@ -58,11 +58,11 @@ docker-compose.yml
 .env.example
 ```
 
-Каталоги и команды запуска добавляются вместе с работающей реализацией. Операционные команды проверяются из указанного рабочего каталога перед публикацией в README.
+Add directories and launch commands with working implementations. Verify operational commands from the documented working directory before publishing them in README.
 
-## Контракты данных
+## Data contracts
 
-При реализации источником истины становятся Pydantic-модели в `apps/api/app/schemas.py`. Минимальный согласованный контракт:
+Once implemented, the Pydantic models in `apps/api/app/schemas.py` become the source of truth. The agreed minimum contract is:
 
 ```python
 class Requirement(BaseModel):
@@ -87,48 +87,48 @@ class Story(BaseModel):
     idempotency_key: str
 ```
 
-Цитата берётся из исходного разговора без переписывания. Код проверяет непустое вхождение после нормализации пробелов и регистра; неподтверждённые требования отбрасываются. `spec_refs` — идентификаторы найденных chunks; `note` объясняет конфликт или неясность. Acceptance criteria должны быть проверяемыми, предпочтительно Given/When/Then.
+Quotes must come from the original transcript without rewriting. Code checks non-empty substring membership after whitespace/case normalization and discards ungrounded requirements. `spec_refs` contains retrieved chunk IDs; `note` explains conflicts or ambiguity. Acceptance criteria must be testable, preferably Given/When/Then.
 
-`idempotency_key` — SHA-256 нормализованного title и requirement IDs. Правила нормализации и сериализации фиксируются с тестами при реализации. Редактирование и подтверждение историй не должно позволять обходить валидацию или создавать дубликаты при повторе запроса.
+`idempotency_key` is the SHA-256 of the normalized title and requirement IDs. Define normalization and serialization with tests during implementation. Editing and approval must not bypass validation or create duplicates on repeated requests.
 
-`RunResult` должен содержать требования, истории, открытые вопросы, статус, стоимость, latency, trace URL и результат Jira/dry-run. Полную модель определяем в фазе контрактов.
+`RunResult` must contain requirements, stories, open questions, status, cost, latency, trace URL, and the Jira/dry-run result. Define its full model in the contracts phase.
 
 ## API
 
-| Метод и путь | Контракт |
+| Method and path | Contract |
 |---|---|
-| `GET /health` | Доступность API; точный ответ фиксируется в фазе 2 |
-| `GET /projects` | Список демопроектов |
-| `POST /runs` | `{project_id, transcript}` → `{run_id}`; запуск graph в фоне |
-| `GET /runs/{id}` | Текущее состояние: requirements, stories, questions, cost_usd, latency_ms, trace_url |
+| `GET /health` | API liveness: HTTP 200 with `{"status":"ok"}`; does not check the database |
+| `GET /projects` | List of demo projects |
+| `POST /runs` | `{project_id, transcript}` → `{run_id}`; start the graph in the background |
+| `GET /runs/{id}` | Current state: requirements, stories, questions, cost_usd, latency_ms, trace_url |
 | `GET /runs/{id}/events` | SSE: `node_started`, `node_finished`, `awaiting_review`, `done`, `error` |
-| `POST /runs/{id}/approve` | `{stories}` → возобновление graph и tickets либо dry-run preview |
+| `POST /runs/{id}/approve` | `{stories}` → resume the graph and return tickets or a dry-run preview |
 
-Входные данные, история редактирования и допустимость approve для текущего состояния валидируются на сервере. Формат ошибок, доставка preset-транскриптов и политика переподключения SSE уточняются в соответствующих фазах.
+Validate input, story edits, and whether approval is allowed in the current state on the server. Define error formats, preset transcript delivery, and SSE reconnection behavior in the relevant phases.
 
-## Надёжность и стоимость
+## Reliability and cost
 
-- Все LLM-вызовы идут через один helper с учётом токенов и цены. Превышение `MAX_COST_PER_RUN_USD` завершает прогон с ошибкой.
-- Jira-записи только из `create_tickets` после Approve. Перед create — поиск по label `idem-<key>`, найденную задачу повторно не создавать.
-- На 429/5xx — экспоненциальная задержка, максимум три повтора после исходной попытки. Неоднозначный ответ create требует проверки существования задачи перед повтором.
-- Поиск по label сам по себе не защищает от одновременных approve: в фазе 7 необходима проверенная защита от конкурирующих записей.
-- `JIRA_DRY_RUN=true` по умолчанию, публичный режим всегда dry-run независимо от UI. Секреты только в env, без попадания в репозиторий или логи.
-- Preset cache и дневной LLM-бюджет нужны для публичного демо.
+- Route every LLM call through one helper that records tokens and price. Exceeding `MAX_COST_PER_RUN_USD` terminates the run with an error.
+- Write to Jira only from `create_tickets` after Approve. Before creation, search for label `idem-<key>` and reuse an existing ticket.
+- Retry 429/5xx with exponential backoff, at most three retries after the initial attempt. After an ambiguous create response, check whether the ticket exists before retrying.
+- A label lookup alone does not protect against concurrent approvals. Phase 7 must include verified protection against competing writes.
+- Default `JIRA_DRY_RUN=true`; public mode always uses dry-run regardless of UI state. Keep secrets in environment variables and out of the repository and logs.
+- The public demo needs a preset cache and daily LLM budget.
 
-## Оценка качества
+## Quality evaluation
 
-Данные: шесть размеченных разговоров плюс минимум шесть коротких synthetic cases. В каждом случае — эталонные требования, конфликты и ожидаемые истории. RAG разбивает спецификацию по заголовкам с fallback по размеру и извлекает top-5 chunks; отдельно измеряется recall@5.
+Data: six labeled transcripts and at least six short synthetic cases. Each contains gold requirements, conflicts, and expected stories. RAG splits the specification by headings with a fixed-size fallback and retrieves the top five chunks; measure recall@5 separately.
 
-| Метрика | Метод | Критерий |
+| Metric | Method | Criterion |
 |---|---|---|
-| Requirement precision / recall | Сопоставление с gold по embedding similarity ≥ 0.8 | Падение ниже зафиксированного baseline − 0.05 завершает evals ошибкой |
-| Grounding rate | Доля требований с подтверждённой цитатой после фильтра | 1.0; пустой результат не выдавать за доказательство качества |
-| Conflict F1 | Сравнение с gold conflicts | Не ниже baseline − 0.05 |
-| Story quality | LLM-judge 1–5: INVEST и testable AC; калибровка на 10 ручных оценках | Среднее ≥ 3.5 |
-| Cost/run и p95 latency | LLM-helper / LangSmith | Отчётные метрики |
+| Requirement precision / recall | Match gold using embedding similarity ≥ 0.8 | Fail below the fixed baseline − 0.05 |
+| Grounding rate | Share with verified quotes after filtering | 1.0; an empty result is not evidence of quality |
+| Conflict F1 | Compare against gold conflicts | At least baseline − 0.05 |
+| Story quality | LLM judge, 1–5: INVEST and testable AC; calibrated on 10 manual scores | Mean ≥ 3.5 |
+| Cost/run and p95 latency | LLM helper / LangSmith | Report only |
 
-Baseline фиксируется после первого измерения и не пересчитывается автоматически ради прохождения проверки. Все результаты публикуются с N. CI выполняет небольшой eval subset на PR и падает ниже порога; изменения промпта или модели требуют запуска evals перед merge. Реальные числа, GIF и case study добавляются только после проверки.
+Set the baseline after the first measurement; do not recalculate it automatically to pass checks. Report every result with N. CI runs a small eval subset on PRs and fails below threshold; prompt or model changes require evals before merge. Add real metrics, GIF, and case study only after verification. Fixture-validation tests are not model-quality evals.
 
-## Итоговая приёмка
+## Final acceptance
 
-Новый посетитель открывает Vercel URL без регистрации, запускает preset, видит требования с цитатами и обнаруженный конфликт, редактирует историю, подтверждает её и получает Jira preview менее чем за две минуты. README содержит измеренные eval-метрики с N и стоимость прогона.
+A new visitor opens the Vercel URL without registering, runs a preset, sees requirements with quotes and a detected conflict, edits a story, approves it, and receives a Jira preview in less than two minutes. README contains measured eval results with N and per-run cost.

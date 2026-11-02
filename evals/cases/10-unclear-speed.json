@@ -1,0 +1,25 @@
+{
+  "id": "10-unclear-speed",
+  "project_id": "harbor-desk",
+  "spec_path": "data/demo/harbor-desk/spec.md",
+  "transcript": "Jun: Make the reservation form much faster.",
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Clarify the reservation-form performance target.",
+      "type": "non_functional",
+      "priority": "should",
+      "quote": "Make the reservation form much faster.",
+      "speaker": "Jun",
+      "status": "unclear",
+      "spec_refs": [
+        "HD-USABILITY"
+      ],
+      "note": "No metric or measurable target is specified."
+    }
+  ],
+  "expected_stories": [],
+  "questions": [
+    "Which action is slow, for what workload, and what response time is required?"
+  ]
+}

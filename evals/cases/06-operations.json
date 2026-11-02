@@ -1,0 +1,92 @@
+{
+  "id": "06-operations",
+  "project_id": "harbor-desk",
+  "spec_path": "data/demo/harbor-desk/spec.md",
+  "transcript_path": "data/demo/harbor-desk/transcripts/06-operations.md",
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Provide a public read-only service-availability page without reservation or member data.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Add a public read-only status page that shows whether the reservation service is available.",
+      "speaker": "Eli",
+      "status": "new",
+      "spec_refs": [
+        "HD-OPERATIONS"
+      ],
+      "note": "A service-only status page is new; it does not authorize public access to reservation records. Public recent-error details were withdrawn."
+    },
+    {
+      "id": "R2",
+      "text": "Retry outbound email on 429/5xx at most three times after the first attempt with exponential backoff.",
+      "type": "constraint",
+      "priority": "must",
+      "quote": "Retry outbound email on 429 or 5xx at most three times after the initial attempt, with exponential backoff.",
+      "speaker": "Eli",
+      "status": "duplicate",
+      "spec_refs": [
+        "HD-OPERATIONS"
+      ],
+      "note": null
+    },
+    {
+      "id": "R3",
+      "text": "Do not schedule database schema migrations on weekends in the cooperative timezone.",
+      "type": "constraint",
+      "priority": "must",
+      "quote": "Do not schedule database schema migrations on Saturdays or Sundays.",
+      "speaker": "Nora",
+      "status": "new",
+      "spec_refs": [
+        "HD-OPERATIONS"
+      ],
+      "note": "The baseline has no maintenance schedule; no emergency bypass was authorized."
+    },
+    {
+      "id": "R4",
+      "text": "Clarify monitoring events, thresholds and alert owners.",
+      "type": "non_functional",
+      "priority": "should",
+      "quote": "We should monitor everything too.",
+      "speaker": "Eli",
+      "status": "unclear",
+      "spec_refs": [
+        "HD-OPERATIONS"
+      ],
+      "note": "Everything does not specify events, numeric thresholds or response ownership."
+    }
+  ],
+  "expected_stories": [
+    {
+      "id": "S1",
+      "title": "Show public service availability",
+      "as_a": "member",
+      "i_want": "view a public read-only availability page",
+      "so_that": "I can distinguish a service outage from a reservation problem",
+      "requirement_ids": [
+        "R1"
+      ],
+      "acceptance_criteria": [
+        "Given an anonymous visitor, when the status page is opened, then it shows service availability without exposing reservation records, member details or write actions."
+      ]
+    },
+    {
+      "id": "S2",
+      "title": "Schedule schema migrations on weekdays",
+      "as_a": "administrator",
+      "i_want": "keep planned database schema migrations off weekends in the cooperative timezone",
+      "so_that": "volunteers are not disrupted during weekend operations",
+      "requirement_ids": [
+        "R3"
+      ],
+      "acceptance_criteria": [
+        "Given a proposed schema-migration schedule on Saturday or Sunday in the cooperative timezone, when it is reviewed for scheduling, then it is rejected or rescheduled to a weekday."
+      ]
+    }
+  ],
+  "questions": [
+    "Which availability signal should power the public status page?",
+    "Which events, thresholds and alert recipients define the monitoring requirement?"
+  ]
+}

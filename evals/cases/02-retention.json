@@ -1,0 +1,80 @@
+{
+  "id": "02-retention",
+  "project_id": "harbor-desk",
+  "spec_path": "data/demo/harbor-desk/spec.md",
+  "transcript_path": "data/demo/harbor-desk/transcripts/02-retention.md",
+  "requirements": [
+    {
+      "id": "R1",
+      "text": "Propose retaining audit events for 365 days.",
+      "type": "constraint",
+      "priority": "must",
+      "quote": "Keep audit events for three hundred sixty-five days instead of one hundred eighty days.",
+      "speaker": "Eli",
+      "status": "conflict",
+      "spec_refs": [
+        "HD-AUDIT"
+      ],
+      "note": "The approved retention is 180 days. Committee approval for 365 days is pending; indefinite retention was withdrawn."
+    },
+    {
+      "id": "R2",
+      "text": "Keep audit history append-only and represent corrections as new events.",
+      "type": "constraint",
+      "priority": "must",
+      "quote": "Audit events must remain append-only; corrections should create a new event.",
+      "speaker": "Eli",
+      "status": "duplicate",
+      "spec_refs": [
+        "HD-AUDIT"
+      ],
+      "note": null
+    },
+    {
+      "id": "R3",
+      "text": "Allow administrators to filter audit history by one actor identifier.",
+      "type": "functional",
+      "priority": "must",
+      "quote": "Allow administrators to filter audit history by actor identifier.",
+      "speaker": "Eli",
+      "status": "new",
+      "spec_refs": [
+        "HD-AUDIT"
+      ],
+      "note": "The baseline provides per-record history but no general actor filter; free-text search was excluded."
+    },
+    {
+      "id": "R4",
+      "text": "Clarify the delivery deadline for the audit changes.",
+      "type": "constraint",
+      "priority": "should",
+      "quote": "Can you get it to us soon?",
+      "speaker": "Nora",
+      "status": "unclear",
+      "spec_refs": [
+        "HD-OPERATIONS"
+      ],
+      "note": "The committee date is unknown, so no deadline can be inferred."
+    }
+  ],
+  "expected_stories": [
+    {
+      "id": "S1",
+      "title": "Filter audit history by actor",
+      "as_a": "administrator",
+      "i_want": "filter audit history by one actor identifier",
+      "so_that": "I can inspect actions by that account",
+      "requirement_ids": [
+        "R3"
+      ],
+      "acceptance_criteria": [
+        "Given audit events from two actors, when I filter by one actor identifier, then only that actor's events are shown.",
+        "Given no matching events, when the actor filter is applied, then a clear empty state is shown."
+      ]
+    }
+  ],
+  "questions": [
+    "Does the committee approve 365-day audit retention?",
+    "What is the actual deadline for the annual review?"
+  ]
+}
