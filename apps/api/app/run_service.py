@@ -75,6 +75,19 @@ def preset_key(settings: Settings, project_id: str, transcript: str) -> str | No
     return hashlib.sha256(json.dumps(material).encode()).hexdigest()
 
 
+def check_approval(status: str, result: dict, approval: Approval) -> bool:
+    """Validate an approval; True means it repeats the stored one."""
+    if status not in {"awaiting_review", "done"}:
+        raise ValueError("Run is not awaiting approval")
+    requirements = [Requirement.model_validate(item) for item in result["requirements"]]
+    validated = validate_stories(approval.stories, requirements)
+    if status != "done":
+        return False
+    if jsonable_encoder(validated) != result["stories"]:
+        raise ValueError("Run was already approved with different stories")
+    return True
+
+
 class RunService:
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -156,22 +169,8 @@ class RunService:
             project_id, transcript, status, cache_key, result = row
             if approval is None and status not in {"queued", "running"}:
                 return result
-            if approval is not None and status not in {"awaiting_review", "done"}:
-                raise ValueError("Run is not awaiting approval")
-            if approval is not None:
-                validated = validate_stories(
-                    approval.stories,
-                    [
-                        Requirement.model_validate(item)
-                        for item in result["requirements"]
-                    ],
-                )
-                if status == "done":
-                    if jsonable_encoder(validated) != result["stories"]:
-                        raise ValueError(
-                            "Run was already approved with different stories"
-                        )
-                    return result
+            if approval is not None and check_approval(status, result, approval):
+                return result
             helper = LLMHelper(self.settings)
             helper.usage = Usage.model_validate(result["usage"])
             config = {"configurable": {"thread_id": run_id}}
@@ -179,24 +178,9 @@ class RunService:
             with self.graph(project_id, helper) as graph:
                 if status == "running":
                     return self._recover(run_id, result, graph, config)
-                if approval is not None:
-                    graph_input = Command(resume=approval.model_dump())
-                else:
-                    cached = (
-                        lock.execute(
-                            "SELECT state FROM agent_preset_cache WHERE key=%s",
-                            [cache_key],
-                        ).fetchone()
-                        if cache_key
-                        else None
-                    )
-                    if cached:
-                        graph.update_state(
-                            config, hydrate_cache(cached[0]), as_node="critic"
-                        )
-                        graph_input = None
-                    else:
-                        graph_input = {"transcript": transcript}
+                graph_input = self._graph_input(
+                    lock, graph, config, transcript, cache_key, approval
+                )
                 result.update(status="running", error=None)
                 self.store.save(run_id, result)
                 try:
@@ -222,13 +206,23 @@ class RunService:
                 result["usage"] = helper.usage.model_dump(mode="json")
                 result["latency_ms"] += round((perf_counter() - started) * 1000)
                 self.store.save(run_id, result, settle=True)
-                kind = (
-                    result["status"]
-                    if result["status"] != "awaiting_review"
-                    else "awaiting_review"
-                )
-                self.store.event(run_id, kind, error=result["error"])
+                self.store.event(run_id, result["status"], error=result["error"])
                 return result
+
+    def _graph_input(self, lock, graph, config, transcript, cache_key, approval):
+        if approval is not None:
+            return Command(resume=approval.model_dump())
+        cached = (
+            lock.execute(
+                "SELECT state FROM agent_preset_cache WHERE key=%s", [cache_key]
+            ).fetchone()
+            if cache_key
+            else None
+        )
+        if cached is None:
+            return {"transcript": transcript}
+        graph.update_state(config, hydrate_cache(cached[0]), as_node="critic")
+        return None
 
     def _recover(self, run_id: str, result: dict, graph, config: dict) -> dict:
         snapshot = graph.get_state(config)
