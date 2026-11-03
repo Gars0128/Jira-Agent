@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 import psycopg
 from psycopg.types.json import Jsonb
 
-from app.jira.client import JiraClient, JiraError
+from app.jira.client import JiraClient, JiraError, JiraRejected
 from app.schemas import Requirement
 from app.stories import Story
 
@@ -42,7 +42,14 @@ def create_once(
                 continue
             conn.execute("INSERT INTO agent_jira_ledger(key) VALUES(%s)", [key])
         # Commit intent before the side effect; uncertainty blocks replay.
-        [result] = jira.create_tickets([story], requirements)
+        try:
+            [result] = jira.create_tickets([story], requirements)
+        except JiraRejected:
+            # Nothing was created: release the intent so a fixed retry can proceed.
+            conn.execute(
+                "DELETE FROM agent_jira_ledger WHERE key=%s AND result IS NULL", [key]
+            )
+            raise
         conn.execute(
             "UPDATE agent_jira_ledger SET result=%s WHERE key=%s", [Jsonb(result), key]
         )

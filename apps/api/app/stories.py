@@ -12,7 +12,8 @@ class StoryDraft(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     id: NonBlankString
-    title: NonBlankString = Field(max_length=255)
+    # Jira rejects multi-line summaries.
+    title: str = Field(max_length=255, pattern=r"^[^\r\n]*\S[^\r\n]*$")
     as_a: NonBlankString
     i_want: NonBlankString
     so_that: NonBlankString

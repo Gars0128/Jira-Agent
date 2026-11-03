@@ -177,12 +177,13 @@ class RunService:
             with self.graph(project_id, helper) as graph:
                 if status == "running":
                     return self._recover(run_id, result, graph, config)
-                graph_input = self._graph_input(
-                    lock, graph, config, transcript, cache_key, approval
-                )
                 result.update(status="running", error=None)
                 self.store.save(run_id, result)
                 try:
+                    # Inside try: a corrupt cache must fail the run, not loop forever.
+                    graph_input = self._graph_input(
+                        lock, graph, config, transcript, cache_key, approval
+                    )
                     self._stream(graph, graph_input, config, run_id, helper, result)
                     snapshot = graph.get_state(config)
                     state = jsonable_encoder(snapshot.values)

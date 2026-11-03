@@ -15,6 +15,10 @@ class JiraError(RuntimeError):
     pass
 
 
+class JiraRejected(JiraError):
+    """Jira definitely created nothing, so a retry after a fix is safe."""
+
+
 def _text(text: str, bold: bool = False) -> dict:
     node: dict = {"type": "text", "text": text}
     if bold:
@@ -168,9 +172,10 @@ class JiraClient:
                     self.sleep(2**attempt)
                     continue
             if response.status_code >= 400:
-                raise JiraError(f"Jira request failed (HTTP {response.status_code})")
+                # A 5xx POST may still have created the issue; a 4xx did not.
+                error = JiraRejected if response.status_code < 500 else JiraError
+                raise error(f"Jira request failed (HTTP {response.status_code})")
             return response
-        raise JiraError("Jira retry limit reached")
 
     def _browse(self, key: str) -> str:
         return str(self.client.base_url.join(f"/browse/{key}"))
@@ -207,7 +212,10 @@ class JiraClient:
         result = []
         for story in stories:
             fields = issue_fields(story, self.project_key, requirements)
-            existing = self._find(story.idempotency_key)
+            try:
+                existing = self._find(story.idempotency_key)
+            except JiraError as exc:
+                raise JiraRejected(str(exc)) from None
             if existing:
                 result.append(existing)
                 continue
@@ -215,6 +223,8 @@ class JiraClient:
                 response = self._request(
                     "POST", "/rest/api/3/issue", json={"fields": fields}
                 )
+            except JiraRejected:
+                raise
             except JiraError:
                 existing = self._find(story.idempotency_key)
                 if existing:

@@ -1,7 +1,9 @@
 import json
+import os
 
 import httpx
 import pytest
+from pydantic import SecretStr
 from test_workflow import draft, new_requirement
 
 from app.jira.client import JiraClient, JiraError, preview_tickets
@@ -130,3 +132,48 @@ def test_public_demo_forces_preview_and_live_needs_atlassian(settings) -> None:
     with pytest.raises(JiraError, match="Jira Cloud"):
         with jira_session(settings):
             pass
+
+
+@pytest.mark.parametrize(
+    ("get_status", "post_status", "definite"),
+    [(401, None, True), (200, 400, True), (200, 503, False)],
+)
+def test_definite_jira_failures_are_rejections(
+    get_status: int, post_status: int | None, definite: bool
+) -> None:
+    from app.jira.client import JiraRejected
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET":
+            return httpx.Response(get_status, json={"issues": []})
+        return httpx.Response(post_status or 201, json={})
+
+    with httpx.Client(
+        base_url="https://jira.example", transport=httpx.MockTransport(respond)
+    ) as http:
+        with pytest.raises(JiraError) as error:
+            JiraClient(client=http, sleep=lambda _: None).create_tickets(stories())
+    assert isinstance(error.value, JiraRejected) is definite
+
+
+@pytest.mark.skipif(not os.getenv("TEST_DATABASE_URL"), reason="TEST_DATABASE_URL")
+def test_live_rejected_jira_write_releases_ledger(settings) -> None:
+    from app.jira.client import JiraRejected
+    from app.jira.ledger import create_once
+    from app.rag.ingest import connect
+    from app.run_store import RunStore
+
+    settings.database_url = SecretStr(os.environ["TEST_DATABASE_URL"])
+    RunStore(settings).setup()
+
+    class Rejecting:
+        project_key = "HD"
+
+        def create_tickets(self, stories, requirements=()):
+            raise JiraRejected("Jira request failed (HTTP 400)")
+
+    with connect(settings) as conn:
+        for _ in range(2):  # the second attempt must not be blocked as unconfirmed
+            with pytest.raises(JiraRejected):
+                create_once(conn, Rejecting(), "https://x.atlassian.net", stories())
+        assert conn.execute("SELECT count(*) FROM agent_jira_ledger").fetchone()[0] == 0

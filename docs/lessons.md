@@ -20,6 +20,7 @@ Harness skill provides guidance, not an automatic memory hook.
 | Browser polling could overwrite a newer state or human edits | Use one abortable snapshot reader and preserve edits during review | Browser concurrency and mode-change regression tests | Browser acceptance still requires a person |
 | A successful subset or RAG baseline could look like a full quality pass | Validate scope, cohort, completeness and errors; preflight baseline before paid checks | Evaluation gate regression tests | Model/annotation quality still requires human calibration |
 | A new Jira `url` field was silently dropped by the `TicketResult` response allowlist; mocked browser tests never crossed the real contract | Declare `url` on `TicketResult` | `test_run_response_keeps_live_ticket_link` | Every new client field still needs a contract update |
+| A definite Jira failure (401/403 search, 4xx create) left the ledger intent NULL, blocking that story forever as "unconfirmed" | `JiraRejected` for failures where nothing was created; the ledger deletes its NULL intent on it, 5xx/transport stay ambiguous | `test_definite_jira_failures_are_rejections`, `test_live_rejected_jira_write_releases_ledger` | An ambiguous 5xx still needs manual reconciliation in Jira |
 
 For a new entry, name the observed defect and an actual check. Do not duplicate
 the specification or add speculative rules.
