@@ -22,3 +22,9 @@ Harness skill provides guidance, not an automatic memory hook.
 
 For a new entry, name the observed defect and an actual check. Do not duplicate
 the specification or add speculative rules.
+
+## 2026-11-03 — Response allowlist silently dropped a new ticket field
+
+**Cause:** `JiraClient` started returning `url`, but `TicketResult` (pydantic, default `extra="ignore"`) did not declare it, so `/runs` responses stripped the link. UI checks used mocked API payloads and never crossed the real contract.
+**Fix:** declare `url` on `TicketResult`; regression test `test_run_response_keeps_live_ticket_link`.
+**Limit:** any new client field still needs a contract update; browser tests with mocked payloads do not prove the API shape.

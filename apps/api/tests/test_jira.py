@@ -114,3 +114,11 @@ def test_ticket_description_carries_story_criteria_and_evidence() -> None:
     assert len(ticket["fields"]["labels"][0]) == len("idem-") + 16
     assert "Show monthly counts." in text and "Nora" in text and "HD-EXPORT" in text
     assert ticket["fields"]["labels"][1] == "discovery-agent"
+
+
+def test_run_response_keeps_live_ticket_link() -> None:
+    from app.run_contracts import TicketResult
+
+    url = "https://demo.atlassian.net/browse/KAN-1"
+    ticket = {"key": "KAN-1", "url": url, "dry_run": False, "reused": False}
+    assert TicketResult.model_validate(ticket).url == url

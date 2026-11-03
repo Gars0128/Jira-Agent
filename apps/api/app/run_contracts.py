@@ -10,6 +10,7 @@ from app.stories import Story
 
 class TicketResult(BaseModel):
     key: str
+    url: str | None = None
     dry_run: bool
     reused: bool
     fields: dict[str, JsonValue] | None = None
