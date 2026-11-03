@@ -167,7 +167,7 @@ regressions. More instructions alone do not prevent a broken implementation.
 
 ## 2026-11-03 — Hosted demo is a recorded replay
 
-**Decision:** the public Vercel site (<https://tiro-six-theta.vercel.app>) is built with `DEMO_REPLAY=true`; `/api/*` is rewritten to `app/demo-api`, which replays two real stored runs (`apps/web/demo/runs.json`) with pipeline timing and returns dry-run previews on approval. Custom text is refused with a pointer to the local setup. Locally `/api` still proxies to FastAPI.
+**Decision:** the public Vercel site (<https://tiro-six-theta.vercel.app>) is built with `DEMO_REPLAY=true`; `/api/*` is rewritten to `app/demo-api`, which replays seven real stored runs (`apps/web/demo/runs.json`) with pipeline timing and returns dry-run previews on approval. Custom text is refused with a pointer to the local setup. Locally `/api` still proxies to FastAPI.
 
 **Why:** the user chose zero hosting cost and no secrets in the cloud over live public analysis. A replay shows the real UI and real outputs without a backend, model spend or load risks (unbounded SSE, long-held run locks).
 

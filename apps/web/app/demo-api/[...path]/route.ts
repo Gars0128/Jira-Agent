@@ -1,5 +1,5 @@
 // Recorded-run replay for the hosted demo (DEMO_REPLAY=true). It mimics the API
-// contract with two real stored runs, so the site works without a backend,
+// contract with seven real stored runs, so the site works without a backend,
 // model calls or Jira writes. Locally, /api goes to the real FastAPI service.
 import recording from "../../../demo/runs.json";
 import type { Run, Story } from "../../../lib/types";

@@ -36,7 +36,7 @@ After a discovery call someone has to separate real requests from small talk, ch
 |---|---|---|
 | ![Studio](docs/demo/tiro-studio.png) | ![Conflict evidence](docs/demo/tiro-evidence.png) | ![Jira board](docs/demo/tiro-jira.png) |
 
-> **About the live demo:** the hosted version replays two real recorded runs (no backend, no model calls, nothing sent to Jira). To analyze your own conversations, run Tiro locally — it takes two terminals.
+> **About the live demo:** the hosted version replays seven real recorded runs — six Harbor Desk calls on different topics plus a grooming-salon call (no backend, no model calls, nothing sent to Jira). To analyze your own conversations, run Tiro locally — it takes two terminals.
 
 **Status:** extraction, Neon-backed RAG, stories, persisted approval, Jira previews and real Jira writes (verified once in a test project), HTTP/SSE and the Next.js UI work locally; automated and live database checks pass. The full model-quality gate does not yet pass — see the [case study](docs/case-study.md). The hosted demo is a recorded replay; a live hosted backend and Docker remain deferred. Manual acceptance is tracked in the [plan](docs/plan.md).
 
@@ -111,7 +111,7 @@ and `npm.cmd run build`. These checks make no paid model calls.
 ## Deploy and verify
 
 **Hosted demo (live):** <https://tiro-six-theta.vercel.app> is the Next.js app built
-with `DEMO_REPLAY=true`. `/api/*` is then served by `app/demo-api`, which replays two
+with `DEMO_REPLAY=true`. `/api/*` is then served by `app/demo-api`, which replays seven
 real recorded runs from `apps/web/demo/runs.json` with the real pipeline timing:
 no backend, model calls, secrets or Jira writes. Your own text is refused with a
 pointer to the local setup. Redeploy from `apps/web`:

@@ -2,8 +2,8 @@
 
 `tiro-demo.gif` (README hero), `tiro-demo.mp4` and the three `tiro-*.png`
 screenshots are browser recordings of the real Next.js UI running in replay mode
-(`DEMO_REPLAY=true`). Replay serves two real recorded runs (Harbor Desk exports and
-the grooming-salon call) with the pipeline's timing; nothing is generated or mocked
+(`DEMO_REPLAY=true`). Replay serves seven real recorded runs (all six Harbor Desk calls
+and the grooming-salon call) with the pipeline's timing; nothing is generated or mocked
 by hand. The approved stories become dry-run previews.
 
 Recreate from `apps/web`:
