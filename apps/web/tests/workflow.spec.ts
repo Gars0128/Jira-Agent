@@ -114,3 +114,24 @@ test("backend outage is actionable and does not permit a run", async ({ page }) 
   await expect(page.getByRole("alert").filter({ hasText: "Start the backend" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Run discovery" })).toBeDisabled();
 });
+
+test("mode pill never claims live Jira before capabilities load; links keep a typed comma", async ({ page }) => {
+  let release: () => void = () => {};
+  const capabilitiesReady = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/capabilities") { await capabilitiesReady; return route.fulfill({ json: { public_demo: false, jira_dry_run: false, transcript_limit: 20000 } }); }
+    if (path === "/api/projects") return route.fulfill({ json: { projects: [{ id: "harbor-desk", name: "Harbor Desk", spec: true, transcripts: [] }] } });
+    if (path.endsWith("/events")) return route.fulfill({ contentType: "text/event-stream", body: 'data: {"type":"awaiting_review"}\n\n' });
+    return route.fulfill({ json: ready });
+  });
+  await page.goto("/?run=demo-run");
+  await expect(page.getByText("Checking mode…")).toBeVisible();
+  await expect(page.getByText("Live Jira", { exact: true })).toHaveCount(0);
+  release();
+  await expect(page.getByText("Live Jira", { exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: /User stories/ }).click();
+  const links = page.getByLabel("Requirement links");
+  await links.fill("R1,");
+  await expect(links).toHaveValue("R1,");
+});

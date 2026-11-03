@@ -75,7 +75,7 @@ export default function Home() {
       try {
         const snapshot = await request<Run>(path, { signal: controller.signal });
         if (controller.signal.aborted) return;
-        setRun(snapshot);
+        setRun(snapshot); setError(null);
         if (snapshot.status === "awaiting_review" && draftRun.current !== runId) {
           setStories(snapshot.stories); draftRun.current = runId;
         }
@@ -84,7 +84,9 @@ export default function Home() {
           source.close(); window.clearInterval(timer);
         }
       } catch (reason) {
-        if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Could not refresh this run.");
+        if (controller.signal.aborted) return;
+        if (reason instanceof Error && reason.message === "Unknown run") { stopped = true; source.close(); window.clearInterval(timer); }
+        setError(reason instanceof Error ? reason.message : "Could not refresh this run.");
       } finally { inFlight = false; }
     };
     source.onmessage = (message) => {
@@ -148,7 +150,7 @@ export default function Home() {
       <header className="appbar">
         <Link className="brand" href="/" aria-label="Discovery home"><svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="currentColor" /><path d="M9 21.5a5.5 5.5 0 1 1 11 0 5.5 5.5 0 0 1-11 0Z" fill="none" stroke="#fff" strokeWidth="2.4" /><path d="M20 7v14.5" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" /><path d="M21 11l5-5m0 0h-4m4 0v4" fill="none" stroke="#ff8a5c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg><span>Discovery<span className="brand-sub">to Jira</span></span></Link>
         <nav aria-label="Sections"><a href="#main">Studio</a><a href="#pipeline">Workflow</a><a href="#results">Results</a></nav>
-        <span className={`mode-pill ${dryRun ? "" : "live"}`} title="Nothing reaches Jira until you approve"><i />{dryRun ? "Preview · dry run" : "Live Jira"}</span>
+        <span className={`mode-pill ${capabilities?.jira_dry_run === false ? "live" : ""}`} title="Nothing reaches Jira until you approve"><i />{!capabilities ? "Checking mode…" : dryRun ? "Preview · dry run" : "Live Jira"}</span>
       </header>
       <main id="main">
         <div className="page-heading"><div><div className="eyebrow"><span /> CONVERSATIONS, WITH DIRECTION</div><h1>From conversation<br className="mobile-break" /> to clarity<span>.</span></h1><p>Paste a client call. Get Jira stories backed by real quotes.</p></div><span className="heading-index">DISCOVERY / 001</span></div>
@@ -197,7 +199,7 @@ export default function Home() {
             {tab === "stories" && <>{stories.length ? <div className="stories-grid reveal-list">{stories.map((story, index) => <StoryEditor key={story.id} story={story} editable={review && !approving} onChange={(changed) => setStories((previous) => previous.map((item, itemIndex) => itemIndex === index ? changed : item))} />)}</div> : <EmptyState symbol="≡" title="From requirements to something buildable." text={review ? "No new requirements need implementation stories. Review the open questions below." : "The agent drafts stories for new requirements and checks their acceptance criteria. Your edits stay in your hands."} />}
               {!!run?.questions?.length && <aside className="questions"><div className="eyebrow">DECISIONS TO MAKE</div><h3>Open questions</h3><ul>{run.questions.map((question, index) => <li key={index}>{question}</li>)}</ul></aside>}
               {review && <div className="approval-bar"><div><strong>Your review is the final checkpoint.</strong><span>Approve these {stories.length} stories to {dryRun ? "generate the Jira preview." : "create live Jira tickets."}</span></div><button type="button" className="primary-button" disabled={approving || !capabilities} onClick={() => void approve()}>{approving ? "Approving…" : dryRun ? "Approve & preview" : "Approve & create tickets"}<Arrow /></button></div>}</>}
-            {tab === "preview" && (approving ? <div className="preview"><JiraBoard stories={stories} live={!dryRun} /></div> : completed ? <div className="preview"><div className="preview-heading"><span className="check-circle">✓</span><div><h3>Reviewed. Approved. Ready.</h3><p>{run?.tickets?.every((ticket) => ticket.dry_run) ? "This run shows Jira payloads without creating live tickets." : "Approved stories were handed off to Jira."}</p></div></div><JiraBoard stories={stories} tickets={run?.tickets} live={!dryRun} />{run?.tickets?.length ? <div className="ticket-list reveal-list">{run.tickets.map((ticket, index) => <TicketCard key={index} ticket={ticket} story={stories[index]} />)}</div> : <p className="muted">No implementation tickets were needed for this conversation.</p>}</div> : <EmptyState symbol="↗" title="A handoff you can trust." text="Review the user stories, make your edits, then approve. Your Jira preview will appear here." />)}
+            {tab === "preview" && (run?.status === "error" ? <EmptyState symbol="!" title="Tickets were not created." text={`${run.error ?? "Jira did not accept the tickets."} Fix the configuration, then start a new run.`} /> : approving ? <div className="preview"><JiraBoard stories={stories} live={!dryRun} /></div> : completed ? <div className="preview"><div className="preview-heading"><span className="check-circle">✓</span><div><h3>Reviewed. Approved. Ready.</h3><p>{run?.tickets?.every((ticket) => ticket.dry_run) ? "This run shows Jira payloads without creating live tickets." : "Approved stories were handed off to Jira."}</p></div></div><JiraBoard stories={stories} tickets={run?.tickets} live={!dryRun} />{run?.tickets?.length ? <div className="ticket-list reveal-list">{run.tickets.map((ticket, index) => <TicketCard key={index} ticket={ticket} story={stories[index]} />)}</div> : <p className="muted">No implementation tickets were needed for this conversation.</p>}</div> : <EmptyState symbol="↗" title="A handoff you can trust." text="Review the user stories, make your edits, then approve. Your Jira preview will appear here." />)}
           </div>
           {review && tab === "requirements" && <div className="review-nudge"><span><strong>The groundwork is done.</strong> Your stories are ready for a human review.</span><button type="button" onClick={() => setTab("stories")}>Review stories <Arrow /></button></div>}
           {run?.status === "error" && <div className="error-banner" role="alert">{run.error ?? "This run could not complete. Check the configuration and start a new run."}</div>}
