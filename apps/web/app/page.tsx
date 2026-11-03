@@ -147,18 +147,12 @@ export default function Home() {
 
   return <div className="workspace">
     <a href="#main" className="skip-link">Skip to workspace</a>
-    <aside className="sidebar">
-      <Link className="wordmark" href="/" aria-label="Discovery home"><span className="brand-symbol">d<span>↗</span></span><span>discovery<span className="wordmark-sub">TO JIRA</span></span></Link>
-      <div className="workspace-label">WORKSPACE</div>
-      <a className="nav-item active" href="#main"><span aria-hidden="true">▦</span> Discovery studio <span className="nav-number">01</span></a>
-      <a className="nav-item" href="#pipeline"><span aria-hidden="true">⌘</span> Agent workflow</a>
-      <a className="nav-item" href="#results"><span aria-hidden="true">≡</span> Review & evidence</a>
-      <div className="sidebar-note"><div className="orb" aria-hidden="true">✳</div><h3>Built for the human<br />in the loop.</h3><p>The agent does the groundwork.<br />You make the final call.</p><span className="safe-mode"><i /> {dryRun ? "Preview mode · dry run" : "Live Jira · approval required"}</span></div>
-      <div className="sidebar-footer"><span className="avatar">HD</span><div>Harbor Desk<span>Fictional client workspace</span></div></div>
-    </aside>
-
     <div className="main-shell">
-      <header className="topbar"><span>Workspace <span className="slash">/</span> <strong>Discovery studio</strong></span><span className="topbar-status"><i /> Human approval required</span></header>
+      <header className="appbar">
+        <Link className="brand" href="/" aria-label="Discovery home"><svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="currentColor" /><path d="M9 21.5a5.5 5.5 0 1 1 11 0 5.5 5.5 0 0 1-11 0Z" fill="none" stroke="#fff" strokeWidth="2.4" /><path d="M20 7v14.5" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" /><path d="M21 11l5-5m0 0h-4m4 0v4" fill="none" stroke="#ff8a5c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg><span>Discovery<span className="brand-sub">to Jira</span></span></Link>
+        <nav aria-label="Sections"><a href="#main">Studio</a><a href="#pipeline">Workflow</a><a href="#results">Results</a></nav>
+        <span className={`mode-pill ${dryRun ? "" : "live"}`} title="Nothing reaches Jira until you approve"><i />{dryRun ? "Preview · dry run" : "Live Jira"}</span>
+      </header>
       <main id="main">
         <div className="page-heading"><div><div className="eyebrow"><span /> CONVERSATIONS, WITH DIRECTION</div><h1>From conversation<br className="mobile-break" /> to clarity<span>.</span></h1><p>Paste a client call. Get Jira stories backed by real quotes.</p></div><span className="heading-index">DISCOVERY / 001</span></div>
         <ol className="how-it-works reveal-list" aria-label="How it works">
