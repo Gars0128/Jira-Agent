@@ -19,12 +19,7 @@ Harness skill provides guidance, not an automatic memory hook.
 | A busy run at the front of the queue blocked other workers | Catch the specific busy condition per run and continue scanning | `tests/test_worker.py` | One synchronous worker per API instance is intentional for this demo |
 | Browser polling could overwrite a newer state or human edits | Use one abortable snapshot reader and preserve edits during review | Browser concurrency and mode-change regression tests | Browser acceptance still requires a person |
 | A successful subset or RAG baseline could look like a full quality pass | Validate scope, cohort, completeness and errors; preflight baseline before paid checks | Evaluation gate regression tests | Model/annotation quality still requires human calibration |
+| A new Jira `url` field was silently dropped by the `TicketResult` response allowlist; mocked browser tests never crossed the real contract | Declare `url` on `TicketResult` | `test_run_response_keeps_live_ticket_link` | Every new client field still needs a contract update |
 
 For a new entry, name the observed defect and an actual check. Do not duplicate
 the specification or add speculative rules.
-
-## 2026-11-03 — Response allowlist silently dropped a new ticket field
-
-**Cause:** `JiraClient` started returning `url`, but `TicketResult` (pydantic, default `extra="ignore"`) did not declare it, so `/runs` responses stripped the link. UI checks used mocked API payloads and never crossed the real contract.
-**Fix:** declare `url` on `TicketResult`; regression test `test_run_response_keeps_live_ticket_link`.
-**Limit:** any new client field still needs a contract update; browser tests with mocked payloads do not prove the API shape.
