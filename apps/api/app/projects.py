@@ -36,3 +36,7 @@ def projects() -> list[dict]:
             "transcripts": transcripts("general"),
         },
     ]
+
+
+def find_project(project_id: str) -> dict | None:
+    return next((item for item in projects() if item["id"] == project_id), None)

@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.config import Settings
-from app.projects import projects
+from app.projects import find_project, projects
 from app.run_contracts import RunResult
 from app.run_service import RunService, preset_key
 from app.run_store import RunLimitError
@@ -67,7 +67,7 @@ def ready(runtime: RunService = Depends(service)) -> dict:
 
 @router.post("/runs", status_code=202)
 def create_run(body: RunRequest, runtime: RunService = Depends(service)) -> dict:
-    project = next((item for item in projects() if item["id"] == body.project_id), None)
+    project = find_project(body.project_id)
     if project is None:
         raise HTTPException(404, "Unknown project")
     if runtime.settings.public_demo and body.preset_id is not None:

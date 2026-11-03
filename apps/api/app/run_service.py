@@ -16,7 +16,7 @@ from app.config import Settings
 from app.jira.client import JiraError, jira_session, preview_tickets
 from app.jira.ledger import create_once
 from app.llm import LLMError, LLMHelper, Usage, traced_root
-from app.projects import demo_root, projects
+from app.projects import demo_root, find_project
 from app.rag.ingest import connect
 from app.rag.retrieve import RetrievedChunk, retrieve
 from app.run_store import RunBusyError, RunStore
@@ -55,10 +55,11 @@ def checkpoint_result(values: dict) -> dict:
 
 
 def preset_key(settings: Settings, project_id: str, transcript: str) -> str | None:
-    presets = projects()[0]["transcripts"]
-    if project_id != projects()[0]["id"] or not any(
-        item["text"] == transcript for item in presets
-    ):
+    project = find_project(project_id)
+    # Only fictional presets of a project with a specification are cached.
+    if not project or not project["spec"]:
+        return None
+    if not any(item["text"] == transcript for item in project["transcripts"]):
         return None
     root = demo_root() / project_id
     code = Path(__file__).parent
@@ -141,9 +142,8 @@ class RunService:
             connect(self.settings) as conn,
             postgres_saver(self.settings) as saver,
         ):
-            has_spec = any(
-                item["id"] == project_id and item["spec"] for item in projects()
-            )
+            project = find_project(project_id)
+            has_spec = bool(project and project["spec"])
             yield build_workflow(
                 helper,
                 (lambda queries: retrieve(conn, helper, project_id, queries))
