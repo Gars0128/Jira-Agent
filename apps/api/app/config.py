@@ -47,3 +47,8 @@ class Settings(BaseSettings):
         ):
             raise ValueError("LANGSMITH_API_KEY is required for tracing")
         return self
+
+    @property
+    def jira_live(self) -> bool:
+        # The public demo always previews, whatever JIRA_DRY_RUN says.
+        return not (self.public_demo or self.jira_dry_run)

@@ -4,7 +4,7 @@ import httpx
 import pytest
 from test_workflow import draft, new_requirement
 
-from app.jira.client import JiraClient, JiraError
+from app.jira.client import JiraClient, JiraError, preview_tickets
 from app.stories import StoryDraft, validate_stories
 
 
@@ -13,8 +13,7 @@ def stories() -> list:
 
 
 def test_public_mode_forces_preview_without_network() -> None:
-    jira = JiraClient(dry_run=False, public_demo=True)
-    tickets = jira.create_tickets(stories())
+    tickets = preview_tickets(stories())
     assert tickets[0]["dry_run"]
     assert tickets[0]["fields"]["labels"][0].startswith("idem-")
     assert tickets[0]["fields"]["description"]["type"] == "doc"
@@ -30,9 +29,7 @@ def test_existing_issue_is_reused() -> None:
     with httpx.Client(
         base_url="https://jira.example", transport=httpx.MockTransport(respond)
     ) as http:
-        result = JiraClient(
-            client=http, public_demo=False, dry_run=False
-        ).create_tickets(stories())
+        result = JiraClient(client=http).create_tickets(stories())
     assert result == [
         {
             "key": "HD-7",
@@ -60,9 +57,7 @@ def test_rate_limit_retries_then_creates_once() -> None:
     with httpx.Client(
         base_url="https://jira.example", transport=httpx.MockTransport(respond)
     ) as http:
-        result = JiraClient(
-            client=http, public_demo=False, dry_run=False, sleep=sleeps.append
-        ).create_tickets(stories())
+        result = JiraClient(client=http, sleep=sleeps.append).create_tickets(stories())
     assert result[0]["key"] == "HD-8"
     assert sleeps == [1, 2, 4]
     assert attempts.count("POST") == 4
@@ -82,7 +77,7 @@ def test_ambiguous_create_checks_label_without_blind_retry(found: bool) -> None:
     with httpx.Client(
         base_url="https://jira.example", transport=httpx.MockTransport(respond)
     ) as http:
-        jira = JiraClient(client=http, public_demo=False, dry_run=False)
+        jira = JiraClient(client=http)
         if found:
             assert jira.create_tickets(stories())[0]["reused"]
         else:
@@ -97,7 +92,7 @@ def test_ticket_description_carries_story_criteria_and_evidence() -> None:
     rule = requirement.model_copy(
         update={"id": "R2", "status": "duplicate", "text": "Keep CSV format."}
     )
-    [ticket] = JiraClient().create_tickets(stories(), [requirement, rule])
+    [ticket] = preview_tickets(stories(), [requirement, rule])
     text = json.dumps(ticket["fields"]["description"])
     headings = [
         node["content"][0]["text"]
@@ -122,3 +117,16 @@ def test_run_response_keeps_live_ticket_link() -> None:
     url = "https://demo.atlassian.net/browse/KAN-1"
     ticket = {"key": "KAN-1", "url": url, "dry_run": False, "reused": False}
     assert TicketResult.model_validate(ticket).url == url
+
+
+def test_public_demo_forces_preview_and_live_needs_atlassian(settings) -> None:
+    from app.jira.client import jira_session
+
+    settings.jira_dry_run = False
+    assert settings.jira_live is False
+    settings.public_demo = False
+    assert settings.jira_live is True
+    settings.jira_base_url = "https://jira.example.com"
+    with pytest.raises(JiraError, match="Jira Cloud"):
+        with jira_session(settings):
+            pass

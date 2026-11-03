@@ -5,7 +5,7 @@ import pytest
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
-from app.jira.client import JiraClient
+from app.jira.client import preview_tickets
 from app.rag.retrieve import RetrievedChunk
 from app.schemas import Requirement
 from app.stories import StoryDraft, idempotency_key, validate_stories
@@ -113,7 +113,7 @@ def test_graph_pauses_before_creation_and_resumes_after_rebuild(
 
     def tickets(stories: list, requirements: list) -> list[dict]:
         writes.append(stories)
-        return JiraClient().create_tickets(stories)
+        return preview_tickets(stories)
 
     config = {"configurable": {"thread_id": "test-restart"}}
     graph = build_workflow(helper, search, checkpointer=saver, create_tickets=tickets)

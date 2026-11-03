@@ -1,9 +1,12 @@
 import re
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
+from urllib.parse import urlparse
 
 import httpx
 
+from app.config import Settings
 from app.schemas import Requirement
 from app.stories import Story
 
@@ -122,28 +125,35 @@ def issue_fields(
     }
 
 
+def preview_tickets(
+    stories: list[Story], requirements: Sequence[Requirement] = ()
+) -> list[dict]:
+    return [
+        {
+            "key": f"PREVIEW-{story.idempotency_key[:8]}",
+            "dry_run": True,
+            "reused": False,
+            "fields": issue_fields(story, "DEMO", requirements),
+        }
+        for story in stories
+    ]
+
+
 class JiraClient:
     def __init__(
         self,
         *,
+        client: httpx.Client,
         project_key: str = "DEMO",
-        dry_run: bool = True,
-        public_demo: bool = True,
-        client: httpx.Client | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         if not re.fullmatch(r"[A-Z][A-Z0-9_]{0,49}", project_key):
             raise ValueError("Invalid Jira project key")
         self.project_key = project_key
-        self.dry_run = public_demo or dry_run
-        if not self.dry_run and client is None:
-            raise ValueError("Real Jira mode requires an authenticated HTTP client")
         self.client = client
         self.sleep = sleep
 
     def _request(self, method: str, path: str, **kwargs: object) -> httpx.Response:
-        if self.client is None:
-            raise JiraError("Jira connection is not configured")
         for attempt in range(4):
             try:
                 response = self.client.request(method, path, **kwargs)
@@ -197,16 +207,6 @@ class JiraClient:
         result = []
         for story in stories:
             fields = issue_fields(story, self.project_key, requirements)
-            if self.dry_run:
-                result.append(
-                    {
-                        "key": f"PREVIEW-{story.idempotency_key[:8]}",
-                        "dry_run": True,
-                        "reused": False,
-                        "fields": fields,
-                    }
-                )
-                continue
             existing = self._find(story.idempotency_key)
             if existing:
                 result.append(existing)
@@ -241,3 +241,23 @@ class JiraClient:
                 }
             )
         return result
+
+
+@contextmanager
+def jira_session(settings: Settings) -> Iterator[JiraClient]:
+    url = urlparse(settings.jira_base_url)
+    token = settings.jira_api_token.get_secret_value()
+    if (
+        url.scheme != "https"
+        or not (url.hostname or "").endswith(".atlassian.net")
+        or not settings.jira_email
+        or not token
+    ):
+        raise JiraError("Configure a Jira Cloud HTTPS URL, email and token")
+    with httpx.Client(
+        base_url=settings.jira_base_url.rstrip("/"),
+        auth=(settings.jira_email, token),
+        timeout=20,
+        follow_redirects=False,
+    ) as client:
+        yield JiraClient(client=client, project_key=settings.jira_project_key)

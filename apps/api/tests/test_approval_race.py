@@ -9,9 +9,10 @@ from pydantic import SecretStr
 from test_recovery import cached_state
 
 from app.checkpoints import postgres_saver
-from app.jira.client import JiraClient
+from app.jira.client import preview_tickets
+from app.jira.ledger import jira_ledger_key
 from app.llm import LLMHelper
-from app.run_service import RunService, hydrate_cache, jira_ledger_key
+from app.run_service import RunService, hydrate_cache
 from app.workflow import Approval
 
 
@@ -56,7 +57,7 @@ def test_live_concurrent_approvals_create_tickets_once(settings, monkeypatch) ->
         writes.append(stories)
         entered.set()
         assert release.wait(timeout=10)
-        return JiraClient().create_tickets(stories)
+        return preview_tickets(stories)
 
     monkeypatch.setattr(RunService, "_tickets", tickets)
     with ThreadPoolExecutor(max_workers=1) as pool:

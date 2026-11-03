@@ -6,9 +6,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from threading import Event, Thread
 from time import perf_counter
-from urllib.parse import urlparse
 
-import httpx
 from fastapi.encoders import jsonable_encoder
 from langgraph.types import Command
 from langsmith import Client, agent_address, trace, tracing_context
@@ -16,7 +14,8 @@ from psycopg.types.json import Jsonb
 
 from app.checkpoints import postgres_saver
 from app.config import Settings
-from app.jira.client import JiraClient, JiraError
+from app.jira.client import JiraError, jira_session, preview_tickets
+from app.jira.ledger import create_once
 from app.llm import LLMError, LLMHelper, Usage
 from app.projects import demo_root, projects
 from app.rag.ingest import connect
@@ -54,12 +53,6 @@ def hydrate_cache(cached: dict) -> dict:
 def checkpoint_result(values: dict) -> dict:
     state = jsonable_encoder(values)
     return {key: state.get(key, default) for key, default in RESULT_FIELDS.items()}
-
-
-def jira_ledger_key(base_url: str, project_key: str, story_key: str) -> str:
-    destination = urlparse(base_url)
-    material = [destination.hostname, destination.port or 443, project_key, story_key]
-    return hashlib.sha256(json.dumps(material).encode()).hexdigest()
 
 
 def preset_key(settings: Settings, project_id: str, transcript: str) -> str | None:
@@ -123,68 +116,12 @@ class RunService:
 
     def _tickets(self, stories: list, requirements: Sequence = ()) -> list[dict]:
         settings = self.settings
-        if settings.public_demo or settings.jira_dry_run:
-            return JiraClient().create_tickets(stories, requirements)
-        url = urlparse(settings.jira_base_url)
-        if (
-            url.scheme != "https"
-            or not url.hostname
-            or not url.hostname.endswith(".atlassian.net")
-            or not settings.jira_email
-            or not settings.jira_api_token.get_secret_value()
-        ):
-            raise JiraError("Configure a Jira Cloud HTTPS URL, email and token")
-        with (
-            httpx.Client(
-                base_url=settings.jira_base_url.rstrip("/"),
-                auth=(settings.jira_email, settings.jira_api_token.get_secret_value()),
-                timeout=20,
-                follow_redirects=False,
-            ) as client,
-            connect(settings) as conn,
-        ):
-            jira = JiraClient(
-                project_key=settings.jira_project_key,
-                dry_run=False,
-                public_demo=False,
-                client=client,
+        if not settings.jira_live:
+            return preview_tickets(stories, requirements)
+        with jira_session(settings) as jira, connect(settings) as conn:
+            return create_once(
+                conn, jira, settings.jira_base_url, stories, requirements
             )
-            results = []
-            for story in stories:
-                ledger_key = jira_ledger_key(
-                    settings.jira_base_url,
-                    settings.jira_project_key,
-                    story.idempotency_key,
-                )
-                with conn.transaction():
-                    conn.execute(
-                        "SELECT pg_advisory_xact_lock(hashtextextended(%s,1))",
-                        [ledger_key],
-                    )
-                    existing = conn.execute(
-                        "SELECT result FROM agent_jira_ledger WHERE key=%s",
-                        [ledger_key],
-                    ).fetchone()
-                    if existing:
-                        if existing[0] is None:
-                            raise JiraError(
-                                "Previous Jira creation is unconfirmed; "
-                                "reconcile it before retrying"
-                            )
-                        results.append(existing[0] | {"reused": True})
-                        continue
-                    conn.execute(
-                        "INSERT INTO agent_jira_ledger(key) VALUES(%s)",
-                        [ledger_key],
-                    )
-                # Commit intent before the side effect; uncertainty blocks replay.
-                [result] = jira.create_tickets([story], requirements)
-                conn.execute(
-                    "UPDATE agent_jira_ledger SET result=%s WHERE key=%s",
-                    [Jsonb(result), ledger_key],
-                )
-                results.append(result)
-            return results
 
     @contextmanager
     def graph(self, project_id: str, helper: LLMHelper):

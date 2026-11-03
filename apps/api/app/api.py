@@ -51,7 +51,7 @@ def capabilities() -> dict:
         raise HTTPException(503, "Server configuration is incomplete") from None
     return {
         "public_demo": settings.public_demo,
-        "jira_dry_run": settings.public_demo or settings.jira_dry_run,
+        "jira_dry_run": not settings.jira_live,
         "transcript_limit": 20_000,
     }
 
