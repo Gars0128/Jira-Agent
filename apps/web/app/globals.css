@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-:root { --ink: #17242b; --muted: #737b7d; --paper: #f7f8f5; --line: #e2e6e1; --orange: #ee6840; --navy: #12242b; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: Arial, Helvetica, sans-serif; font-size: 14px; -webkit-font-smoothing: antialiased; }
@@ -195,11 +194,8 @@ a.jira-card:hover { background: #f7f8f9; transform: translateY(-1px); box-shadow
 @media (max-width: 700px) { .jira-column { max-width: none; } }
 
 /* Polish: calmer surface, morphing tab indicator, tactile controls */
-body { background: radial-gradient(1200px 500px at 70% -10%, #fbefe8 0%, transparent 60%), var(--paper); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Arial, sans-serif; }
-.result-tabs { position: relative; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Arial, sans-serif; }
 .result-tabs button { position: relative; border-bottom-color: transparent !important; transition: color .2s; }
-.result-tabs button::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--orange); border-radius: 2px; transform: scaleX(0); transform-origin: center; transition: transform .35s cubic-bezier(.2,.7,.2,1); }
-.result-tabs button[aria-selected="true"]::after { transform: scaleX(1); }
 .result-tabs button:hover { color: var(--ink); }
 .primary-button { transition: background .2s, transform .15s, box-shadow .2s; }
 .primary-button:not(:disabled):hover { box-shadow: 0 8px 20px #ee684033; }
@@ -256,7 +252,6 @@ input, textarea, select { border-radius: 12px; border-color: #0f141914; backgrou
 .results-heading h2 { font-size: 32px; font-weight: 650; letter-spacing: -.035em; }
 .result-tabs { display: inline-flex; gap: 2px; padding: 4px; border: 0; border-radius: 14px; background: #ececea; margin-bottom: 4px; }
 .result-tabs button { padding: 8px 14px; border-radius: 10px; margin: 0; font-size: 13px; font-weight: 550; color: #4b5563; transition: background .25s, color .2s, box-shadow .25s; }
-.result-tabs button::after { display: none; }
 .result-tabs button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px #0f14191f; }
 .result-tabs button > span { border-radius: 999px; }
 .summary-strip li, .requirement-card, .story-card, .ticket-card, .evidence-panel, .preview, .empty-state, .questions { border-radius: 18px; }
