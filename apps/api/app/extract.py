@@ -7,12 +7,11 @@ from time import perf_counter
 from uuid import uuid4
 
 import psycopg
-from langsmith import Client, agent_address, trace, tracing_context
 from pydantic import ValidationError
 
 from app.config import Settings
 from app.graph.graph import Search, build_graph
-from app.llm import LLMError, LLMHelper
+from app.llm import LLMError, LLMHelper, traced_root
 from app.rag.ingest import connect
 from app.rag.retrieve import retrieve
 
@@ -22,67 +21,28 @@ def run_extraction(
 ) -> dict[str, object]:
     if not transcript.strip() or len(transcript) > 20_000:
         raise ValueError("Transcript must contain 1 to 20000 characters of text")
-    settings = helper.settings
-    warning = None
-    client = None
-    if settings.langsmith_tracing and settings.langsmith_api_key is not None:
-        try:
-            client = Client(
-                api_key=settings.langsmith_api_key.get_secret_value(),
-                api_url=settings.langsmith_endpoint,
-                hide_inputs=True,
-                hide_outputs=True,
-                workspace_id=settings.langsmith_workspace_id,
-                timeout_ms=5000,
-            )
-        except Exception:
-            warning = "LangSmith unavailable; extraction continued without tracing"
+    notes: dict = {}
     run_id = uuid4()
     started = perf_counter()
-    try:
-        with tracing_context(
-            enabled=client is not None,
-            client=client,
-            address=agent_address(
-                settings.langsmith_agent_id, settings.langsmith_agent_environment
-            )
-            if client is not None
-            else None,
-        ):
-            with trace("requirement_extraction", run_id=run_id, inputs={}) as span:
-                result = build_graph(helper, search).invoke({"transcript": transcript})
-                span.add_metadata(helper.usage.model_dump(mode="json"))
-                span.end(outputs={"requirement_count": len(result["requirements"])})
-                trace_url = None
-                if client is not None:
-                    try:
-                        # shortcut: sync URL API, migrate to async before 2027-01-31.
-                        trace_url = client.get_run_url(run=span)
-                    except Exception:
-                        warning = "LangSmith trace link unavailable"
-        result_payload = {
-            "run_id": str(run_id),
-            "requirements": [item.model_dump() for item in result["requirements"]],
-            "dropped_requirement_ids": result["dropped_requirement_ids"],
-            "retrieved": {
-                id: [chunk.model_dump() for chunk in chunks]
-                for id, chunks in result.get("retrieved", {}).items()
-            },
-            **helper.usage.model_dump(mode="json"),
-            "latency_ms": round((perf_counter() - started) * 1000),
-            "trace_url": trace_url,
-        }
-    finally:
-        if client is not None:
-            try:
-                client.flush(timeout=5)
-            except Exception:
-                warning = "LangSmith flush failed; trace delivery is unverified"
-            try:
-                client.close(timeout=0)
-            except Exception:
-                warning = "LangSmith close failed; trace delivery is unverified"
-    result_payload["trace_warning"] = warning
+    with traced_root(
+        helper.settings, "requirement_extraction", notes, run_id=run_id
+    ) as span:
+        result = build_graph(helper, search).invoke({"transcript": transcript})
+        span.add_metadata(helper.usage.model_dump(mode="json"))
+        span.end(outputs={"requirement_count": len(result["requirements"])})
+    result_payload = {
+        "run_id": str(run_id),
+        "requirements": [item.model_dump() for item in result["requirements"]],
+        "dropped_requirement_ids": result["dropped_requirement_ids"],
+        "retrieved": {
+            id: [chunk.model_dump() for chunk in chunks]
+            for id, chunks in result.get("retrieved", {}).items()
+        },
+        **helper.usage.model_dump(mode="json"),
+        "latency_ms": round((perf_counter() - started) * 1000),
+        "trace_url": notes.get("trace_url"),
+        "trace_warning": notes.get("trace_warning"),
+    }
     return result_payload
 
 

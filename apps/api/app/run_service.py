@@ -9,14 +9,13 @@ from time import perf_counter
 
 from fastapi.encoders import jsonable_encoder
 from langgraph.types import Command
-from langsmith import Client, agent_address, trace, tracing_context
 from psycopg.types.json import Jsonb
 
 from app.checkpoints import postgres_saver
 from app.config import Settings
 from app.jira.client import JiraError, jira_session, preview_tickets
 from app.jira.ledger import create_once
-from app.llm import LLMError, LLMHelper, Usage
+from app.llm import LLMError, LLMHelper, Usage, traced_root
 from app.projects import demo_root, projects
 from app.rag.ingest import connect
 from app.rag.retrieve import RetrievedChunk, retrieve
@@ -254,71 +253,34 @@ class RunService:
         return result
 
     def _stream(self, graph, graph_input, config, run_id, helper, result):
-        client = None
-        settings = self.settings
-        if settings.langsmith_tracing and settings.langsmith_api_key:
-            try:
-                client = Client(
-                    api_key=settings.langsmith_api_key.get_secret_value(),
-                    api_url=settings.langsmith_endpoint,
-                    hide_inputs=True,
-                    hide_outputs=True,
-                    timeout_ms=5000,
-                    workspace_id=settings.langsmith_workspace_id,
-                )
-            except Exception:
-                result["trace_warning"] = "LangSmith unavailable"
+        notes: dict = {}
         try:
-            with tracing_context(
-                enabled=client is not None,
-                client=client,
-                address=agent_address(
-                    settings.langsmith_agent_id, settings.langsmith_agent_environment
-                )
-                if client
-                else None,
-            ):
-                with trace("discovery_to_jira", inputs={}) as span:
-                    for namespace, mode, part in graph.stream(
-                        graph_input,
-                        config,
-                        stream_mode=["updates", "tasks"],
-                        subgraphs=True,
-                    ):
-                        if mode == "tasks":
-                            if "input" in part:
-                                self.store.event(
-                                    run_id, "node_started", node=part["name"]
-                                )
+            with traced_root(self.settings, "discovery_to_jira", notes) as span:
+                for namespace, mode, part in graph.stream(
+                    graph_input,
+                    config,
+                    stream_mode=["updates", "tasks"],
+                    subgraphs=True,
+                ):
+                    if mode == "tasks":
+                        if "input" in part:
+                            self.store.event(run_id, "node_started", node=part["name"])
+                        continue
+                    for node, update in part.items():
+                        if node == "__interrupt__":
                             continue
-                        for node, update in part.items():
-                            if node == "__interrupt__":
-                                continue
-                            self.store.event(run_id, "node_finished", node=node)
-                            # Keep transcript in its private column/checkpoint.
-                            result.update(
-                                {
-                                    key: value
-                                    for key, value in jsonable_encoder(update).items()
-                                    if key != "transcript"
-                                }
-                            )
-                            result["usage"] = helper.usage.model_dump(mode="json")
-                            self.store.save(run_id, result)
-                    span.add_metadata(helper.usage.model_dump(mode="json"))
-                    span.end(outputs={"completed": True})
-                    if client:
-                        try:
-                            result["trace_url"] = client.get_run_url(run=span)
-                        except Exception:
-                            result["trace_warning"] = "Trace link unavailable"
+                        self.store.event(run_id, "node_finished", node=node)
+                        # Keep transcript in its private column/checkpoint.
+                        result.update(
+                            {
+                                key: value
+                                for key, value in jsonable_encoder(update).items()
+                                if key != "transcript"
+                            }
+                        )
+                        result["usage"] = helper.usage.model_dump(mode="json")
+                        self.store.save(run_id, result)
+                span.add_metadata(helper.usage.model_dump(mode="json"))
+                span.end(outputs={"completed": True})
         finally:
-            if client:
-                try:
-                    client.flush(timeout=5)
-                except Exception:
-                    result["trace_warning"] = "Trace delivery unverified"
-                try:
-                    client.close(timeout=0)
-                except Exception:
-                    result["trace_warning"] = "Trace delivery unverified"
+            result.update(notes)

@@ -209,7 +209,7 @@ def test_tracing_failure_does_not_lose_paid_result(
     def client_factory(**kwargs: Any) -> OfflineTraceClient:
         return OfflineTraceClient(**kwargs, info={"version": "offline"})
 
-    monkeypatch.setattr("app.extract.Client", client_factory)
+    monkeypatch.setattr("app.llm.Client", client_factory)
     helper, _ = helper_factory(
         '{"requirements": []}', USAGE, status_code=503 if provider_failure else 200
     )

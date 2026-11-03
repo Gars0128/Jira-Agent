@@ -1,12 +1,14 @@
 import json
 import math
+from collections.abc import Iterator
+from contextlib import contextmanager
 from decimal import Decimal
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_openai import ChatOpenAI
-from langsmith import configure, trace, tracing_context
+from langsmith import Client, agent_address, configure, trace, tracing_context
 from openai import OpenAI
 from pydantic import BaseModel, Field, ValidationError
 
@@ -18,6 +20,53 @@ from app.config import Settings
 configure(enabled=False)
 
 Output = TypeVar("Output", bound=BaseModel)
+
+
+@contextmanager
+def traced_root(
+    settings: Settings, name: str, notes: dict, **trace_kwargs: Any
+) -> Iterator[Any]:
+    """Root span with hidden I/O; tracing failures go to notes, never raise."""
+    client = None
+    if settings.langsmith_tracing and settings.langsmith_api_key is not None:
+        try:
+            client = Client(
+                api_key=settings.langsmith_api_key.get_secret_value(),
+                api_url=settings.langsmith_endpoint,
+                hide_inputs=True,
+                hide_outputs=True,
+                workspace_id=settings.langsmith_workspace_id,
+                timeout_ms=5000,
+            )
+        except Exception:
+            notes["trace_warning"] = "LangSmith unavailable"
+    address = (
+        agent_address(settings.langsmith_agent_id, settings.langsmith_agent_environment)
+        if client
+        else None
+    )
+    try:
+        with tracing_context(
+            enabled=client is not None, client=client, address=address
+        ):
+            with trace(name, inputs={}, **trace_kwargs) as span:
+                yield span
+            if client:
+                try:
+                    # shortcut: sync URL API, migrate to async before 2027-01-31.
+                    notes["trace_url"] = client.get_run_url(run=span)
+                except Exception:
+                    notes["trace_warning"] = "Trace link unavailable"
+    finally:
+        if client:
+            for close in (
+                lambda: client.flush(timeout=5),
+                lambda: client.close(timeout=0),
+            ):
+                try:
+                    close()
+                except Exception:
+                    notes["trace_warning"] = "Trace delivery unverified"
 
 
 class Usage(BaseModel):
