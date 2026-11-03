@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Discovery / Jira — From conversation to clarity",
+  title: "Tiro — from client call to Jira",
   description: "Trace requirements to client evidence, review user stories, and approve a Jira preview.",
 };
 

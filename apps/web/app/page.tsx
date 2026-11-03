@@ -148,7 +148,7 @@ export default function Home() {
     <a href="#main" className="skip-link">Skip to workspace</a>
     <div className="main-shell">
       <header className="appbar">
-        <Link className="brand" href="/" aria-label="Discovery home"><svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="currentColor" /><path d="M9 21.5a5.5 5.5 0 1 1 11 0 5.5 5.5 0 0 1-11 0Z" fill="none" stroke="#fff" strokeWidth="2.4" /><path d="M20 7v14.5" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" /><path d="M21 11l5-5m0 0h-4m4 0v4" fill="none" stroke="#ff8a5c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg><span>Discovery<span className="brand-sub">to Jira</span></span></Link>
+        <Link className="brand" href="/" aria-label="Tiro home"><svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="currentColor" /><path d="M9.5 10h13M16 10v12.5" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" /><circle cx="23.5" cy="22" r="2.2" fill="#ff8a5c" /></svg><span>Tiro<span className="brand-sub">call to Jira</span></span></Link>
         <nav aria-label="Sections"><a href="#main">Studio</a><a href="#pipeline">Workflow</a><a href="#results">Results</a></nav>
         <span className={`mode-pill ${capabilities?.jira_dry_run === false ? "live" : ""}`} title="Nothing reaches Jira until you approve"><i />{!capabilities ? "Checking mode…" : dryRun ? "Preview · dry run" : "Live Jira"}</span>
       </header>
@@ -204,7 +204,7 @@ export default function Home() {
           {review && tab === "requirements" && <div className="review-nudge"><span><strong>The groundwork is done.</strong> Your stories are ready for a human review.</span><button type="button" onClick={() => setTab("stories")}>Review stories <Arrow /></button></div>}
           {run?.status === "error" && <div className="error-banner" role="alert">{run.error ?? "This run could not complete. Check the configuration and start a new run."}</div>}
         </section>
-        <footer className="page-footer"><span>DISCOVERY <span className="footer-arrow">→</span> JIRA</span><span>Grounded in evidence. Guided by you.</span><span>Fictional data · Human-approved output</span></footer>
+        <footer className="page-footer"><span>TIRO <span className="footer-arrow">·</span> CALL → JIRA</span><span>Grounded in evidence. Guided by you.</span><span>Fictional data · Human-approved output</span></footer>
       </main>
     </div>
   </div>;

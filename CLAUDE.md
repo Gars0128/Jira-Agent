@@ -1,4 +1,4 @@
-# Discovery → Jira Agent
+# Tiro
 
 Read and follow the shared agent instructions:
 

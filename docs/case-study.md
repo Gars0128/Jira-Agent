@@ -1,4 +1,4 @@
-# Discovery to Jira: implementation and measured limits
+# Tiro: implementation and measured limits
 
 This educational MVP turns a fictional discovery-call transcript into grounded
 requirements, specification comparisons, reviewed stories, and Jira previews.

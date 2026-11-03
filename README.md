@@ -1,4 +1,6 @@
-# Discovery → Jira Agent
+# Tiro
+
+*Named after Marcus Tullius Tiro, Cicero's secretary, who invented shorthand to record speech word for word.*
 
 > From a messy client call to reviewed Jira tickets in 2 minutes — every requirement traced back to the transcript.
 
@@ -433,7 +435,7 @@ Expect: ingestion reports 13 chunks and `changed: true`, then `changed: false` o
 
 The CI workflow at [`.github/workflows/api.yml`](.github/workflows/api.yml) runs locked dependency installation, pytest, Ruff checks, and formatting on pushes and pull requests. It needs no LLM keys or Docker. Its commands pass locally; remote execution must be verified in GitHub Actions after the changes are pushed and has not been observed yet.
 
-The fictional demo project is `harbor-desk`: an equipment-reservation portal used as input for Discovery → Jira. We are not implementing that portal. Its [baseline specification](data/demo/harbor-desk/spec.md), six transcripts, and 12 gold JSON cases provide reference inputs and expected analysis results. Six cases reference transcript files; six synthetic cases include inline transcripts. Specification references use stable `HD-*` heading IDs until runtime chunking is implemented.
+The fictional demo project is `harbor-desk`: an equipment-reservation portal used as input for Tiro. We are not implementing that portal. Its [baseline specification](data/demo/harbor-desk/spec.md), six transcripts, and 12 gold JSON cases provide reference inputs and expected analysis results. Six cases reference transcript files; six synthetic cases include inline transcripts. Specification references use stable `HD-*` heading IDs until runtime chunking is implemented.
 
 For manual review, compare [the reporting conversation](data/demo/harbor-desk/transcripts/01-exports.md) with [its gold case](evals/cases/01-exports.json) and the `HD-EXPORT` section of the specification. Find the quote asking for coordinator exports: the baseline allows only administrators, so the gold label is `conflict`. The same case includes `new`, `duplicate`, and `unclear` requirements. Then inspect [the mind-change case](evals/cases/11-mind-change.json): the withdrawn SMS suggestion must not become an active requirement.
 

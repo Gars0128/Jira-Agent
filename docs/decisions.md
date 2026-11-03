@@ -156,3 +156,11 @@ regressions. More instructions alone do not prevent a broken implementation.
 **Why:** the post-revision critique could not change any output and the UI never displayed it, yet it cost a call. On one fictional custom transcript a run dropped from 6 calls / $0.084 / 60 s to 5 calls / $0.055 / 33 s, and a deferred waitlist no longer became a story. Jira pages refuse iframes, so the board is rendered locally.
 
 **Rejected:** `reasoning_effort=low`. One trial broke story constraints (a requirement implemented twice), failing the run. The extraction prompt change is not covered by the RAG eval, which bypasses extraction.
+
+## 2026-11-03 — Product name: Tiro
+
+**Decision:** the user-facing name is Tiro (after Cicero's secretary who invented shorthand to record speech verbatim), shown in the UI, page title, icon, Jira description footer and document titles.
+
+**Why:** "Discovery to Jira" described the function but was not memorable; verbatim capture of a conversation is the product's core promise.
+
+**Unchanged on purpose:** internal identifiers such as the LangSmith agent `discovery-jira`, package names and the Jira label `discovery-agent`, so traces and filters over existing issues keep working.

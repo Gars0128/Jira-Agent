@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
         app.state.service.close()
 
 
-app = FastAPI(title="Discovery to Jira Agent", lifespan=lifespan)
+app = FastAPI(title="Tiro API", lifespan=lifespan)
 app.state.service = None
 app.state.service_lock = Lock()
 app.include_router(router)

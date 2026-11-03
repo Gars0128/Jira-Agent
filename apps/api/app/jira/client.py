@@ -115,7 +115,7 @@ def issue_fields(
     content.append(
         _paragraph(
             _text(
-                "Drafted by the Discovery → Jira agent from a client call transcript "
+                "Drafted by Tiro from a client call transcript "
                 "and approved by a human reviewer."
             )
         )

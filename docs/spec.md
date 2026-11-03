@@ -1,4 +1,4 @@
-# Discovery → Jira Agent Specification
+# Tiro Specification
 
 Based on the user's instructions dated 2026-11-02. This is the target MVP contract, not a claim that every feature exists. See the [plan](plan.md) for implementation order and current status.
 
