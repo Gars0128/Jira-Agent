@@ -1,19 +1,25 @@
-# Recorded local demonstration
+# Demo assets
 
-`demo.gif`, `desktop.png`, and `mobile.png` show the earlier local Next.js UI (before the app-bar redesign) using
-the FastAPI/Neon workflow. The sequence opens an existing run, checks conflict
-evidence, edits a user story, approves it, and displays a Jira dry-run preview.
-These are browser captures, not generated mockups. Hosting is verified separately.
+`tiro-demo.gif` (README hero), `tiro-demo.mp4` and the three `tiro-*.png`
+screenshots are browser recordings of the real Next.js UI running in replay mode
+(`DEMO_REPLAY=true`). Replay serves two real recorded runs (Harbor Desk exports and
+the grooming-salon call) with the pipeline's timing; nothing is generated or mocked
+by hand. The approved stories become dry-run previews.
 
-To recreate from `apps/web`, use an existing run awaiting review and public demo
-mode. The script accepts local web servers only and requires `/capabilities` to
-confirm effective `jira_dry_run: true` before it opens the browser and again before
-approval. An unavailable or live-mode server is rejected. This script approves
-that run; it does not start a new paid analysis.
+Recreate from `apps/web`:
 
 ```powershell
-node scripts/capture-demo.mjs http://localhost:3000 <run-id>
+$env:DEMO_REPLAY = "true"; npm.cmd run build
+node node_modules/next/dist/bin/next start --port 3008   # second terminal
+node scripts/record-demo.mjs http://127.0.0.1:3008 ../../docs/demo
 ```
 
-Requirements: installed web development dependencies, Playwright Chromium, and
-Python with Pillow. Intermediate capture frames are removed after GIF creation.
+The script records `tiro-demo.webm` and the screenshots; convert with ffmpeg:
+
+```powershell
+ffmpeg -ss 1 -i ../../docs/demo/tiro-demo.webm -vf "fps=10,scale=800:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" ../../docs/demo/tiro-demo.gif
+ffmpeg -i ../../docs/demo/tiro-demo.webm -c:v libx264 -pix_fmt yuv420p -crf 24 -movflags +faststart -an ../../docs/demo/tiro-demo.mp4
+```
+
+`scripts/capture-demo.mjs` captures the same flow against the real local
+FastAPI/Neon backend for an existing run; it refuses anything but local dry-run.

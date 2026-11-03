@@ -29,4 +29,4 @@ export type Run = {
 
 export type RunEvent = { type: string; node?: string };
 
-export type Capabilities = { public_demo: boolean; jira_dry_run: boolean; transcript_limit: number };
+export type Capabilities = { public_demo: boolean; jira_dry_run: boolean; transcript_limit: number; replay?: boolean };

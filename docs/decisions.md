@@ -164,3 +164,11 @@ regressions. More instructions alone do not prevent a broken implementation.
 **Why:** "Discovery to Jira" described the function but was not memorable; verbatim capture of a conversation is the product's core promise.
 
 **Unchanged on purpose:** internal identifiers such as the LangSmith agent `discovery-jira`, package names and the Jira label `discovery-agent`, so traces and filters over existing issues keep working.
+
+## 2026-11-03 — Hosted demo is a recorded replay
+
+**Decision:** the public Vercel site (<https://tiro-six-theta.vercel.app>) is built with `DEMO_REPLAY=true`; `/api/*` is rewritten to `app/demo-api`, which replays two real stored runs (`apps/web/demo/runs.json`) with pipeline timing and returns dry-run previews on approval. Custom text is refused with a pointer to the local setup. Locally `/api` still proxies to FastAPI.
+
+**Why:** the user chose zero hosting cost and no secrets in the cloud over live public analysis. A replay shows the real UI and real outputs without a backend, model spend or load risks (unbounded SSE, long-held run locks).
+
+**Limit:** the hosted demo cannot analyze new text; live hosting (Render API) stays deferred. The replay route is exercised by an end-to-end browser smoke on the deployed site and by `scripts/record-demo.mjs`, not by the CI suite.

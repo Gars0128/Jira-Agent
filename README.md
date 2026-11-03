@@ -1,18 +1,46 @@
+<div align="center">
+
+<img src="apps/web/app/icon.svg" width="64" alt="Tiro logo" />
+
 # Tiro
+
+**From a messy client call to reviewed Jira stories — every requirement backed by the client's own words.**
+
+[**▶ Live demo**](https://tiro-six-theta.vercel.app) · [How it works](#complete-workflow-input-to-result) · [Run it locally](#run-the-complete-application-locally) · [Case study](docs/case-study.md)
+
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![LangGraph](https://img.shields.io/badge/LangGraph-human--in--the--loop-1C3C3C)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
+![pgvector](https://img.shields.io/badge/Neon-pgvector-00E599?logo=postgresql&logoColor=white)
+![Jira](https://img.shields.io/badge/Jira-Cloud%20REST%20v3-0052CC?logo=jira&logoColor=white)
+
+<img src="docs/demo/tiro-demo.gif" width="800" alt="Tiro turns a client call into requirements, flags a conflict with the spec, lets a human edit the story, and hands it to a Jira board" />
+
+</div>
 
 *Named after Marcus Tullius Tiro, Cicero's secretary, who invented shorthand to record speech word for word.*
 
-> From a messy client call to reviewed Jira tickets in 2 minutes — every requirement traced back to the transcript.
+## Why Tiro
 
-We are building a web application that turns a client-call transcript into human-reviewed Jira user stories. It extracts requirements, links them to quotes, compares them against the project specification, exposes contradictions, and drafts tickets with acceptance criteria. A person reviews the result and decides what to send to Jira.
+After a discovery call someone has to separate real requests from small talk, check them against what was already agreed, and turn them into tickets. Tiro does the groundwork and leaves the decision to a person:
 
-**Status:** the local workflow includes extraction, Neon-backed RAG, stories, a bounded critic, persisted approval, Jira previews, HTTP/SSE, and Next.js/TypeScript. Automated and live database checks pass; the full model-quality gate does not yet pass. Manual acceptance is tracked in the [plan](docs/plan.md). Docker and deployment remain deferred.
+- **Grounded extraction.** Every requirement keeps a verbatim quote and speaker; quotes not found in the transcript are dropped in code.
+- **Spec-aware classification.** RAG over the project specification marks each request as *new work*, *conflicts with spec*, *already in spec* or *needs clarification*, citing the excerpt. An "Any conversation" mode works without a spec.
+- **Stories with testable criteria.** Given/When/Then acceptance criteria, reviewed once by a critic.
+- **Human in the loop.** The run pauses (LangGraph interrupt, Postgres checkpoint). Nothing reaches Jira until a person edits and approves.
+- **Safe Jira handoff.** Idempotent creation, bounded retries, dry-run by default; tickets carry the story, criteria and source evidence.
+- **Cost-capped.** One LLM helper enforces $0.30 per run and $1 per day; a typical run costs about $0.02–0.06.
 
-The sections below describe the **whole target product**. Phased development gradually implements this complete workflow.
+| Pick a call | See the evidence | Hand off to Jira |
+|---|---|---|
+| ![Studio](docs/demo/tiro-studio.png) | ![Conflict evidence](docs/demo/tiro-evidence.png) | ![Jira board](docs/demo/tiro-jira.png) |
+
+> **About the live demo:** the hosted version replays two real recorded runs (no backend, no model calls, nothing sent to Jira). To analyze your own conversations, run Tiro locally — it takes two terminals.
+
+**Status:** extraction, Neon-backed RAG, stories, persisted approval, Jira previews and real Jira writes (verified once in a test project), HTTP/SSE and the Next.js UI work locally; automated and live database checks pass. The full model-quality gate does not yet pass — see the [case study](docs/case-study.md). The hosted demo is a recorded replay; a live hosted backend and Docker remain deferred. Manual acceptance is tracked in the [plan](docs/plan.md).
 
 ## Run the complete application locally
-
-![Recorded local dry-run workflow (earlier UI, before the app-bar redesign)](docs/demo/demo.gif)
 
 Latest review: backend automated checks, isolated Neon persistence/concurrency
 checks, seven frontend unit checks and four browser checks passed. Ruff, ESLint,
@@ -82,20 +110,22 @@ and `npm.cmd run build`. These checks make no paid model calls.
 
 ## Deploy and verify
 
-Deployment is deferred by the user. These are preparation instructions for later;
-current acceptance focuses on tests and the local interface.
+**Hosted demo (live):** <https://tiro-six-theta.vercel.app> is the Next.js app built
+with `DEMO_REPLAY=true`. `/api/*` is then served by `app/demo-api`, which replays two
+real recorded runs from `apps/web/demo/runs.json` with the real pipeline timing:
+no backend, model calls, secrets or Jira writes. Your own text is refused with a
+pointer to the local setup. Redeploy from `apps/web`:
 
-The root `render.yaml` describes the Docker API; supply private environment values
-in Render and preserve public dry-run. Its Docker context is the repository root
-to include fictional demo assets. In Vercel choose root `apps/web`, Node 24, and
-set server-side `API_URL` to the Render HTTPS URL **before building**. Keep keys
-and database URLs out of `NEXT_PUBLIC_*` variables.
+```powershell
+npx vercel deploy --prod --build-env DEMO_REPLAY=true --env DEMO_REPLAY=true
+```
 
-Ingest the deployed specification, check readiness, and perform the whole browser
-workflow including edited approval, restart recovery, cache and budget rejection.
-Record the public URL, actual duration and GIF after these checks. Hosting,
-real Jira writes, and the calibrated quality gate remain separately verifiable
-acceptance work.
+**Live hosted backend (deferred):** the root `render.yaml` describes the Docker API;
+supply private environment values in Render and preserve public dry-run. In Vercel
+set server-side `API_URL` to the Render HTTPS URL **before building** and do not set
+`DEMO_REPLAY`. Keep keys and database URLs out of `NEXT_PUBLIC_*` variables. Before
+opening it publicly, bound SSE streams per run and check Neon's idle-transaction
+timeout (see the plan).
 
 ## Who it helps and why
 

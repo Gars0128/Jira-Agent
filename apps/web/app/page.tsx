@@ -150,7 +150,7 @@ export default function Home() {
       <header className="appbar">
         <Link className="brand" href="/" aria-label="Tiro home"><svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="currentColor" /><path d="M9.5 10h13M16 10v12.5" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" /><circle cx="23.5" cy="22" r="2.2" fill="#ff8a5c" /></svg><span>Tiro<span className="brand-sub">call to Jira</span></span></Link>
         <nav aria-label="Sections"><a href="#main">Studio</a><a href="#pipeline">Workflow</a><a href="#results">Results</a></nav>
-        <span className={`mode-pill ${capabilities?.jira_dry_run === false ? "live" : ""}`} title="Nothing reaches Jira until you approve"><i />{!capabilities ? "Checking mode…" : dryRun ? "Preview · dry run" : "Live Jira"}</span>
+        <span className={`mode-pill ${capabilities?.jira_dry_run === false ? "live" : ""}`} title="Nothing reaches Jira until you approve"><i />{!capabilities ? "Checking mode…" : capabilities.replay ? "Recorded demo" : dryRun ? "Preview · dry run" : "Live Jira"}</span>
       </header>
       <main id="main">
         <div className="page-heading"><div><div className="eyebrow"><span /> CONVERSATIONS, WITH DIRECTION</div><h1>From conversation<br className="mobile-break" /> to clarity<span>.</span></h1><p>Paste a client call. Get Jira stories backed by real quotes.</p></div><span className="heading-index">DISCOVERY / 001</span></div>
@@ -168,6 +168,7 @@ export default function Home() {
             <div className="input-body">
               <div className="source-selectors"><label>Project<select value={projectId} disabled={loading || active} onChange={(event) => { const project = projects.find((item) => item.id === event.target.value); setProjectId(event.target.value); setPresetId(project?.transcripts[0]?.id ?? ""); setTranscript(project?.transcripts[0]?.text ?? ""); }}>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
               <label>Conversation<select value={presetId} disabled={loading || active} onChange={(event) => { const preset = currentProject?.transcripts.find((item) => item.id === event.target.value); setPresetId(event.target.value); if (preset) setTranscript(preset.text); }}><option value="">✎ Write your own</option>{currentProject?.transcripts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
+              {capabilities?.replay && <p className="mode-hint"><strong>Recorded demo.</strong> This hosted version replays real runs of the two samples. Clone the repo to analyze your own calls.</p>}
               {currentProject?.spec === false && <p className="mode-hint"><strong>Any conversation.</strong> Paste a call, get clean stories. Without a spec, conflicts aren’t checked.</p>}
               <div className="transcript-label"><label htmlFor="transcript">Transcript</label><span>Fictional data only</span></div>
               <textarea id="transcript" className="transcript" value={transcript} maxLength={20000} disabled={active} placeholder={loading ? "Loading your workspace…" : "Paste a fictional client conversation here. Include speaker names and the original wording."} onChange={(event) => { setTranscript(event.target.value); setPresetId(""); }} />

@@ -12,3 +12,6 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 .test-tmp*/
+
+# Raw demo recording; the GIF and MP4 are committed.
+docs/demo/*.webm
