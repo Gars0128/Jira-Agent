@@ -61,7 +61,7 @@ Explain technical terms before first use. Check library APIs against official do
 **Status:** in progress. Corresponds to original item 1.1. Docker remains deferred, so the whole phase is not complete.
 
 1. **2.1 — minimal API:** accepted on 2026-11-02. The user ran the server, `/health` and `/docs` returned 200, and pytest reported 1 passed.
-2. **2.2 — local infrastructure:** Dockerfile, Compose with pgvector, and `.env.example` are prepared. Runtime verification is deferred; see the Docker checkpoint above. Database settings reach the API environment, but the application does not execute SQL yet.
+2. **2.2 — local infrastructure:** Dockerfile, Compose with pgvector, and `.env.example` are prepared. Runtime verification is deferred; see the Docker checkpoint above.
 3. **2.3 — CI:** implemented, awaiting manual review and the first remote Actions run. `.github/workflows/api.yml` installs locked dependencies and runs pytest, Ruff, and formatting on pushes and pull requests. Local checks pass; remote execution is not yet verified. The user explicitly authorized this step without waiting for deferred step 2.2.
 
 - Deliverable: `apps/api`, FastAPI `/health`, Dockerfile, Compose with pgvector, `.env.example`, `.gitignore`, and CI for Ruff/pytest. No AI logic or UI.
@@ -139,16 +139,16 @@ Remaining misses: `05-usability R2`, `07-new-preset R1` (spec says presets are n
 
 ## Phase 6. Stories and critic
 
-**Status:** implemented and functionally verified; manual acceptance pending. Original item 1.7. `app/stories.py` owns strict stories, new-requirement coverage and deterministic idempotency keys; `app/workflow.py` limits critic-driven revision to one cycle.
+**Status:** implemented and functionally verified; manual acceptance pending. Original item 1.7. `app/stories.py` owns strict stories, new-requirement coverage and deterministic idempotency keys; `app/workflow.py` runs the critic once; a revision goes straight to human review.
 
-- Deliverable: `write_stories`, testable acceptance criteria, open questions, requirement links, and a `critic` with at most one revision cycle.
+- Deliverable: `write_stories`, testable acceptance criteria, open questions, requirement links, and a `critic` that runs once and may request one revision.
 - Checks: story contracts, requirement references, stable idempotency keys, critic-loop bounds, and evals for prompt changes.
 - Manual acceptance: trace a story to its requirements and determine whether its acceptance criteria can actually be executed.
 - Done when: stories pass checks and the user accepts their structure.
 
 ## Phase 7. Human review and Jira
 
-**Status:** implemented; isolated Neon tests verify restart and concurrent approval. Manual acceptance remains pending. Original item 1.8. LangGraph interrupts before approval and persists through PostgresSaver; run/idempotency locks protect competing approvals. Public mode forces previews. Real Jira writes remain unverified.
+**Status:** implemented; isolated Neon tests verify restart and concurrent approval. Manual acceptance remains pending. Original item 1.8. LangGraph interrupts before approval and persists through PostgresSaver; run/idempotency locks protect competing approvals. Public mode forces previews. Real Jira writes were verified manually once in test project KAN (description sections, `idem-<16 hex>` + `discovery-agent` labels, ticket `url`); live 429/5xx retry behaviour is not tested against Jira.
 
 - Deliverable: assembled LangGraph, Postgres checkpointer, `human_review` interrupt, resumption only after Approve, and `create_tickets` with dry-run and real Jira support.
 - Checks: no writes before Approve; human edits are validated and reach the preview; state survives restart; repeated/concurrent approvals do not duplicate tickets; handle 429/5xx and ambiguous create results.

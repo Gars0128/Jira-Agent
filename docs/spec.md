@@ -8,7 +8,7 @@ The demo turns an unstructured client-call transcript into human-reviewed Jira u
 
 The project must demonstrate discovery, RAG, LangGraph, structured output, evals with a pass threshold, LangSmith traces, per-run cost, human-in-the-loop, idempotency, retries, and a working Next.js UI.
 
-The MVP includes one fictional client, one specification, six transcripts, at least 12 labeled eval cases, and a deployed demo. Out of scope: audio transcription, authentication and multi-user support, Linear/Trello, story points, real client data, and an elaborate design system.
+The MVP includes one fictional client with one specification and six transcripts, an "Any conversation" project (`general`) without a specification whose statuses are only new/unclear, at least 12 labeled eval cases, and a deployed demo. Out of scope: audio transcription, authentication and multi-user support, Linear/Trello, story points, real client data, and an elaborate design system.
 
 ## Architecture
 
@@ -21,13 +21,13 @@ The MVP includes one fictional client, one specification, six transcripts, at le
 
 ```text
 extract → retrieve_spec → classify → write_stories → critic
-                                        ↑             │
-                                        └─ revision ──┘  at most once
+                                        ↑             │ issues (once)
+                                        └─ revision ──┘
 
-critic → human_review [wait for Approve] → create_tickets
+critic (no issues) or revision → human_review [wait for Approve] → create_tickets
 ```
 
-`human_review` uses LangGraph `interrupt`; resumption is allowed only through `POST /runs/{id}/approve`. Use `langgraph-checkpoint-postgres` so runs survive restarts. The critic may return stories for revision at most once.
+`human_review` uses LangGraph `interrupt`; resumption is allowed only through `POST /runs/{id}/approve`. Use `langgraph-checkpoint-postgres` so runs survive restarts. The critic runs once and may return stories for one revision, which goes straight to human review.
 
 ## Planned repository layout
 
@@ -89,7 +89,7 @@ class Story(BaseModel):
 
 Quotes must come from the original transcript without rewriting. Code checks non-empty substring membership after whitespace/case normalization and discards ungrounded requirements. `spec_refs` contains retrieved chunk IDs; `note` explains conflicts or ambiguity. Acceptance criteria must be testable, preferably Given/When/Then.
 
-Step 4.1 implements `Requirement` in `apps/api/app/schemas.py`: strict input types, forbidden unknown fields, and at least one non-whitespace character in IDs, text, quote, speaker and each spec reference. Validation preserves the original strings, including quote whitespace. This contract checks structure only; transcript membership is checked separately by the grounding step. `status` may remain null and `spec_refs` empty before classification. Story and RunResult are planned contracts, not yet implemented.
+Step 4.1 implements `Requirement` in `apps/api/app/schemas.py`: strict input types, forbidden unknown fields, and at least one non-whitespace character in IDs, text, quote, speaker and each spec reference. Validation preserves the original strings, including quote whitespace. This contract checks structure only; transcript membership is checked separately by the grounding step. `status` may remain null and `spec_refs` empty before classification. `Story` lives in `app/stories.py` and `RunResult`/`TicketResult` in `app/run_contracts.py`.
 
 Step 4.2 implements `is_quote_grounded` and `filter_grounded_requirements` in `apps/api/app/grounding.py`. They compare casefolded, whitespace-collapsed text and reject empty normalized quotes. The filter accepts validated Requirement objects and preserves them unchanged in input order. It does not assess semantic support, speaker attribution or withdrawal of a request; connecting the filter to extraction is step 4.4.
 
@@ -117,7 +117,7 @@ Validate input, story edits, and whether approval is allowed in the current stat
 ## Reliability and cost
 
 - Route every LLM call through one helper that records tokens and price. Exceeding `MAX_COST_PER_RUN_USD` terminates the run with an error.
-- Write to Jira only from `create_tickets` after Approve. Before creation, search for label `idem-<key>` and reuse an existing ticket.
+- Write to Jira only from `create_tickets` after Approve. Before creation, check the ledger and search for label `idem-<first 16 hex of key>` and reuse an existing ticket. Issues carry labels `idem-…` and `discovery-agent`; descriptions have sections User story, Acceptance criteria, Source evidence and Related rules from the same call; live results include the issue `url`.
 - Retry 429/5xx with exponential backoff, at most three retries after the initial attempt. After an ambiguous create response, check whether the ticket exists before retrying.
 - A label lookup alone does not protect against concurrent approvals. Phase 7 must include verified protection against competing writes.
 - Default `JIRA_DRY_RUN=true`; public mode always uses dry-run regardless of UI state. Keep secrets in environment variables and out of the repository and logs.

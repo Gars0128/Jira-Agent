@@ -10,10 +10,10 @@ The sections below describe the **whole target product**. Phased development gra
 
 ## Run the complete application locally
 
-![Recorded local dry-run workflow](docs/demo/demo.gif)
+![Recorded local dry-run workflow (earlier UI, before the app-bar redesign)](docs/demo/demo.gif)
 
 Latest review: backend automated checks, isolated Neon persistence/concurrency
-checks, six frontend unit checks and four browser checks passed. Ruff, ESLint,
+checks, seven frontend unit checks and four browser checks passed. Ruff, ESLint,
 TypeScript and the web production build passed. The local exports smoke reached
 review in 17.3 seconds at approximately $0.019; cached analysis used zero model
 calls. These functional checks do not replace the failed model-quality evaluation.
@@ -70,7 +70,7 @@ The [case study](docs/case-study.md) records measured results and evaluation lim
 The later 12-case full run **did not meet the quality gate**: precision 0.344,
 recall 0.379, conflict F1 0.286 and one rejected evidence reference. Matching and
 gold annotation need human review; the working local interface does not establish
-production model quality. Seven real judge scores remain uncalibrated.
+production model quality. Seven real judge scores remain uncalibrated. That run predates the critic-once and jokes/deferred-idea extraction changes; quality with the current prompts is unmeasured.
 
 Checks from `apps/api`: `python -m uv run --locked pytest`,
 `python -m uv run --locked ruff check . ../../evals`, and
@@ -107,7 +107,7 @@ The project also demonstrates discovery, AI engineering, and full-stack skills t
 
 ### 1. Open the demo and choose inputs
 
-A visitor opens the site without registering, chooses a fictional project, sees its description and specification, and selects one of six transcripts or pastes text without real client data.
+A visitor opens the site without registering, chooses "Harbor Desk (with specification)" or "Any conversation", and selects a sample transcript or pastes fictional text. Without a specification, statuses are only new or unclear and conflicts are not checked.
 
 The specification contains existing agreements. The transcript introduces requests to compare against them. The MVP does not support uploading another specification through the UI; analysis uses the selected demo project.
 
@@ -134,7 +134,7 @@ Retrieved specification excerpts make the classification inspectable. Each statu
 
 The agent drafts stories in the form “As a …, I want …, so that …” with testable acceptance criteria, preferably Given/When/Then. Stories reference their source requirements. A separate list holds questions to return to the client, including unresolved conflicts.
 
-A critic reviews the drafts and can request revision at most once. Execution then pauses for **human review**. A confidently written story must not hide an unresolved decision.
+A critic reviews the drafts once and can request one revision; the revision goes straight to **human review** without a second critique. A confidently written story must not hide an unresolved decision.
 
 ### 5. Edit and approve
 
@@ -182,10 +182,10 @@ One analysis is one **run** with shared state: source text, requirements, retrie
 
 ```text
 extract → retrieve_spec → classify → write_stories → critic
-                                        ↑             │
-                                        └─ revision ──┘  at most once
+                                        ↑             │ issues (once)
+                                        └─ revision ──┘
 
-critic → human_review [wait for Approve] → create_tickets
+critic (no issues) or revision → human_review [wait for Approve] → create_tickets
 ```
 
 | Step | Input → output |
@@ -224,11 +224,11 @@ FastAPI + LangGraph / Docker on Render
 | LangSmith | Inspect execution and evaluate the agent |
 | Jira API | Create approved tickets in the configured real-write mode |
 
-**LangChain and LangGraph are separate parts of the implementation.** Phase 4 uses `langchain-core` messages and `langchain-openai` for model calls. LangGraph manages state and the `START → extract → END` workflow; later phases extend that graph. Start with the official [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview) and [LangChain overview](https://docs.langchain.com/oss/python/langchain/overview).
+**LangChain and LangGraph are separate parts of the implementation.** Phase 4 uses `langchain-core` messages and `langchain-openai` for model calls. LangGraph manages state and the full workflow graph shown below. Start with the official [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview) and [LangChain overview](https://docs.langchain.com/oss/python/langchain/overview).
 
 ## MVP scope and definition of done
 
-The MVP includes one fictional project, a specification of roughly five pages, six transcripts with changes of mind and 3–4 planted conflicts, at least 12 labeled eval cases, the full UI workflow, and deployment. Audio, authentication, multiple users, Linear/Trello, story points, real client data, and an elaborate design system are out of scope.
+The MVP includes one fictional project with a specification of roughly five pages, an "Any conversation" mode without a specification, six transcripts with changes of mind and 3–4 planted conflicts, at least 12 labeled eval cases, the full UI workflow, and deployment. Audio, authentication, multiple users, Linear/Trello, story points, real client data, and an elaborate design system are out of scope.
 
 We check completion in two ways:
 
@@ -490,7 +490,7 @@ If startup fails, inspect `docker compose ps` and `docker compose logs --tail 50
 
 **What happens:** Dockerfile defines an image containing Python, dependencies, and application code. A container runs that image. Compose places the API and database on a shared network: the API uses `db:5432`; a host program uses `127.0.0.1:5432`. A named volume stores Postgres files separately from the container. pgvector adds the vector type needed for later RAG work.
 
-The API receives `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, and `PGPASSWORD`, but it does not execute SQL yet. Application database integration comes with the first storage/search feature. `JIRA_DRY_RUN=true` is passed as a safe container setting; the Jira client is not implemented.
+The API receives `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, and `PGPASSWORD` (or `DATABASE_URL`). `JIRA_DRY_RUN=true` is passed as a safe container setting; live Jira writes from `app/jira/` require `PUBLIC_DEMO=false` and `JIRA_DRY_RUN=false` (`Settings.jira_live`).
 
 ## Documentation map
 

@@ -11,7 +11,7 @@ The shared LLM helper accounts for model and embedding calls and blocks calls
 that cannot fit the estimated per-run budget. LangChain requests structured
 outputs; Pydantic validates them. Code filters quotes against the transcript.
 LangGraph connects extraction, pgvector retrieval, classification, story writing,
-a bounded critic loop, and human review. Approval is the only path to ticket
+a single critic pass with at most one revision, and human review. Approval is the only path to ticket
 creation. The public demo must force dry-run, regardless of client input.
 
 ## Existing measurements
@@ -34,6 +34,8 @@ same small corpus. A reviewer must resolve annotation ambiguity before replacing
 the reference labels.
 
 ### Full-workflow sample: quality gate not met
+
+This run predates the critic-once and jokes/deferred-idea extraction prompt changes; quality with the current prompts is unmeasured.
 
 The saved [full report](../evals/full-report.json) contains 12 attempted cases,
 29 gold requirements and 32 returned requirements. Under the specified one-to-one

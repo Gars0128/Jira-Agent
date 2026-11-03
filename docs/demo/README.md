@@ -1,6 +1,6 @@
 # Recorded local demonstration
 
-`demo.gif`, `desktop.png`, and `mobile.png` show the real local Next.js UI using
+`demo.gif`, `desktop.png`, and `mobile.png` show the earlier local Next.js UI (before the app-bar redesign) using
 the FastAPI/Neon workflow. The sequence opens an existing run, checks conflict
 evidence, edits a user story, approves it, and displays a Jira dry-run preview.
 These are browser captures, not generated mockups. Hosting is verified separately.

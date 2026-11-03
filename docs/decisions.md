@@ -145,7 +145,7 @@ regressions. More instructions alone do not prevent a broken implementation.
 
 ## 2026-11-02 — Any-conversation mode
 
-**Decision:** `/projects` adds `general` ("Any conversation (no specification)"). Its search returns no excerpts, so `classify` still runs but may assign only `new` or `unclear`; presets are not cached for it. No document upload yet.
+**Decision:** `/projects` adds `general` ("Any conversation"; Harbor Desk is shown as "Harbor Desk (with specification)"). Its search returns no excerpts, so `classify` still runs but may assign only `new` or `unclear`; presets are not cached for it. No document upload yet.
 
 **Why:** users need to split an arbitrary call into stories without a project baseline. Reusing the same graph keeps one workflow. Phase-5 RAG eval after the prompt change matched the baseline exactly (N=29: recall@5 0.966, status accuracy 0.897, conflict F1 0.769). Quality on non-Harbor conversations is unmeasured: there are no gold cases for it.
 
