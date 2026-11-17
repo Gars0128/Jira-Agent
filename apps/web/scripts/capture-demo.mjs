@@ -32,7 +32,7 @@ try {
   if (await conflict.count()) await conflict.click();
   await page.locator("#results").scrollIntoViewIfNeeded();
   await screenshot("02-evidence");
-  await page.getByRole("tab", { name: /User stories/ }).click();
+  await page.getByRole("tab", { name: /Tickets to approve/ }).click();
   const title = page.getByLabel("Title", { exact: true }).first();
   await title.waitFor();
   const canApprove = await title.isEnabled();

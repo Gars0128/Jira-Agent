@@ -86,7 +86,7 @@ h1 > span { color: var(--orange); }
 .empty-state { display: flex; min-height: 230px; flex-direction: column; justify-content: center; align-items: center; text-align: center; border: 1px dashed #d8dfd2; border-radius: 8px; background: #f9faf6; padding: 30px 22px; }
 .empty-symbol { color: #96a58f; background: #eaf0e5; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid #dfe7d9; border-radius: 12px; margin-bottom: 15px; }
 .empty-state h3 { font-size: 14px; font-weight: 500; margin: 0 0 9px; color: #687761; letter-spacing: -.2px; }
-.empty-state p { font-size: 12px; line-height: 1.8; color: #929d8a; max-width: 380px; margin: 0; }
+.empty-state p { font-size: 12px; line-height: 1.8; color: #66725c; max-width: 380px; margin: 0; }
 .requirements-grid { display: grid; grid-template-columns: 1fr .95fr; gap: 22px; align-items: start; }
 .requirement-list { display: grid; gap: 14px; }
 .requirement-card { display: block; text-align: left; width: 100%; border: 1px solid #dfe5dc; border-radius: 8px; background: white; padding: 18px; transition: border-color .15s; }
@@ -131,6 +131,7 @@ h1 > span { color: var(--orange); }
 .summary-strip li { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-size: 11px; line-height: 1.5; color: var(--muted); }
 .summary-strip strong { font-size: 26px; font-weight: 500; letter-spacing: -1px; min-width: 22px; }
 .summary-strip li div > span { display: block; font-size: 12px; font-weight: 600; color: var(--ink); }
+.summary-strip li div > b { display: block; margin-top: 2px; font-weight: 600; color: var(--ink); }.funnel-caption { margin: 0 0 12px; font-size: 14px; color: #5f6862; }
 .summary-new strong { color: #4a7644; } .summary-conflict strong { color: #a05735; } .summary-duplicate strong { color: #4c6f88; } .summary-unclear strong { color: #7c683b; }
 .summary-new { border-left: 3px solid #8fbf86 !important; } .summary-conflict { border-left: 3px solid #e9a382 !important; } .summary-duplicate { border-left: 3px solid #9dbad0 !important; } .summary-unclear { border-left: 3px solid #d9c38a !important; }
 .badge { text-transform: none; letter-spacing: 0; font-weight: 600; }

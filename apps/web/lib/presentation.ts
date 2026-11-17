@@ -19,10 +19,10 @@ export function sectionTitle(text: string): string | null {
 }
 
 export const statusInfo = {
-  new: { label: "New work", meaning: "Not in the spec yet — becomes a Jira story" },
-  conflict: { label: "Conflicts with spec", meaning: "Contradicts an approved rule — needs a decision" },
-  duplicate: { label: "Already in spec", meaning: "Already agreed — no new ticket needed" },
-  unclear: { label: "Needs clarification", meaning: "Too vague to build — ask the client" },
+  new: { label: "New work", meaning: "Not in the spec yet", outcome: "becomes a ticket" },
+  conflict: { label: "Conflicts with spec", meaning: "Contradicts what was agreed", outcome: "you decide first" },
+  duplicate: { label: "Already in spec", meaning: "Already agreed earlier", outcome: "nothing to do" },
+  unclear: { label: "Needs clarification", meaning: "Too vague to build", outcome: "ask the client" },
 } as const;
 
 export function safeJiraUrl(value: string | null | undefined): string | null {
