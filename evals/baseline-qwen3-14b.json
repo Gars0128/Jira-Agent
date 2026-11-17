@@ -1,0 +1,29 @@
+{
+  "description": "Local qwen3:14b + embeddinggemma:300m full-mode baseline, 2026-11-17. Each metric is the minimum of two clean runs; a third run lost case 04-bookings to a story coverage error after the retry and is excluded. Measures the local model, not the hosted one; evals/baseline.json stays the hosted-model RAG baseline used by CI. The runner never writes this file.",
+  "model": "qwen3:14b",
+  "embedding_model": "embeddinggemma:300m",
+  "requirements_n": 32,
+  "mode": "full",
+  "case_ids": [
+    "01-exports",
+    "02-retention",
+    "03-sharing",
+    "04-bookings",
+    "05-usability",
+    "06-operations",
+    "07-new-preset",
+    "08-duplicate-export",
+    "09-conflict-retention",
+    "10-unclear-speed",
+    "11-mind-change",
+    "12-small-talk"
+  ],
+  "metrics": {
+    "requirement_precision": 0.565,
+    "requirement_recall": 0.812,
+    "conflict_f1": 0.615,
+    "status_accuracy": 0.731,
+    "retrieval_recall_at_5": 0.962
+  },
+  "tolerance": 0.05
+}
