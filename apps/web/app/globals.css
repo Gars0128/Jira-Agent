@@ -210,7 +210,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--orange); box-sha
 :root { --ink: #0f1419; --muted: #6b7280; --paper: #f7f7f5; --line: #e8e8e4; --orange: #f06a3c; --navy: #0f1419; --card: #ffffff; --soft: 0 1px 2px #0f14190a, 0 12px 40px #0f14190d; }
 body { background: radial-gradient(900px 420px at 85% -120px, #ffe8dc 0%, transparent 70%), radial-gradient(700px 380px at 0% 0%, #eef3ee 0%, transparent 65%), var(--paper); letter-spacing: -.01em; }
 .workspace { display: block; }
-.appbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 28px; height: 64px; padding: 0 max(24px, calc((100% - 1200px) / 2)); background: #f7f7f5b8; backdrop-filter: saturate(180%) blur(18px); -webkit-backdrop-filter: saturate(180%) blur(18px); border-bottom: 1px solid #0f141910; animation: fade .5s ease both; }
+.appbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 28px; height: 64px; padding: 0 max(24px, calc((100% - 1200px) / 2)); background: #f7f7f5; border-bottom: 1px solid #0f141910; animation: fade .5s ease both; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 15px; letter-spacing: -.02em; color: var(--ink); }
 .brand-mark { width: 28px; height: 28px; color: var(--ink); transition: transform .4s cubic-bezier(.2,.7,.2,1); }
 .brand:hover .brand-mark { transform: rotate(-6deg) scale(1.06); }
