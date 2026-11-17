@@ -55,6 +55,19 @@
         "HD-ACCESS"
       ],
       "note": "No collaborator role or permission matrix is defined."
+    },
+    {
+      "id": "R5",
+      "text": "Keep the seventy-two-hour invitation expiry.",
+      "type": "constraint",
+      "priority": "must",
+      "quote": "seventy-two-hour expiry stays.",
+      "speaker": "Nora",
+      "status": "duplicate",
+      "spec_refs": [
+        "HD-INVITES"
+      ],
+      "note": null
     }
   ],
   "expected_stories": [

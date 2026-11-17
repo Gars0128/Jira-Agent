@@ -55,6 +55,19 @@
         "HD-OPERATIONS"
       ],
       "note": "The committee date is unknown, so no deadline can be inferred."
+    },
+    {
+      "id": "R5",
+      "text": "Keep invitation tokens out of audit data, including through the new actor filter.",
+      "type": "constraint",
+      "priority": "must",
+      "quote": "none of this should put invitation tokens into the audit log.",
+      "speaker": "Eli",
+      "status": "duplicate",
+      "spec_refs": [
+        "HD-AUDIT"
+      ],
+      "note": null
     }
   ],
   "expected_stories": [

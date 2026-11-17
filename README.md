@@ -384,7 +384,7 @@ print(is_quote_grounded("   ", transcript))
 
 Expect `True`, `False`, `False`: the first quote exists despite case/whitespace differences, the second is invented, and the third is empty after normalization. Exit with `exit()`. To run only these tests, use `python -m uv run --locked pytest tests/test_grounding.py`.
 
-The same helper verifies all 29 gold requirements across 12 cases and is connected to the extraction node. Quote presence alone does not prove the requirement's interpretation, its speaker or whether the request was withdrawn. Fixture tests separately verify speaker attribution.
+The same helper verifies all 32 gold requirements across 12 cases and is connected to the extraction node. Quote presence alone does not prove the requirement's interpretation, its speaker or whether the request was withdrawn. Fixture tests separately verify speaker attribution.
 
 ### Real extraction: steps 4.3–4.4
 

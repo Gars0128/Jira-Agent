@@ -55,6 +55,19 @@
         "HD-NOTIFY"
       ],
       "note": null
+    },
+    {
+      "id": "R5",
+      "text": "Clarify when an availability subscription expires.",
+      "type": "functional",
+      "priority": "should",
+      "quote": "I do not know the expiry rule; please ask us before settling it.",
+      "speaker": "Jun",
+      "status": "unclear",
+      "spec_refs": [
+        "HD-NOTIFY"
+      ],
+      "note": "The client has no expiry rule yet and asked to be consulted before one is chosen."
     }
   ],
   "expected_stories": [

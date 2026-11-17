@@ -74,6 +74,14 @@ logging in case 02, rejecting revoked invitations and keeping 72-hour expiry in
 case 03, and subscription expiry/email-only constraints in case 04. Some model
 outputs split one gold requirement into several items. This reveals annotation
 scope/granularity questions, not permission to relabel gold to fit the model.
+
+On 2026-11-17 three omissions were added from the transcripts, for consistency
+with how neighbouring cases already label restatements and open questions:
+02 R5 (invitation tokens stay out of audit data, `duplicate`), 03 R5 (72-hour
+expiry stays, `duplicate`) and 04 R5 (subscription expiry, `unclear`). Gold now
+has 32 requirements. Rejecting a revoked invitation and email-only delivery
+stay acceptance details of existing gold items, so outputs listing them
+separately still count as unmatched splits.
 There are also actual classification errors, such as treating a new monthly count
 or a service-only status page as a policy conflict. Human annotation review and
 matching calibration must separate these causes before a controlled rerun.
