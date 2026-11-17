@@ -125,6 +125,15 @@ More in the [decision log](docs/decisions.md).
 
 You need Python with [uv](https://docs.astral.sh/uv/), Node 24 and a Postgres with pgvector (I use a free [Neon](https://neon.tech) database). Copy `.env.example` to `.env` and fill in `DATABASE_URL` and either an OpenAI key or the Ollama settings below.
 
+On Windows, one command starts the API and the web app in two windows and opens the browser once both answer:
+
+```powershell
+./start.ps1            # local models through Ollama
+./start.ps1 -OpenAI    # hosted model from .env
+```
+
+Or by hand, in two terminals:
+
 ```powershell
 # terminal 1: API
 cd apps/api
