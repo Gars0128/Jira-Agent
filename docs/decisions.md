@@ -180,3 +180,11 @@ regressions. More instructions alone do not prevent a broken implementation.
 **Why:** one bad reference failed the whole `05-usability` eval run and discarded the other requirements. The error stays visible to the human reviewer, unlike the silent ref dropping rejected in the RAG decision.
 
 **Rejected:** a retry with the error text in the prompt — a second paid call and a loop for a case the human review already covers. Revisit if evals show frequent `unclear` from this path.
+
+## 2026-11-17 — Free local runs through Ollama
+
+**Decision:** `.env.ollama`, loaded after `.env`, points the existing OpenAI clients at Ollama's OpenAI-compatible endpoint (`OPENAI_BASE_URL`) with `qwen3:14b` and `embeddinggemma:300m`. Two optional settings were added: `LLM_REASONING_EFFORT` (unset keeps the provider default) and `LLM_TIMEOUT_SECONDS` (default 60).
+
+**Why:** the OpenAI balance ran out, and iterating on evals should not cost money. Qwen3 14B fits a 12 GB GPU and passed strict JSON schema output with token usage reported. Thinking off cut a small extraction from 34 s to 4 s; the largest case extracts in about 21 s with every quote grounded.
+
+**Limit:** local metrics measure `qwen3:14b`, not the production model; published numbers must name the model. Cosine scales differ between embedding models, so a matching threshold is calibrated per embedding model. Retrieval stores vectors per `embedding_model`, so local and OpenAI chunks coexist.

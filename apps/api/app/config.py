@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     llm_output_usd_per_million: Decimal = Field(gt=0)
     max_cost_per_run_usd: Decimal = Field(default=Decimal("0.05"), gt=0)
     llm_max_output_tokens: int = Field(default=4096, gt=0, le=16384)
+    # Unset keeps the provider default; local Ollama models need "none".
+    llm_reasoning_effort: str | None = None
+    llm_timeout_seconds: int = Field(default=60, gt=0, le=1800)
     embedding_model: str = Field(default="text-embedding-3-small", pattern=r"\S")
     embedding_usd_per_million: Decimal = Field(default=Decimal("0.02"), gt=0)
     # Empty URL lets libpq use PG* variables, as in docker-compose.

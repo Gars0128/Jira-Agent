@@ -6,6 +6,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+!.env.ollama
 node_modules/
 .next/
 playwright-report/

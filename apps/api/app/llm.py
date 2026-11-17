@@ -100,7 +100,7 @@ class LLMHelper:
             else OpenAI(
                 api_key=settings.openai_api_key.get_secret_value(),
                 max_retries=0,
-                timeout=60,
+                timeout=settings.llm_timeout_seconds,
             )
         )
         self.model = (
@@ -110,8 +110,9 @@ class LLMHelper:
                 model=settings.llm_model,
                 api_key=settings.openai_api_key,
                 max_completion_tokens=settings.llm_max_output_tokens,
+                reasoning_effort=settings.llm_reasoning_effort,
                 max_retries=0,
-                timeout=60,
+                timeout=settings.llm_timeout_seconds,
             )
         )
 
