@@ -205,7 +205,7 @@ export default function Home() {
               <div><dt>Model calls</dt><dd>{run?.usage?.calls || "—"}</dd></div>
               <div><dt>Time</dt><dd>{run?.latency_ms ? `${(run.latency_ms / 1000).toFixed(1)}s` : "—"}</dd></div>
             </dl>
-            <p className="run-source">{run?.cached ? "This sample was analyzed before, so the saved result was reused: no model calls." : capabilities?.replay ? `Recorded run on ${capabilities.model}. Tokens and cost are counted per model call, the same numbers each LangSmith trace carries.` : capabilities?.model ? `Model: ${capabilities.model}. Tokens and cost are counted per model call.` : null}{traceUrl && <> <a href={traceUrl} target="_blank" rel="noreferrer">Open the full trace in LangSmith <Arrow diagonal /></a></>}</p>
+            <p className="run-source">{run?.cached ? "This sample was analyzed before, so the saved result was reused: no model calls." : capabilities?.replay ? `Recorded run on ${capabilities.model}. Tokens are what the provider reported, including the spec-search embeddings; cost is tokens × list price. The run’s LangSmith trace carries the same numbers as metadata.` : capabilities?.model ? `Model: ${capabilities.model}. Tokens as reported by the provider, including embeddings; cost is tokens × configured price.` : null}{traceUrl && <> <a href={traceUrl} target="_blank" rel="noreferrer">Open the full trace in LangSmith <Arrow diagonal /></a></>}</p>
           </section>
         </div>
 
