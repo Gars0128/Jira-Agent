@@ -45,7 +45,7 @@ Explain technical terms before first use. Check library APIs against official do
 - Compose configuration validation passed: `docker compose --env-file .env.example config --quiet`. Health dependencies, loopback ports, environment wiring, and a named database volume were inspected. This does not prove container behavior.
 - Still unverified: image build, API/database container startup, pgvector SQL behavior, and database persistence after container recreation.
 - **Do not enable the hypervisor, modify boot settings, reboot, or retry Docker unless the user asks.** On 2026-11-02 the user chose Neon as the phase 5 database; this does not close step 2.2.
-- Resume only after the user requests it and Docker Engine is available. Run the saved README container checks, including SQL and persistence, before accepting step 2.2. Revisit this choice before database-dependent phase 5 or earlier work requiring a live database.
+- Resume only after the user requests it and Docker Engine is available. Run the saved container checks in [learning.md](learning.md#docker-deferred-on-this-machine), including SQL and persistence, before accepting step 2.2. Revisit this choice before database-dependent phase 5 or earlier work requiring a live database.
 
 ## Phase 1. Instructions and plan
 
@@ -96,9 +96,9 @@ Small steps:
 
 Add Story and RunResult contracts when their first consumer is implemented, before exposing corresponding API payloads. Do not prebuild unused models in step 4.1.
 
-Step 4.1 verification: 24 tests passed, including contract validation of all 29 gold requirements; Ruff lint and format checks passed. No LLM, prompt, model, Docker or database integration was changed. Manual practice is in the README Requirement contract section. Review confirmed one shared contract rather than repeated enum rules, strict inputs, quote preservation and independent reference lists.
+Step 4.1 verification: 24 tests passed, including contract validation of all 29 gold requirements; Ruff lint and format checks passed. No LLM, prompt, model, Docker or database integration was changed. Manual practice is in the learning guide's requirement contract exercise. Review confirmed one shared contract rather than repeated enum rules, strict inputs, quote preservation and independent reference lists.
 
-Step 4.2 verification: 36 tests passed, including 12 grounding checks and all 29 gold quotes across 12 cases. Ruff lint and formatting passed. Tests cover normalization, empty/invented quotes, disconnected words, punctuation differences, original object/order preservation, and empty or fully unsupported results. The README console exercise expects True/False/False. No dependencies, LLM calls, Docker settings or database integration changed.
+Step 4.2 verification: 36 tests passed, including 12 grounding checks and all 29 gold quotes across 12 cases. Ruff lint and formatting passed. Tests cover normalization, empty/invented quotes, disconnected words, punctuation differences, original object/order preservation, and empty or fully unsupported results. The learning-guide console exercise expects True/False/False. No dependencies, LLM calls, Docker settings or database integration changed.
 
 - Deliverable: Pydantic models, an LLM helper with cost tracking and budget enforcement, structured output, `extract`, and the grounding filter.
 - Checks: valid/invalid model outputs, exact quotes under whitespace/case normalization, empty/invented quotes, provider errors, and budget exhaustion. Use provider substitutes in tests and perform one real run when a key is available.
