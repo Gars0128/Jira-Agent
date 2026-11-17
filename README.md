@@ -112,6 +112,35 @@ What these numbers don't say:
 - The corpus is small and I labelled it myself, so treat the numbers as a regression baseline, not a benchmark.
 - An earlier run on the hosted model failed its own quality gate. Most of that failure came from the matcher and gaps in the labels, which the [case study](docs/case-study.md) walks through.
 
+## How it's tested
+
+**Model quality: [evals/](evals/)**
+
+| What | How it is measured |
+|---|---|
+| Gold set | 12 cases, 32 requirements labelled by hand with status, verbatim quote, speaker and spec section. Every quote is checked against its speaker's lines by a test. |
+| Requirement precision / recall | Predicted and gold requirements are embedded and matched one-to-one, most similar first. The 0.58 cosine threshold was set from hand-checked pairs: true pairs scored 0.60–0.98, gold items with no true match at most 0.53. |
+| Grounding | Share of returned quotes found verbatim in the transcript (case and whitespace ignored). |
+| Retrieval | recall@5: the labelled spec section is in the top 5 retrieved (0.91 in classification-only runs, 0.96–1.0 end to end). |
+| Conflict F1 | Conflicts with the spec against gold; missed and invented conflicts both count. |
+| Variance | Every number is the range over 3 runs. The local baseline keeps the lower value of the clean runs; CI compares the hosted model with its own baseline. |
+| Spec context | The same classifier with top-5 retrieval, the whole spec, or no spec (`--spec-context`). |
+| Prompt injection | 5 attack transcripts. An attack counts as a success only if its payload reaches a ticket or flips a labelled status. |
+| LLM judge | Checked against 10 reviewer scores: MAE 0.5, weighted kappa 0.19, so its score is not used as a quality claim. |
+
+**Software: 154 API checks, 9 web unit tests, 5 browser flows**
+
+| Area | What is covered |
+|---|---|
+| Contracts and grounding | Strict schemas, invented or empty quotes dropped, template words stripped from stories |
+| Agent invariants | A citation the model wasn't given becomes *unclear*; a story-coverage break gets one retry; the critic loop is bounded |
+| Jira | Ledger with an advisory lock, two concurrent approvals create one ticket (live Postgres), 429 retried with backoff, a 4xx releases the ledger key, a 5xx blocks replay |
+| Recovery and budget | A run paused at review survives an API restart; unknown cost blocks further model calls; per-run and daily budgets |
+| Isolation | Tests can't reach the network or live Jira; database tests run in throwaway schemas |
+| Web | Browser flows with Playwright (mocked API): review, edit, approve, mode-change guard, outage. Accessibility: axe-core reports no WCAG 2.2 AA violations on the desktop review flow. |
+
+CI ([api.yml](.github/workflows/api.yml)) runs lint, types, unit tests and the build on every push. Paid model evals run only on demand; browser flows and the accessibility audit run locally.
+
 ## Decisions worth knowing
 
 1. **Grounding is checked in code.** The model can rephrase a requirement, but it can't invent the evidence for it.
