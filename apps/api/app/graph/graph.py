@@ -59,6 +59,10 @@ def retrieve_spec_chunks(
     return {item.id: chunks for item, chunks in zip(requirements, results)}
 
 
+def unclear(note: str) -> dict[str, object]:
+    return {"status": "unclear", "spec_refs": [], "note": note}
+
+
 def classify_requirements(
     helper: LLMHelper,
     requirements: list[Requirement],
@@ -94,20 +98,18 @@ def classify_requirements(
     classified = []
     for item in requirements:
         result = by_id[item.id]
+        update = {
+            "status": result.status,
+            "spec_refs": result.spec_refs,
+            "note": result.note.strip() or None,
+        }
+        # One bad item goes to the human as unclear instead of failing the run.
         # Excerpts are shared, so a ref to another requirement's excerpt was seen.
         if not set(result.spec_refs) <= sent:
-            raise LLMError("Model cited a specification chunk it was not given")
-        if result.status in {"duplicate", "conflict"} and not result.spec_refs:
-            raise LLMError("Duplicate or conflict status lacks a specification ref")
-        classified.append(
-            item.model_copy(
-                update={
-                    "status": result.status,
-                    "spec_refs": result.spec_refs,
-                    "note": result.note.strip() or None,
-                }
-            )
-        )
+            update = unclear("Model cited a specification chunk it was not given.")
+        elif result.status in {"duplicate", "conflict"} and not result.spec_refs:
+            update = unclear(f"Model status {result.status} lacks a specification ref.")
+        classified.append(item.model_copy(update=update))
     return classified
 
 

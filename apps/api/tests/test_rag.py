@@ -150,28 +150,42 @@ def test_classification_applies_status_refs_and_note(
     assert sent["requirements"][0]["excerpt_ids"] == ["HD-EXPORT"]
 
 
-@pytest.mark.parametrize(
-    ("classifications", "message"),
-    [
-        ([{"id": "R9", "status": "new", "spec_refs": [], "note": ""}], "set of"),
-        (
-            [{"id": "R1", "status": "new", "spec_refs": ["HD-AUDIT"], "note": ""}],
-            "not given",
-        ),
-        (
-            [{"id": "R1", "status": "duplicate", "spec_refs": [], "note": ""}],
-            "lacks",
-        ),
-    ],
-)
-def test_classification_rejects_unsupported_output(
-    helper_factory: Callable, classifications: list, message: str
+def test_classification_rejects_a_different_set_of_ids(
+    helper_factory: Callable,
 ) -> None:
-    helper, _ = helper_factory(json.dumps({"classifications": classifications}), USAGE)
-    with pytest.raises(LLMError, match=message):
+    output = {
+        "classifications": [{"id": "R9", "status": "new", "spec_refs": [], "note": ""}]
+    }
+    helper, _ = helper_factory(json.dumps(output), USAGE)
+    with pytest.raises(LLMError, match="set of"):
         classify_requirements(
             helper, [requirement("R1", "Export")], {"R1": [chunk("HD-EXPORT")]}
         )
+
+
+def test_classification_marks_only_the_invalid_requirement_unclear(
+    helper_factory: Callable,
+) -> None:
+    output = {
+        "classifications": [
+            {"id": "R1", "status": "new", "spec_refs": ["HD-AUDIT"], "note": ""},
+            {"id": "R2", "status": "duplicate", "spec_refs": [], "note": ""},
+            {"id": "R3", "status": "conflict", "spec_refs": ["HD-EXPORT"], "note": ""},
+        ]
+    }
+    helper, _ = helper_factory(json.dumps(output), USAGE)
+    items = [requirement(id_, "Export") for id_ in ("R1", "R2", "R3")]
+    retrieved = {id_: [chunk("HD-EXPORT")] for id_ in ("R1", "R2", "R3")}
+
+    result = classify_requirements(helper, items, retrieved)
+
+    assert [(r.status, r.spec_refs) for r in result] == [
+        ("unclear", []),
+        ("unclear", []),
+        ("conflict", ["HD-EXPORT"]),
+    ]
+    assert "not given" in (result[0].note or "")
+    assert "lacks" in (result[1].note or "")
 
 
 def test_full_graph_extracts_retrieves_and_classifies(

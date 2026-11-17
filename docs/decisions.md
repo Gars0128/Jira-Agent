@@ -172,3 +172,11 @@ regressions. More instructions alone do not prevent a broken implementation.
 **Why:** the user chose zero hosting cost and no secrets in the cloud over live public analysis. A replay shows the real UI and real outputs without a backend, model spend or load risks (unbounded SSE, long-held run locks).
 
 **Limit:** the hosted demo cannot analyze new text; live hosting (Render API) stays deferred. The replay route is exercised by an end-to-end browser smoke on the deployed site and by `scripts/record-demo.mjs`, not by the CI suite.
+
+## 2026-11-17 — One invalid classification becomes unclear, not a failed run
+
+**Decision:** in `classify_requirements`, a citation of an excerpt the model was not given, or `duplicate`/`conflict` without a ref, turns only that requirement into `unclear` with empty refs and a note naming the error. A different set of requirement IDs still fails the run.
+
+**Why:** one bad reference failed the whole `05-usability` eval run and discarded the other requirements. The error stays visible to the human reviewer, unlike the silent ref dropping rejected in the RAG decision.
+
+**Rejected:** a retry with the error text in the prompt — a second paid call and a loop for a case the human review already covers. Revisit if evals show frequent `unclear` from this path.
