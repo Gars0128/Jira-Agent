@@ -188,3 +188,11 @@ regressions. More instructions alone do not prevent a broken implementation.
 **Why:** the OpenAI balance ran out, and iterating on evals should not cost money. Qwen3 14B fits a 12 GB GPU and passed strict JSON schema output with token usage reported. Thinking off cut a small extraction from 34 s to 4 s; the largest case extracts in about 21 s with every quote grounded.
 
 **Limit:** local metrics measure `qwen3:14b`, not the production model; published numbers must name the model. Cosine scales differ between embedding models, so a matching threshold is calibrated per embedding model. Retrieval stores vectors per `embedding_model`, so local and OpenAI chunks coexist.
+
+## 2026-11-17 — Greedy requirement matching at 0.58 for local embeddings
+
+**Decision:** `match_requirements` takes the most similar unused pair first instead of maximizing the number of pairs, and the threshold is `MATCH_THRESHOLD = 0.58`, calibrated for `embeddinggemma:300m`. Each full-mode sample records the threshold and embedding model.
+
+**Why:** re-embedding the 2026-11-03 outputs showed hand-checked true pairs at 0.60–0.98 and gold items without a true pair at most 0.53; 0.8 rejected paraphrases such as "Restrict report export to administrators" / "Only administrators may export reservation reports". At a lower threshold, maximum-cardinality matching paired "unsubscribe" gold with an unrelated prediction to gain a pair; greedy keeps the 0.91 pair. The same old outputs move from precision 0.406 / recall 0.448 to 0.719 / 0.793 at 0.58 (local embeddings).
+
+**Limit:** calibrated on 23 true pairs from one run; unrelated pairs reach 0.68, so a gold item with no true prediction can still be matched wrongly. Split requirements (one gold, several predictions) count only once — a gold-annotation question, not a matcher one. A different embedding model needs a new threshold.

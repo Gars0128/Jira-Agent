@@ -129,7 +129,7 @@ Data: six labeled transcripts and at least six short synthetic cases. Each conta
 
 | Metric | Method | Criterion |
 |---|---|---|
-| Requirement precision / recall | Match gold using embedding similarity ≥ 0.8 | Fail below the fixed baseline − 0.05 |
+| Requirement precision / recall | Greedy one-to-one match to gold at embedding similarity ≥ 0.58 (`embeddinggemma:300m`; recalibrate per model) | Fail below the fixed baseline − 0.05 |
 | Grounding rate | Share with verified quotes after filtering | 1.0; an empty result is not evidence of quality |
 | Conflict F1 | Compare against gold conflicts | At least baseline − 0.05 |
 | Story quality | LLM judge, 1–5: INVEST and testable AC; calibrated on 10 manual scores | Mean ≥ 3.5 |

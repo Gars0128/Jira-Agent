@@ -10,12 +10,21 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "evals"))
 
 import run_evals  # noqa: E402
-from quality import check_thresholds, match_requirements, percentile95  # noqa: E402
+from quality import (  # noqa: E402
+    MATCH_THRESHOLD,
+    check_thresholds,
+    match_requirements,
+    percentile95,
+)
 from sync_dataset import dataset_examples  # noqa: E402
 
 
-def test_matching_is_one_to_one_and_finds_maximum_cardinality():
+def test_matching_is_one_to_one_and_takes_most_similar_pairs_first():
+    # The exact pair wins even though giving it up would yield two weaker pairs.
     assert match_requirements([[1, 0], [0.7, 0.7]], [[1, 0], [0.8, -0.6]], 0.7) == [
+        (0, 0)
+    ]
+    assert match_requirements([[1, 0], [0, 1]], [[0, 1], [1, 0]], 0.7) == [
         (0, 1),
         (1, 0),
     ]
@@ -320,10 +329,12 @@ def test_full_case_records_cosines_without_an_additional_embedding_call(monkeypa
 
     def embed(texts):
         requests.append(texts)
-        return [[1.0, 0.0], [0.6, 0.8]]
+        return [[1.0, 0.0], [0.5, 0.75**0.5]]
 
     helper = SimpleNamespace(
-        embed=embed, usage=SimpleNamespace(model_dump=lambda **kw: {"cost_usd": "0.01"})
+        embed=embed,
+        usage=SimpleNamespace(model_dump=lambda **kw: {"cost_usd": "0.01"}),
+        settings=SimpleNamespace(embedding_model="embed-x"),
     )
     result = run_evals.run_case(
         {
@@ -337,8 +348,9 @@ def test_full_case_records_cosines_without_an_additional_embedding_call(monkeypa
         helper,
     )
     assert len(requests) == 1
-    assert result["matching_threshold"] == 0.8
-    assert result["cosine_matrix"] == [[0.6]]
+    assert result["matching_threshold"] == MATCH_THRESHOLD
+    assert result["matching_embedding_model"] == "embed-x"
+    assert result["cosine_matrix"] == [[pytest.approx(0.5)]]
     assert result["matches"] == []
 
 

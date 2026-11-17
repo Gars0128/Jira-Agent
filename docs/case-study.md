@@ -63,7 +63,11 @@ including “Restrict report export to administrators” versus “Only administ
 may export reservation reports.” No embedding vectors or cosine scores were saved
 for that run, so the exact numerical cause cannot be independently recomputed.
 Future samples save their cosine matrices using the embeddings already requested,
-without additional model calls. The threshold remains **0.8**.
+without additional model calls. On 2026-11-17 the old outputs were re-embedded
+locally (`embeddinggemma:300m`): true pairs scored 0.60–0.98 and gold items
+without a true pair at most 0.53, so the threshold became **0.58** for that
+model and matching became greedy (most similar pairs first). The same outputs
+then score precision 0.719 and recall 0.793; see the decision log.
 
 The reference annotations also omit explicitly discussed behavior: audit-token
 logging in case 02, rejecting revoked invitations and keeping 72-hour expiry in
@@ -93,8 +97,8 @@ python -m uv run --env-file ../../.env python ../../evals/sync_dataset.py
 These commands make paid calls or upload the fictional corpus. The first
 isolates retrieval/classification using gold requirements. Full mode executes
 through the human-review interrupt without approving or creating tickets.
-It matches predicted and gold requirements one-to-one at cosine similarity
-at least 0.8, reports precision/recall, quote grounding, conflict F1, story judge
+It matches predicted and gold requirements one-to-one, most similar first, at
+cosine similarity at least the per-embedding-model threshold (0.58), reports precision/recall, quote grounding, conflict F1, story judge
 ratings, total evaluation cost, and nearest-rank p95 workflow latency with sample
 counts. Each sample separates workflow usage from added matching/judge usage.
 The evaluation process admits another case only if its remaining daily allowance

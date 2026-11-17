@@ -13,37 +13,31 @@ def cosine_similarity(left: Sequence[float], right: Sequence[float]) -> float:
     return sum(a * b for a, b in zip(left, right)) / norm if norm else 0.0
 
 
+# Calibrated for embeddinggemma:300m on hand-checked pairs; recalibrate per model.
+MATCH_THRESHOLD = 0.58
+
+
 def match_requirements(
     predicted: Sequence[Sequence[float]],
     gold: Sequence[Sequence[float]],
-    threshold: float = 0.8,
+    threshold: float = MATCH_THRESHOLD,
 ) -> list[tuple[int, int]]:
-    """Maximum one-to-one matching above the agreed cosine threshold."""
-
-    edges = []
-    for vector in predicted:
-        scores = [
-            (cosine_similarity(vector, reference), j)
+    """Greedy one-to-one matching: most similar pairs above the threshold first."""
+    scores = sorted(
+        (
+            (cosine_similarity(vector, reference), i, j)
+            for i, vector in enumerate(predicted)
             for j, reference in enumerate(gold)
-        ]
-        edges.append(
-            [j for score, j in sorted(scores, reverse=True) if score >= threshold]
-        )
-    owners: dict[int, int] = {}
-
-    def assign(i: int, visited: set[int]) -> bool:
-        for j in edges[i]:
-            if j in visited:
-                continue
-            visited.add(j)
-            if j not in owners or assign(owners[j], visited):
-                owners[j] = i
-                return True
-        return False
-
-    for i in range(len(predicted)):
-        assign(i, set())
-    return sorted((i, j) for j, i in owners.items())
+        ),
+        reverse=True,
+    )
+    pairs: list[tuple[int, int]] = []
+    for score, i, j in scores:
+        if score < threshold:
+            break
+        if all(i != p and j != g for p, g in pairs):
+            pairs.append((i, j))
+    return sorted(pairs)
 
 
 def percentile95(values: list[float]) -> float | None:

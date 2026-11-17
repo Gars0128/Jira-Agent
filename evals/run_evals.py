@@ -15,6 +15,7 @@ from langchain_core.messages import HumanMessage, SystemMessage  # noqa: E402
 from langgraph.checkpoint.memory import InMemorySaver  # noqa: E402
 from pydantic import BaseModel, ConfigDict, Field, ValidationError  # noqa: E402
 from quality import (  # noqa: E402
+    MATCH_THRESHOLD,
     baseline_failures,
     check_thresholds,
     cosine_similarity,
@@ -123,7 +124,8 @@ def run_case(case: dict, args: argparse.Namespace, conn, helper: LLMHelper) -> d
                 if vectors
                 else []
             )
-            sample["matching_threshold"] = 0.8
+            sample["matching_threshold"] = MATCH_THRESHOLD
+            sample["matching_embedding_model"] = helper.settings.embedding_model
             sample["matching_gold_ids"] = [r.id for r in gold]
             sample["cosine_matrix"] = [
                 [
