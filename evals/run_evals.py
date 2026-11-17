@@ -29,7 +29,7 @@ from app.grounding import is_quote_grounded  # noqa: E402
 from app.llm import LLMError, LLMHelper  # noqa: E402
 from app.rag.chunking import chunk_spec  # noqa: E402
 from app.rag.ingest import connect, ingest  # noqa: E402
-from app.rag.retrieve import retrieve  # noqa: E402
+from app.rag.retrieve import RetrievedChunk, retrieve  # noqa: E402
 from app.schemas import ExtractedRequirement, Requirement  # noqa: E402
 
 
@@ -93,6 +93,16 @@ def run_case(case: dict, args: argparse.Namespace, conn, helper: LLMHelper) -> d
         gold = [Requirement.model_validate(item) for item in case["requirements"]]
 
         def search(queries: list[str]) -> list:
+            # Baselines: every chunk ("all" fits this 14 KB spec) or none at all.
+            if args.spec_context == "all":
+                spec = (ROOT / case["spec_path"]).read_text("utf-8")
+                chunks = [
+                    RetrievedChunk(**c.model_dump(), distance=0.0)
+                    for c in chunk_spec(spec)
+                ]
+                return [chunks for _ in queries]
+            if args.spec_context == "none":
+                return [[] for _ in queries]
             return retrieve(conn, helper, case["project_id"], queries)
 
         if args.mode == "full":
@@ -265,6 +275,8 @@ def evaluate(args: argparse.Namespace) -> dict:
         previous = json.loads(resume_path.read_text("utf-8"))
         if previous.get("mode", args.mode) != args.mode:
             raise ValueError("Resume mode must match the previous report")
+        if previous.get("spec_context", "rag") != args.spec_context:
+            raise ValueError("Resume spec context must match the previous report")
         if previous.get("judge_enabled", args.judge) != args.judge:
             raise ValueError("Resume judge setting must match the previous report")
         samples = previous["samples"]
@@ -285,6 +297,7 @@ def evaluate(args: argparse.Namespace) -> dict:
         return {
             **summarize(cases, samples),
             "mode": args.mode,
+            "spec_context": args.spec_context,
             "judge_enabled": args.judge,
             "incomplete_reason": reason,
             "judge_calibrated": calibrated,
@@ -333,6 +346,12 @@ def main() -> int:
     parser.add_argument("--mode", choices=("rag", "full"), default="rag")
     parser.add_argument("--limit", type=int)
     parser.add_argument("--judge", action="store_true")
+    parser.add_argument(
+        "--spec-context",
+        choices=("rag", "all", "none"),
+        default="rag",
+        help="rag: top-5 retrieval; all: whole spec; none: no spec (baselines)",
+    )
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--baseline", type=Path, default=ROOT / "evals/baseline.json")
     parser.add_argument(
@@ -346,6 +365,8 @@ def main() -> int:
         parser.error("--limit must be positive")
     if args.judge and args.mode != "full":
         parser.error("--judge requires --mode full")
+    if args.check and args.spec_context != "rag":
+        parser.error("--check compares against the RAG baseline only")
     logging.getLogger("langsmith").handlers = [logging.NullHandler()]
     logging.getLogger("langsmith").propagate = False
     try:

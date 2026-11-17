@@ -138,6 +138,7 @@ def test_evaluation_total_budget_blocks_next_case_before_model_call(
         SimpleNamespace(
             limit=None,
             mode="rag",
+            spec_context="rag",
             calibration=calibration,
             output=None,
             judge=False,
@@ -234,6 +235,7 @@ def test_resume_skips_paid_samples_and_retains_aggregate_cost(monkeypatch, tmp_p
         SimpleNamespace(
             limit=None,
             mode="rag",
+            spec_context="rag",
             calibration=calibration,
             output=None,
             judge=False,
@@ -361,3 +363,29 @@ def test_unapplied_thresholds_are_not_reported_as_a_pass(monkeypatch, capsys):
     output = json.loads(capsys.readouterr().out)
     assert output["thresholds_applied"] is False
     assert output["threshold_failures"] is None
+
+
+@pytest.mark.parametrize(("context", "chunks_per_query"), [("all", 13), ("none", 0)])
+def test_spec_context_baselines_replace_retrieval(
+    monkeypatch, context, chunks_per_query
+):
+    seen = {}
+
+    def classify(helper, requirements, retrieved):
+        seen.update(retrieved)
+        return requirements
+
+    monkeypatch.setattr(run_evals, "classify_requirements", classify)
+    case = json.loads(
+        (run_evals.ROOT / "evals/cases/02-retention.json").read_text("utf-8")
+    )
+    helper = SimpleNamespace(usage=SimpleNamespace(model_dump=lambda **kw: {}))
+    # conn=None: any database retrieval would fail the test.
+    run_evals.run_case(
+        case,
+        SimpleNamespace(mode="rag", judge=False, spec_context=context),
+        None,
+        helper,
+    )
+    assert set(seen) == {r["id"] for r in case["requirements"]}
+    assert {len(chunks) for chunks in seen.values()} == {chunks_per_query}

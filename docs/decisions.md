@@ -214,3 +214,11 @@ regressions. More instructions alone do not prevent a broken implementation.
 **Why:** three local `qwen3:14b` baseline runs each lost one whole case to this rule. Unlike classification, there is no safe partial result to hand to a human: accepting some stories would silently drop model output, and a duplicate would create two Jira issues for one requirement.
 
 **Limit:** one extra model call per break (free locally, about a cent with the hosted model, bounded by the run budget).
+
+## 2026-11-17 — Spec-context baselines for the RAG question
+
+**Decision:** `run_evals.py --spec-context rag|all|none` swaps only the search function: `all` gives every requirement all 13 spec chunks (the 14 KB spec fits in context), `none` gives none. Classification, workflow and metrics are unchanged, and `--check` is refused outside `rag` because the fixed baseline is a RAG measurement.
+
+**Why:** "why RAG for a five-page spec?" needs a measured answer. `all` is the long-context alternative, `none` the floor (the "Any conversation" mode).
+
+**Limit:** in `all` mode retrieval recall is trivially 1.0. The comparison runs are deferred with the local baseline until the remaining steps are done.
