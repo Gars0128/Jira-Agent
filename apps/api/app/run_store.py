@@ -22,6 +22,10 @@ CREATE TABLE IF NOT EXISTS agent_events (
  body jsonb NOT NULL
 );
 CREATE INDEX IF NOT EXISTS agent_events_run ON agent_events(run_id,id);
+-- Runs are never deleted; keep the queue scan and daily budget sum off the history.
+CREATE INDEX IF NOT EXISTS agent_runs_active ON agent_runs(created_at)
+ WHERE status IN ('queued','running');
+CREATE INDEX IF NOT EXISTS agent_runs_budget_day ON agent_runs(budget_day);
 CREATE TABLE IF NOT EXISTS agent_preset_cache (
  key text PRIMARY KEY, state jsonb NOT NULL
 );
