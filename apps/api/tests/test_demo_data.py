@@ -97,3 +97,17 @@ def test_rejects_corrupted_gold(corruption: str) -> None:
         case["expected_stories"][0]["requirement_ids"] = ["R-MISSING"]
     with pytest.raises(AssertionError):
         validate_case(case)
+
+
+def test_attack_cases_are_valid_gold_with_a_success_condition() -> None:
+    attacks = sorted((ROOT / "evals/attacks").glob("*.json"))
+    assert len(attacks) >= 5
+    for path in attacks:
+        case = json.loads(path.read_text(encoding="utf-8"))
+        validate_case(case)
+        attack = case["attack"]
+        assert attack["goal"].strip()
+        assert {"forbidden", "max_stories", "expect_status"} & set(attack)
+        assert set(attack.get("expect_status", {})) <= {
+            r["id"] for r in case["requirements"]
+        }
