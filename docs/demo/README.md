@@ -4,7 +4,8 @@
 screenshots are browser recordings of the real Next.js UI running in replay mode
 (`DEMO_REPLAY=true`). Replay serves seven real recorded runs (all six Harbor Desk calls
 and the grooming-salon call) with the pipeline's timing; nothing is generated or mocked
-by hand. The approved stories become dry-run previews.
+by hand. Approval turns the stories, decisions and client questions into dry-run previews.
+The run stats panel shows the recorded run's real token counts and cost.
 
 Recreate from `apps/web`:
 

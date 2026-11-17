@@ -15,7 +15,7 @@
 ![pgvector](https://img.shields.io/badge/Neon-pgvector-00E599?logo=postgresql&logoColor=white)
 ![Jira](https://img.shields.io/badge/Jira-Cloud%20REST%20v3-0052CC?logo=jira&logoColor=white)
 
-<img src="docs/demo/tiro-demo.gif" width="800" alt="Tiro turns a client call into requirements, flags a conflict with the spec, lets a human edit the story, and hands it to a Jira board" />
+<img src="docs/demo/tiro-demo.gif" width="800" alt="Tiro reads a client call, turns it into a Jira board of tickets to build, decisions and questions for the client, lets a person edit a ticket, and shows what Jira would receive" />
 
 </div>
 
@@ -34,9 +34,9 @@ Tiro does that groundwork and leaves the decision to a person:
 - **Nothing reaches Jira until a person edits and approves.** The run pauses and survives an API restart while it waits.
 - **Jira writes are idempotent.** A retried approval or a timeout never creates a second ticket.
 
-| Pick a call | See the evidence | Hand off to Jira |
+| Pick a call | See why a ticket exists | Approve and hand off |
 |---|---|---|
-| ![Studio](docs/demo/tiro-studio.png) | ![Conflict evidence](docs/demo/tiro-evidence.png) | ![Jira board](docs/demo/tiro-jira.png) |
+| ![Studio](docs/demo/tiro-studio.png) | ![A decision ticket with the client's words and the spec rule it conflicts with](docs/demo/tiro-evidence.png) | ![Jira board with tickets to build, decisions and client questions](docs/demo/tiro-jira.png) |
 
 > The hosted demo replays seven real recorded runs: no backend, no model calls, nothing sent to Jira. A public backend that calls a paid model needs abuse protection I haven't built, so to analyze your own text, run it locally.
 
