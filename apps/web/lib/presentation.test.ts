@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { costLabel, draftErrors, safeJiraUrl, safeTraceUrl } from "./presentation.ts";
+import { sectionTitle, costLabel, draftErrors, safeJiraUrl, safeTraceUrl } from "./presentation.ts";
 import type { Story } from "./types.ts";
 
 const story: Story = { id: "S1", title: "Export a report", as_a: "administrator", i_want: "an export", so_that: "I can review it", acceptance_criteria: ["Given a report, when I export, then a CSV downloads"], requirement_ids: ["R1"], idempotency_key: "server-owned" };
@@ -30,4 +30,9 @@ test("approval preserves coverage and unique requirement links", () => {
 test("Jira links accept only HTTPS Atlassian Cloud URLs without credentials", () => {
   assert.equal(safeJiraUrl("https://demo.atlassian.net/browse/KAN-2"), "https://demo.atlassian.net/browse/KAN-2");
   for (const unsafe of ["javascript:alert(1)", "https://atlassian.net.attacker.test/browse/X", "https://a:b@demo.atlassian.net/", "http://demo.atlassian.net/", ""]) assert.equal(safeJiraUrl(unsafe), null);
+});
+
+test("spec sections are shown by title, not by internal ID", () => {
+  assert.equal(sectionTitle("## HD-EXPORT \u2014 Report export permissions and format\n\nOnly administrators..."), "Report export permissions and format");
+  assert.equal(sectionTitle("Plain text without a heading"), null);
 });

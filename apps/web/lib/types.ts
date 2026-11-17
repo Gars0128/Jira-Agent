@@ -24,7 +24,7 @@ export type Run = {
   requirements: Requirement[]; stories: Story[]; questions: string[];
   retrieved: Record<string, { id: string; text: string; distance: number }[]>;
   usage: { cost_usd: string | number | null; input_tokens?: number; output_tokens?: number; calls?: number };
-  latency_ms: number; trace_url: string | null; tickets: Ticket[]; error: string | null;
+  latency_ms: number; trace_url: string | null; tickets: Ticket[]; error: string | null; cached?: boolean;
 };
 
 export type RunEvent = { type: string; node?: string };

@@ -7,7 +7,7 @@ export function ResultTabs({ selected, onChange, counts }: {
   onChange: (tab: ResultTab) => void;
   counts: [number, number, number];
 }) {
-  const tabs = [["requirements", "Requirements"], ["stories", "User stories"], ["preview", "Jira preview"]] as const;
+  const tabs = [["requirements", "Client requests"], ["stories", "Tickets to approve"], ["preview", "Jira preview"]] as const;
   function navigate(event: KeyboardEvent<HTMLDivElement>) {
     const index = tabs.findIndex(([id]) => id === selected);
     let next: number;

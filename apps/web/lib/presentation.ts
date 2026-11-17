@@ -1,14 +1,22 @@
 import type { Story } from "./types.ts";
 
 export const steps = [
-  { id: "extract", label: "Extract requirements", detail: "Verbatim client evidence" },
-  { id: "retrieve_spec", label: "Search specification", detail: "Retrieve the relevant context" },
-  { id: "classify", label: "Classify requirements", detail: "Find conflicts and duplicates" },
-  { id: "write_stories", label: "Draft user stories", detail: "Testable acceptance criteria" },
-  { id: "critic", label: "Review story quality", detail: "One bounded revision cycle" },
-  { id: "human_review", label: "Your review", detail: "Edit, decide, and approve" },
-  { id: "create_tickets", label: "Jira preview", detail: "Human-approved output" },
+  { id: "extract", label: "Find the requests", detail: "Each one keeps the client's exact words" },
+  { id: "retrieve_spec", label: "Check the project spec", detail: "Looks up the rules already agreed" },
+  { id: "classify", label: "Sort each request", detail: "New, already agreed, conflicting or unclear" },
+  { id: "write_stories", label: "Draft tickets", detail: "With testable acceptance criteria" },
+  { id: "critic", label: "Double-check the tickets", detail: "One automatic review pass" },
+  { id: "human_review", label: "Your review", detail: "Edit anything, then approve" },
+  { id: "create_tickets", label: "Jira preview", detail: "What Jira will receive" },
 ];
+
+export const priorityLabel: Record<string, string> = { must: "Must have", should: "Should have", could: "Nice to have" };
+
+// Spec chunks start with "## HD-EXPORT — Report export permissions"; people need the title, not the ID.
+export function sectionTitle(text: string): string | null {
+  const heading = /^#+\s*(?:[A-Z][A-Z0-9-]*\s+[—-]\s+)?(.+)/.exec(text.split("\n", 1)[0]);
+  return heading ? heading[1].trim() : null;
+}
 
 export const statusInfo = {
   new: { label: "New work", meaning: "Not in the spec yet — becomes a Jira story" },

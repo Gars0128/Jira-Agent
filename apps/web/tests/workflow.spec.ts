@@ -42,15 +42,15 @@ test("preset → evidence → edited story → approved Jira preview", async ({ 
   await expect(page.getByText("Exports are limited to administrators.", { exact: true })).toBeVisible();
   await expect(page.getByText("Only administrators may export reports.", { exact: true })).toBeVisible();
   await page.screenshot({ path: "test-results/evidence-desktop.png", fullPage: true });
-  await page.getByRole("tab", { name: /Requirements/ }).focus();
+  await page.getByRole("tab", { name: /Client requests/ }).focus();
   await page.keyboard.press("ArrowRight");
-  await expect(page.getByRole("tab", { name: /User stories/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: /Tickets to approve/ })).toHaveAttribute("aria-selected", "true");
   await page.getByLabel("Title", { exact: true }).fill("Review the monthly export count");
   await page.getByRole("button", { name: "Approve & preview" }).click();
   await expect(page.getByText("Reviewed. Approved. Ready.", { exact: true })).toBeVisible();
   expect(editedTitle).toBe("Review the monthly export count");
   await expect(page.getByRole("heading", { name: editedTitle })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Jira board" }).getByText("DRY-1")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Jira board" }).getByText("Preview", { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -77,10 +77,10 @@ test("SSE and polling serialize reads and keep a review draft intact", async ({ 
   await expect(page.getByRole("button", { name: /Analyzing conversation/ })).toBeDisabled();
   release();
   await expect(page.getByText("Your review is ready", { exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: /User stories/ }).click();
+  await page.getByRole("tab", { name: /Tickets to approve/ }).click();
   await page.getByLabel("Title", { exact: true }).fill("Keep this human edit");
-  await page.getByRole("tab", { name: /Requirements/ }).click();
-  await page.getByRole("tab", { name: /User stories/ }).click();
+  await page.getByRole("tab", { name: /Client requests/ }).click();
+  await page.getByRole("tab", { name: /Tickets to approve/ }).click();
   await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Keep this human edit");
 });
 
@@ -98,7 +98,7 @@ test("approval refuses a dry-run to live-mode change and preserves edits", async
   await page.goto("/?run=demo-run");
   await expect(page.getByText("Your review is ready", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /LangSmith/ })).toHaveCount(0);
-  await page.getByRole("tab", { name: /User stories/ }).click();
+  await page.getByRole("tab", { name: /Tickets to approve/ }).click();
   await page.getByLabel("Title", { exact: true }).fill("Unsaved review draft");
   modeChanged = true;
   await page.getByRole("button", { name: "Approve & preview" }).click();
@@ -115,7 +115,7 @@ test("backend outage is actionable and does not permit a run", async ({ page }) 
   await expect(page.getByRole("button", { name: "Run discovery" })).toBeDisabled();
 });
 
-test("mode pill never claims live Jira before capabilities load; links keep a typed comma", async ({ page }) => {
+test("mode pill never claims live Jira before capabilities load; tickets show what they are based on", async ({ page }) => {
   let release: () => void = () => {};
   const capabilitiesReady = new Promise<void>((resolve) => { release = resolve; });
   await page.route("**/api/**", async (route) => {
@@ -130,8 +130,8 @@ test("mode pill never claims live Jira before capabilities load; links keep a ty
   await expect(page.getByText("Live Jira", { exact: true })).toHaveCount(0);
   release();
   await expect(page.getByText("Live Jira", { exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: /User stories/ }).click();
-  const links = page.getByLabel("Requirement links");
-  await links.fill("R1,");
-  await expect(links).toHaveValue("R1,");
+  await page.getByRole("tab", { name: /Tickets to approve/ }).click();
+  const basedOn = page.locator(".based-on");
+  await expect(basedOn).toHaveText("Add a monthly export count");
+  await expect(basedOn).not.toContainText("R1");
 });

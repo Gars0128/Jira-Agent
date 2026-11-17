@@ -19,7 +19,7 @@ await page.getByText("Your review is ready", { exact: true }).waitFor({ timeout:
 const conflict = page.getByRole("button").filter({ has: page.locator(".badge-conflict") }).first();
 await conflict.scrollIntoViewIfNeeded(); await pause(500); await conflict.click(); await pause(2600);
 await page.screenshot({ path: `${output}/tiro-evidence.png` });
-await page.getByRole("tab", { name: /User stories/ }).click(); await pause(1200);
+await page.getByRole("tab", { name: /Tickets to approve/ }).click(); await pause(1200);
 await page.getByLabel("Title", { exact: true }).first().click();
 await page.keyboard.press("Control+A");
 await page.keyboard.type("Show monthly reservation counts in the report", { delay: 45 }); await pause(900);
