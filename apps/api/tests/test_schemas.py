@@ -82,3 +82,33 @@ def test_spec_refs_are_independent(requirement_data: dict[str, Any]) -> None:
     first.spec_refs.append("HD-EXPORT")
 
     assert second.spec_refs == []
+
+
+@pytest.mark.parametrize(
+    ("as_a", "i_want", "so_that"),
+    [
+        ("As a cooperative lead", "I want reports", "so that I can plan"),
+        ("A cooperative lead", "I want reports", "So that I can plan"),
+        ("cooperative lead", "reports", "I can plan"),
+    ],
+)
+def test_story_drops_template_words_the_renderers_add(
+    as_a: str, i_want: str, so_that: str
+) -> None:
+    from app.stories import StoryDraft
+
+    story = StoryDraft(
+        id="S1",
+        title="Reports",
+        as_a=as_a,
+        i_want=i_want,
+        so_that=so_that,
+        acceptance_criteria=["Given x, when y, then z."],
+        requirement_ids=["R1"],
+    )
+    # UI and Jira render "As a {as_a}, I want {i_want}, so that {so_that}".
+    assert (story.as_a, story.i_want, story.so_that) == (
+        "cooperative lead",
+        "reports",
+        "I can plan",
+    )

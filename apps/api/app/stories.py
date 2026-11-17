@@ -1,11 +1,18 @@
 import hashlib
 import json
+import re
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 from app.llm import LLMError, LLMHelper
 from app.schemas import NonBlankString, Requirement
+
+TEMPLATE_WORDS = {
+    "as_a": r"^\s*(as\s+an?\s+|an?\s+)",
+    "i_want": r"^\s*i\s+want\s+",
+    "so_that": r"^\s*so\s+that\s+",
+}
 
 
 class StoryDraft(BaseModel):
@@ -19,6 +26,13 @@ class StoryDraft(BaseModel):
     so_that: NonBlankString
     acceptance_criteria: list[NonBlankString] = Field(min_length=1, max_length=20)
     requirement_ids: list[NonBlankString] = Field(min_length=1, max_length=30)
+
+    @field_validator("as_a", "i_want", "so_that")
+    @classmethod
+    def drop_template_words(cls, value: str, info: ValidationInfo) -> str:
+        # UI and Jira add "As a / I want / so that"; models sometimes repeat them.
+        stripped = re.sub(TEMPLATE_WORDS[info.field_name], "", value, flags=re.I)
+        return stripped or value
 
 
 class Story(StoryDraft):
