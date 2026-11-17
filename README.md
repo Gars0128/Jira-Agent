@@ -30,6 +30,7 @@ Tiro does that groundwork and leaves the decision to a person:
 - **Every requirement carries a verbatim quote and a speaker.** If the quote isn't in the transcript, code drops the requirement. The prompt is not trusted to do this.
 - **Each request is checked against the project spec** and marked *new*, *already in spec*, *conflicts with spec* or *needs clarification*, with the spec section it relied on.
 - **Stories come with Given/When/Then criteria.** A critic gets one chance to send them back.
+- **The PM gets the rest as tasks too.** A conflict with the spec becomes a *Decide* task, an unclear request an *Ask the client* task, each with the quote and the reason.
 - **Nothing reaches Jira until a person edits and approves.** The run pauses and survives an API restart while it waits.
 - **Jira writes are idempotent.** A retried approval or a timeout never creates a second ticket.
 
@@ -59,7 +60,7 @@ extract → retrieve_spec → classify → write_stories → critic ─┐
 | `write_stories` | New requirements → stories | Each new requirement in exactly one story; one retry with the error if not |
 | `critic` | Stories → issues | At most one revision, enforced by the graph |
 | `human_review` | Run pauses in a Postgres checkpoint | Server validates edits and recomputes idempotency keys |
-| `create_tickets` | Approved stories → Jira or a dry-run preview | Ledger row written before the call; ambiguous failures block replay |
+| `create_tickets` | Approved stories, plus a *decision* task per conflict and a *question* task per unclear request → Jira or a dry-run preview | Ledger row written before the call; ambiguous failures block replay |
 
 Every model call goes through one helper that counts tokens, prices them, and refuses a call that would break the per-run budget ($0.30) or the daily budget ($1). If the provider doesn't report usage, the cost counts as unknown and later calls are blocked.
 

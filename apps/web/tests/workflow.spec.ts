@@ -18,6 +18,7 @@ test("preset → evidence → edited story → approved Jira preview", async ({ 
   page.on("pageerror", (error) => pageErrors.push(error.message));
   let approved = false;
   let editedTitle = "";
+  const tickets = [{ key: "DRY-1", dry_run: true, kind: "story" }, { key: "DRY-2", dry_run: true, kind: "decision", summary: "Decide: Allow coordinator exports" }];
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/capabilities") return route.fulfill({ json: { public_demo: true, jira_dry_run: true, transcript_limit: 20000 } });
@@ -28,9 +29,9 @@ test("preset → evidence → edited story → approved Jira preview", async ({ 
       const payload = route.request().postDataJSON();
       editedTitle = payload.stories[0].title;
       approved = true;
-      return route.fulfill({ json: { ...ready, status: "done", stories: payload.stories, tickets: [{ key: "DRY-1", dry_run: true, fields: { summary: editedTitle } }] } });
+      return route.fulfill({ json: { ...ready, status: "done", stories: payload.stories, tickets } });
     }
-    return route.fulfill({ json: approved ? { ...ready, status: "done", tickets: [{ key: "DRY-1", fields: { summary: editedTitle }, dry_run: true }] } : ready });
+    return route.fulfill({ json: approved ? { ...ready, status: "done", tickets } : ready });
   });
   await page.setViewportSize({ width: 1440, height: 1080 });
   await page.goto("/");
@@ -38,19 +39,22 @@ test("preset → evidence → edited story → approved Jira preview", async ({ 
   await page.screenshot({ path: "test-results/studio-desktop.png", fullPage: true });
   await page.getByRole("button", { name: "Run discovery" }).click();
   await expect(page.getByText("Your review is ready", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: /Allow coordinator exports/ }).click();
-  await expect(page.getByText("Exports are limited to administrators.", { exact: true })).toBeVisible();
-  await expect(page.getByText("Only administrators may export reports.", { exact: true })).toBeVisible();
+  // The conflict becomes a decision card that explains itself.
+  await expect(page.getByRole("heading", { name: "2 tickets from this call" })).toBeVisible();
+  await page.getByRole("region", { name: "Needs decision" }).getByRole("button", { name: /Decide: Allow coordinator exports/ }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("Exports are limited to administrators.", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("From the spec: HD-EXPORT")).toBeVisible();
   await page.screenshot({ path: "test-results/evidence-desktop.png", fullPage: true });
-  await page.getByRole("tab", { name: /Client requests/ }).focus();
-  await page.keyboard.press("ArrowRight");
-  await expect(page.getByRole("tab", { name: /Tickets to approve/ })).toHaveAttribute("aria-selected", "true");
+  await dialog.getByRole("button", { name: "Close", exact: true }).first().click();
+  await page.getByRole("region", { name: "To build" }).getByRole("button").first().click();
   await page.getByLabel("Title", { exact: true }).fill("Review the monthly export count");
-  await page.getByRole("button", { name: "Approve & preview" }).click();
-  await expect(page.getByText("Reviewed. Approved. Ready.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "Create 2 tickets (preview)" }).click();
+  await expect(page.getByRole("heading", { name: "Done" })).toBeVisible();
   expect(editedTitle).toBe("Review the monthly export count");
-  await expect(page.getByRole("heading", { name: editedTitle })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Jira board" }).getByText("Preview", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: new RegExp(editedTitle) })).toBeVisible();
+  await expect(page.locator(".jira-meta", { hasText: "Preview" })).toHaveCount(2);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -77,10 +81,11 @@ test("SSE and polling serialize reads and keep a review draft intact", async ({ 
   await expect(page.getByRole("button", { name: /Analyzing conversation/ })).toBeDisabled();
   release();
   await expect(page.getByText("Your review is ready", { exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: /Tickets to approve/ }).click();
+  const ticket = page.getByRole("region", { name: "To build" }).getByRole("button").first();
+  await ticket.click();
   await page.getByLabel("Title", { exact: true }).fill("Keep this human edit");
-  await page.getByRole("tab", { name: /Client requests/ }).click();
-  await page.getByRole("tab", { name: /Tickets to approve/ }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await ticket.click();
   await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Keep this human edit");
 });
 
@@ -98,12 +103,15 @@ test("approval refuses a dry-run to live-mode change and preserves edits", async
   await page.goto("/?run=demo-run");
   await expect(page.getByText("Your review is ready", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /LangSmith/ })).toHaveCount(0);
-  await page.getByRole("tab", { name: /Tickets to approve/ }).click();
+  const ticket = page.getByRole("region", { name: "To build" }).getByRole("button").first();
+  await ticket.click();
   await page.getByLabel("Title", { exact: true }).fill("Unsaved review draft");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   modeChanged = true;
-  await page.getByRole("button", { name: "Approve & preview" }).click();
+  await page.getByRole("button", { name: "Create 2 tickets (preview)" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Jira mode changed" })).toBeVisible();
   expect(approvals).toBe(0);
+  await ticket.click();
   await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Unsaved review draft");
   await expect(page.getByLabel("Title", { exact: true })).toBeEnabled();
 });
@@ -130,7 +138,7 @@ test("mode pill never claims live Jira before capabilities load; tickets show wh
   await expect(page.getByText("Live Jira", { exact: true })).toHaveCount(0);
   release();
   await expect(page.getByText("Live Jira", { exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: /Tickets to approve/ }).click();
+  await page.getByRole("region", { name: "To build" }).getByRole("button").first().click();
   const basedOn = page.locator(".based-on");
   await expect(basedOn).toHaveText("Add a monthly export count");
   await expect(basedOn).not.toContainText("R1");

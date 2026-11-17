@@ -10,7 +10,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.graph.graph import ExtractionState, Search, build_graph
 from app.llm import LLMHelper
 from app.schemas import Requirement
-from app.stories import Story, critique, open_questions, validate_stories, write_stories
+from app.stories import (
+    FollowUp,
+    Story,
+    critique,
+    follow_ups,
+    open_questions,
+    validate_stories,
+    write_stories,
+)
 
 
 class Approval(BaseModel):
@@ -33,7 +41,7 @@ def build_workflow(
     search: Search,
     *,
     checkpointer: BaseCheckpointSaver | None = None,
-    create_tickets: Callable[[list[Story], list[Requirement]], list[dict]]
+    create_tickets: Callable[[list[Story | FollowUp], list[Requirement]], list[dict]]
     | None = None,
 ) -> CompiledStateGraph:
     def generate(state: WorkflowState) -> dict:
@@ -75,7 +83,9 @@ def build_workflow(
             raise ValueError("Ticket creation requires human approval")
         if create_tickets is None:
             raise ValueError("Ticket creation is not configured")
-        return {"tickets": create_tickets(state["stories"], state["requirements"])}
+        # Approved stories first, then decisions and client questions for the PM.
+        items = state["stories"] + follow_ups(state["requirements"])
+        return {"tickets": create_tickets(items, state["requirements"])}
 
     graph = StateGraph(WorkflowState)
     graph.add_node("discovery", build_graph(helper, search))

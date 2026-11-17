@@ -238,3 +238,11 @@ regressions. More instructions alone do not prevent a broken implementation.
 **Decision:** README is now a short product page: pitch, demo, how it works, measured results, key decisions, limits and how to run it. The phase-by-phase exercises, the deferred Docker checks and an interview walkthrough moved to `docs/learning.md`; the case study was rewritten as one story of what was measured and fixed.
 
 **Why:** the 535-line README read as a build log ("phases", "the user authorized") rather than an entry point, and it contradicted the case study about the public demo. This replaces the 2026-11-02 choice to keep every learning exercise in README. `uv` is on PATH now, so commands call it directly instead of `python -m uv`.
+
+## 2026-11-17 — Decision and question tasks next to stories
+
+**Decision:** on approval, each `conflict` request also becomes a Jira Task "Decide: …" and each `unclear` request a Task "Ask the client: …", with the client's quote, the agent's reason and the spec section. `duplicate` requests create nothing. The tasks are built by code from the approved classification (`follow_ups` in `stories.py`): no extra model call, no change to the one-story-per-new-requirement rule or to evals. They go through the same ledger, so a repeated approval does not duplicate them. The board groups tickets into To build, Needs decision and Ask the client.
+
+**Why:** a call made only of conflicts and open questions produced zero tickets, so the PM's actual next steps were left out of Jira. Users expected the summary of a call, not only the build work.
+
+**Limit:** the replay demo mirrors the rule in TypeScript (`followUps` in `lib/presentation.ts`, marked as a shortcut). Tasks inherit the extraction's splitting: two requests about one rule become two decisions.

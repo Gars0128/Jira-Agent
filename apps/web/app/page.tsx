@@ -2,11 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { costLabel, draftErrors, priorityLabel, safeTraceUrl, statusInfo, steps } from "../lib/presentation";
+import { costLabel, draftErrors, followUps, safeTraceUrl, sectionTitle, steps } from "../lib/presentation";
 import type { Capabilities, Project, Run, RunEvent, Story } from "../lib/types";
-import { Arrow, EmptyState, Evidence, JiraBoard, TicketCard } from "./components";
+import { Arrow, TicketBoard, type BoardCard } from "./components";
 import { StoryEditor } from "./story-editor";
-import { ResultTabs, type ResultTab } from "./result-tabs";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, { ...options, headers: { "Content-Type": "application/json", ...options?.headers }, cache: "no-store" });
@@ -28,13 +27,13 @@ export default function Home() {
   const [run, setRun] = useState<Run | null>(null);
   const [events, setEvents] = useState<RunEvent[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
-  const [tab, setTab] = useState<ResultTab>("requirements");
-  const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [approving, setApproving] = useState(false);
   const draftRun = useRef<string | null>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [openCard, setOpenCard] = useState<number | null>(null);
   const revealedRun = useRef<string | null>(null);
   const runRequest = useRef<AbortController | null>(null);
   const currentProject = projects.find((project) => project.id === projectId);
@@ -110,11 +109,13 @@ export default function Home() {
   }, [run?.status, run?.run_id]);
 
   async function startRun() {
-    runRequest.current?.abort(); setRunId(null); setError(null); setSubmitting(true); setEvents([]); setSelected(null); setRun(null); setStories([]); setTab("requirements"); draftRun.current = null;
+    runRequest.current?.abort(); setRunId(null); setError(null); setSubmitting(true); setEvents([]); setRun(null); setStories([]); draftRun.current = null;
     try {
       const result = await request<{ run_id: string }>("/runs", { method: "POST", body: JSON.stringify({ project_id: projectId, transcript, ...(presetId ? { preset_id: presetId } : {}) }) });
       setRunId(result.run_id);
       window.history.replaceState(null, "", `?run=${encodeURIComponent(result.run_id)}`);
+      // Follow the work: the board below shows each stage as it happens.
+      window.setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not start the run."); }
     finally { setSubmitting(false); }
   }
@@ -127,39 +128,31 @@ export default function Home() {
     try {
       const current = await request<Capabilities>("/capabilities");
       if (current.jira_dry_run !== capabilities.jira_dry_run) throw new Error("Jira mode changed. Reload the page and review the current mode before approving.");
-      setTab("preview");
       const result = await request<Run>(`/runs/${run.run_id}/approve`, { method: "POST", body: JSON.stringify({ stories }) });
-      setRun(result); setStories(result.stories); setTab("preview");
+      setRun(result); setStories(result.stories);
       document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    } catch (reason) { setTab("stories"); setError(reason instanceof Error ? reason.message : "Approval failed. Your edits are still here."); }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Approval failed. Your edits are still here."); }
     finally { setApproving(false); }
   }
 
   const requirements = run?.requirements ?? [];
-  const selectedRequirement = requirements.find((item) => item.id === selected);
   const doneNodes = new Set(events.filter((event) => event.type === "node_finished").map((event) => event.node));
   const currentNode = events.filter((event) => event.type === "node_started").at(-1)?.node;
   const review = run?.status === "awaiting_review";
   const completed = run?.status === "done";
   const progress = completed ? steps.length : review ? 5 : steps.filter((step) => doneNodes.has(step.id)).length;
-  const counts = (Object.keys(statusInfo) as (keyof typeof statusInfo)[]).map((status) => ({ status, count: requirements.filter((item) => item.status === status).length }));
-  const sorted = requirements.some((item) => item.status);
-  const countOf = (status: keyof typeof statusInfo) => counts.find((item) => item.status === status)?.count ?? 0;
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-  const waiting = [countOf("conflict") && plural(countOf("conflict"), "needs your decision", "need your decision"), countOf("unclear") && plural(countOf("unclear"), "needs an answer from the client", "need an answer from the client")].filter(Boolean).join(" and ");
-  const noTickets = `Nothing new is ready to build${waiting ? `: ${waiting}` : ""}.`;
-  const requirementText = (id: string) => requirements.find((item) => item.id === id)?.text ?? id;
-  // Questions arrive as "REQ-001: note"; show the request itself instead of its ID.
-  const splitQuestion = (question: string): [string | null, string] => {
-    const match = /^([\w-]+):\s*([\s\S]*)$/.exec(question);
-    const item = match && requirements.find((requirement) => requirement.id === match[1]);
-    return match && item ? [item.text, match[2]] : [null, question];
-  };
-  const tabHints: Record<ResultTab, string> = {
-    requirements: "Every request from the call, with the client’s exact words, checked against the spec. Click one to see why.",
-    stories: "New work written as tickets. Edit anything before you approve.",
-    preview: dryRun ? "What Jira would receive. Preview mode: nothing is sent." : "The tickets created in Jira.",
-  };
+  const sorted = requirements.some((item) => item.status);
+  const specTitles = (item: { id: string; spec_refs: string[] }) => (run?.retrieved?.[item.id] ?? []).filter((chunk) => item.spec_refs.includes(chunk.id)).map((chunk) => sectionTitle(chunk.text) ?? chunk.id);
+  // Stories first, then decisions and questions: the same order the API creates them in.
+  const drafts: BoardCard[] = review || completed ? [
+    ...stories.map((story) => { const source = requirements.find((item) => story.requirement_ids.includes(item.id)); return { kind: "story" as const, title: story.title, quote: source?.quote, speaker: source?.speaker, specs: [], story }; }),
+    ...followUps(requirements).map(({ kind, summary, requirement }) => ({ kind, title: summary, quote: requirement.quote, speaker: requirement.speaker, why: requirement.note, specs: specTitles(requirement) })),
+  ] : [];
+  const cards = drafts.map((card, index) => ({ ...card, ticket: run?.tickets?.[index] }));
+  const skipped = requirements.filter((item) => item.status === "duplicate");
+  const heading = !review && !completed ? "Working on it" : completed ? (cards.length ? "Done" : "Review finished") : cards.length ? `${plural(cards.length, "ticket", "tickets")} from this call` : "No tickets from this call";
+  const stage = !requirements.length ? "Reading the call…" : !sorted ? `Found ${plural(requirements.length, "request", "requests")}. Checking them against the spec…` : "Writing tickets…";
   const statusText = completed ? "Completed" : review ? "Your review is ready" : run?.status === "error" ? "Needs attention" : active ? "Agent is working" : "Ready when you are";
 
   return <div className="workspace">
@@ -206,25 +199,34 @@ export default function Home() {
               const running = active && currentNode === step.id || review && index === 5;
               return <li key={step.id} className={`${done ? "step-done" : ""} ${running ? "step-current" : ""}`}><span className="step-icon" aria-hidden="true">{done ? "✓" : String(index + 1).padStart(2, "0")}</span><div><strong>{step.label}</strong><span>{step.detail}</span></div>{running && <span className="step-pill">{review ? "YOU" : "RUNNING"}</span>}</li>;
             })}</ol>
-            <div className="run-metrics"><div><span>COST</span><strong>{costLabel(run?.usage?.cost_usd)}</strong></div><div><span>TIME</span><strong>{run?.latency_ms ? `${(run.latency_ms / 1000).toFixed(1)}s` : "—"}</strong></div><div><span>TRACE</span>{traceUrl ? <a href={traceUrl} target="_blank" rel="noreferrer">LangSmith <Arrow diagonal /></a> : <strong className="muted">—</strong>}</div></div>
-            {run?.cached && <p className="cache-note">This sample was analyzed before, so the saved result was reused: no model calls.</p>}
+            <dl className="run-metrics">
+              <div><dt>Cost</dt><dd>{costLabel(run?.usage?.cost_usd)}</dd></div>
+              <div><dt>Tokens</dt><dd>{run?.usage?.input_tokens ? <>{run.usage.input_tokens.toLocaleString("en")} in · {(run.usage.output_tokens ?? 0).toLocaleString("en")} out</> : "—"}</dd></div>
+              <div><dt>Model calls</dt><dd>{run?.usage?.calls || "—"}</dd></div>
+              <div><dt>Time</dt><dd>{run?.latency_ms ? `${(run.latency_ms / 1000).toFixed(1)}s` : "—"}</dd></div>
+            </dl>
+            <p className="run-source">{run?.cached ? "This sample was analyzed before, so the saved result was reused: no model calls." : capabilities?.replay ? `Recorded run on ${capabilities.model}. Tokens and cost are counted per model call, the same numbers each LangSmith trace carries.` : capabilities?.model ? `Model: ${capabilities.model}. Tokens and cost are counted per model call.` : null}{traceUrl && <> <a href={traceUrl} target="_blank" rel="noreferrer">Open the full trace in LangSmith <Arrow diagonal /></a></>}</p>
           </section>
         </div>
 
-        {runId && <section className="results-section" id="results" aria-labelledby="results-heading">
-          <div className="results-heading"><div><h2 id="results-heading">What the client asked for</h2></div></div>
-          <p className="funnel-caption" aria-live="polite">{requirements.length ? <><strong>{plural(requirements.length, "request", "requests")}</strong> found in the call. {sorted ? "Here is where each one goes:" : "Sorting them now…"}</> : active ? "Reading the call…" : "No requests were found in this call."}</p>
-          <ul className="summary-strip reveal-list" aria-label="Where each request goes">{counts.map(({ status, count }) => <li key={status} className={`summary-${status}`}><strong>{sorted ? count : "·"}</strong><div><span>{statusInfo[status].label}</span>{statusInfo[status].meaning} <b>→ {statusInfo[status].outcome}</b></div></li>)}</ul>
-          <ResultTabs selected={tab} onChange={setTab} counts={[requirements.length, stories.length, run?.tickets?.length ?? 0]} />
-          <p className="tab-hint">{tabHints[tab]}</p>
-          <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="results-body fade-in" key={tab}>
-            {tab === "requirements" && (requirements.length ? <div className="requirements-grid"><div className="requirement-list reveal-list">{requirements.map((item) => <button type="button" key={item.id} className={`requirement-card ${selected === item.id ? "selected" : ""}`} onClick={() => setSelected(item.id)} aria-expanded={selected === item.id}><div className="card-eyebrow"><span className="priority">{priorityLabel[item.priority] ?? item.priority}</span><span className={`badge badge-${item.status ?? "pending"}`}>{item.status ? statusInfo[item.status].label : "Pending"}</span></div><h3>{item.text}</h3><blockquote>“{item.quote}”</blockquote><div className="requirement-footer"><span>{item.speaker}</span><span>Inspect evidence <Arrow /></span></div></button>)}</div><Evidence key={selectedRequirement?.id ?? requirements[0].id} requirement={selectedRequirement ?? requirements[0]} run={run!} /></div> : <EmptyState working={active} symbol="↳" title={active ? "Reading the conversation…" : "Good decisions start with evidence."} text="Each request the client made will appear here with their exact words." />)}
-            {tab === "stories" && <>{stories.length ? <div className="stories-grid reveal-list">{stories.map((story, index) => <StoryEditor key={story.id} story={story} number={index + 1} basedOn={story.requirement_ids.map(requirementText)} editable={review && !approving} onChange={(changed) => setStories((previous) => previous.map((item, itemIndex) => itemIndex === index ? changed : item))} />)}</div> : <EmptyState symbol="≡" title={review ? "No tickets this time" : "No tickets yet"} text={review ? `${noTickets} ${run?.questions?.length ? "The questions are below." : ""}` : "Tickets for new work will appear here for you to edit."} />}
-              {!!run?.questions?.length && <aside className="questions"><div className="eyebrow">DECISIONS TO MAKE</div><h3>Questions for the client</h3><ul>{run.questions.map((question, index) => { const [subject, rest] = splitQuestion(question); return <li key={index}>{subject && <span className="question-subject">{subject}</span>}{rest}</li>; })}</ul></aside>}
-              {review && <div className="approval-bar"><div>{stories.length ? <><strong>Your review is the final checkpoint.</strong><span>Approve {stories.length === 1 ? "this ticket" : `these ${stories.length} tickets`} to {dryRun ? "see exactly what Jira would receive." : "create them in Jira."}</span></> : <><strong>Nothing goes to Jira this time.</strong><span>Finish the review once you have noted the questions.</span></>}</div><button type="button" className="primary-button" disabled={approving || !capabilities} onClick={() => void approve()}>{approving ? "Approving…" : !stories.length ? "Finish review" : dryRun ? "Approve & preview" : "Approve & create tickets"}<Arrow /></button></div>}</>}
-            {tab === "preview" && (run?.status === "error" ? <EmptyState symbol="!" title="Tickets were not created." text={`${run.error ?? "Jira did not accept the tickets."} Fix the configuration, then start a new run.`} /> : approving ? <div className="preview"><JiraBoard stories={stories} live={!dryRun} /></div> : completed ? <div className="preview"><div className="preview-heading"><span className="check-circle">✓</span><div><h3>{run?.tickets?.length ? "Reviewed. Approved. Ready." : "Review finished."}</h3><p>{!run?.tickets?.length ? "Nothing was sent to Jira." : run.tickets.every((ticket) => ticket.dry_run) ? "Preview mode: this is what Jira would receive. Nothing was sent." : "Your approved tickets are in Jira."}</p></div></div><JiraBoard stories={stories} tickets={run?.tickets} live={!dryRun} />{run?.tickets?.length ? <div className="ticket-list reveal-list">{run.tickets.map((ticket, index) => <TicketCard key={index} ticket={ticket} story={stories[index]} basedOn={stories[index]?.requirement_ids.map(requirementText)} />)}</div> : <p className="muted">No tickets this time. {noTickets} The questions for the client are on the Tickets tab.</p>}</div> : <EmptyState symbol="↗" title="A handoff you can trust." text="Approve your tickets and you’ll see here exactly what Jira receives." />)}
-          </div>
-          {review && tab === "requirements" && <div className="review-nudge"><span><strong>The groundwork is done.</strong> {stories.length ? "Your tickets are ready to review." : `${noTickets} See the questions for the client.`}</span><button type="button" onClick={() => setTab("stories")}>{stories.length ? "Review tickets" : "See questions"} <Arrow /></button></div>}
+        {runId && <section className="results-section" id="results" aria-labelledby="results-heading" aria-busy={active}>
+          <div className="results-heading"><h2 id="results-heading">{heading}</h2></div>
+          <p className="results-summary" aria-live="polite">{active || (!review && !completed) ? stage : completed ? (!cards.length ? "Nothing was sent to Jira." : run?.tickets?.every((ticket) => ticket.dry_run) ? "Preview mode: this is exactly what Jira would receive. Nothing was sent." : "Your tickets are in Jira.") : `${plural(requirements.length, "request", "requests")} found in the call. Edit anything, then approve.`}</p>
+          {!!skipped.length && (review || completed) && <details className="skipped"><summary>{plural(skipped.length, "request was", "requests were")} already in the spec, so no ticket</summary><ul>{skipped.map((item) => <li key={item.id}>{item.text} <cite>“{item.quote}”</cite></li>)}</ul></details>}
+          {!!cards.length && <TicketBoard cards={cards} creating={approving} live={!dryRun} onOpen={(index) => { setOpenCard(index); dialog.current?.showModal(); }} />}
+          <dialog ref={dialog} className="ticket-dialog" aria-labelledby="dialog-title" onClose={() => setOpenCard(null)}>{(() => {
+            const card = openCard === null ? undefined : cards[openCard];
+            if (!card) return null;
+            const index = stories.findIndex((story) => story.id === card.story?.id);
+            return <>
+              <header><span className={`issue-type kind-${card.kind}`} aria-hidden="true" /><h3 id="dialog-title">{card.title}</h3><button type="button" className="dialog-close" onClick={() => dialog.current?.close()} aria-label="Close">×</button></header>
+              {card.quote && <blockquote>“{card.quote}”{card.speaker && <cite> — {card.speaker}</cite>}</blockquote>}
+              {card.story ? <StoryEditor story={card.story} basedOn={card.story.requirement_ids.map((id) => requirements.find((item) => item.id === id)?.text ?? id)} editable={review && !approving} onChange={(changed) => setStories((previous) => previous.map((item, itemIndex) => itemIndex === index ? changed : item))} />
+                : <div className="dialog-why"><h4>Why</h4><p>{card.why ?? "No reason was given."}</p>{!!card.specs.length && <p className="muted">From the spec: {card.specs.join(", ")}</p>}</div>}
+              <footer><button type="button" className="primary-button" onClick={() => dialog.current?.close()}>{card.story && review ? "Save" : "Close"}</button></footer>
+            </>;
+          })()}</dialog>
+          {review && <div className="approval-bar"><div>{cards.length ? <><strong>Ready to create {plural(cards.length, "ticket", "tickets")}.</strong><span>Nothing is sent until you approve.</span></> : <><strong>Nothing to send to Jira.</strong><span>Every request is already in the spec.</span></>}</div><button type="button" className="primary-button" disabled={approving || !capabilities} onClick={() => void approve()}>{approving ? "Creating…" : !cards.length ? "Finish review" : dryRun ? `Create ${plural(cards.length, "ticket", "tickets")} (preview)` : `Create ${plural(cards.length, "ticket", "tickets")} in Jira`}<Arrow /></button></div>}
           {run?.status === "error" && <div className="error-banner" role="alert">{run.error ?? "This run could not complete. Check the configuration and start a new run."}</div>}
         </section>}
         <footer className="page-footer"><span>TIRO <span className="footer-arrow">·</span> CALL → JIRA</span><span>Grounded in evidence. Guided by you.</span><span>Fictional data · Human-approved output</span></footer>

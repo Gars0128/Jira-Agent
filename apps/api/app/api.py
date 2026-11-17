@@ -53,6 +53,7 @@ def capabilities() -> dict:
         "public_demo": settings.public_demo,
         "jira_dry_run": not settings.jira_live,
         "transcript_limit": 20_000,
+        "model": settings.llm_model,
     }
 
 

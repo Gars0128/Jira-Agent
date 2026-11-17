@@ -1,6 +1,7 @@
 import hashlib
 import json
 import re
+from typing import Literal
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
@@ -78,6 +79,35 @@ def idempotency_key(title: str, requirement_ids: list[str]) -> str:
     }
     serialized = json.dumps(normalized, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+class FollowUp(BaseModel):
+    """A decision or a client question, built by code from a classified request."""
+
+    kind: Literal["decision", "question"]
+    title: str
+    requirement_ids: list[str]
+    idempotency_key: str
+
+
+def follow_ups(requirements: list[Requirement]) -> list[FollowUp]:
+    # Conflicts and unclear requests are work for the PM, not for developers.
+    tasks = []
+    for item in requirements:
+        if item.status not in {"conflict", "unclear"}:
+            continue
+        kind = "decision" if item.status == "conflict" else "question"
+        prefix = "Decide" if kind == "decision" else "Ask the client"
+        title = " ".join(f"{prefix}: {item.text}".split())[:255]
+        tasks.append(
+            FollowUp(
+                kind=kind,
+                title=title,
+                requirement_ids=[item.id],
+                idempotency_key=idempotency_key(title, [item.id]),
+            )
+        )
+    return tasks
 
 
 def validate_stories(

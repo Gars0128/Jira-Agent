@@ -38,6 +38,8 @@ def test_existing_issue_is_reused() -> None:
             "url": "https://jira.example/browse/HD-7",
             "reused": True,
             "dry_run": False,
+            "kind": "story",
+            "summary": "Show monthly counts",
         }
     ]
     assert len(requests) == 1
@@ -119,6 +121,10 @@ def test_run_response_keeps_live_ticket_link() -> None:
     url = "https://demo.atlassian.net/browse/KAN-1"
     ticket = {"key": "KAN-1", "url": url, "dry_run": False, "reused": False}
     assert TicketResult.model_validate(ticket).url == url
+    # The board needs kind and title even when Jira returns only a key.
+    task = ticket | {"kind": "decision", "summary": "Decide: exports"}
+    result = TicketResult.model_validate(task)
+    assert (result.kind, result.summary) == ("decision", "Decide: exports")
 
 
 def test_public_demo_forces_preview_and_live_needs_atlassian(settings) -> None:
@@ -177,3 +183,39 @@ def test_live_rejected_jira_write_releases_ledger(settings) -> None:
             with pytest.raises(JiraRejected):
                 create_once(conn, Rejecting(), "https://x.atlassian.net", stories())
         assert conn.execute("SELECT count(*) FROM agent_jira_ledger").fetchone()[0] == 0
+
+
+def test_conflicts_and_open_questions_become_follow_up_tasks() -> None:
+    from app.stories import follow_ups
+
+    base = new_requirement()
+    conflict = base.model_copy(
+        update={
+            "id": "R2",
+            "status": "conflict",
+            "text": "Let coordinators export reports.",
+            "spec_refs": ["HD-EXPORT"],
+            "note": "Only administrators may export.",
+        }
+    )
+    unclear = base.model_copy(
+        update={"id": "R3", "status": "unclear", "text": "Make it fast.", "note": None}
+    )
+    agreed = base.model_copy(update={"id": "R4", "status": "duplicate"})
+    requirements = [base, conflict, unclear, agreed]
+
+    tasks = follow_ups(requirements)
+    tickets = preview_tickets(stories() + tasks, requirements)
+
+    assert [(t["kind"], t["summary"]) for t in tickets] == [
+        ("story", "Show monthly counts"),
+        ("decision", "Decide: Let coordinators export reports."),
+        ("question", "Ask the client: Make it fast."),
+    ]
+    decision = tickets[1]["fields"]
+    assert decision["issuetype"] == {"name": "Task"}
+    assert "needs-decision" in decision["labels"]
+    text = json.dumps(decision["description"])
+    assert "Only administrators may export." in text and "HD-EXPORT" in text
+    # Same request, same key: a repeated approval reuses the ledger entry.
+    assert follow_ups(requirements)[0].idempotency_key == tasks[0].idempotency_key

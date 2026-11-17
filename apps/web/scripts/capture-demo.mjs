@@ -28,11 +28,13 @@ try {
     frames.push(path);
   };
   await screenshot("01-workspace");
-  const conflict = page.getByRole("button").filter({ has: page.locator(".badge-conflict") }).first();
-  if (await conflict.count()) await conflict.click();
+  const decision = page.getByRole("region", { name: "Needs decision" }).getByRole("button").first();
+  if (await decision.count()) await decision.click();
   await page.locator("#results").scrollIntoViewIfNeeded();
   await screenshot("02-evidence");
-  await page.getByRole("tab", { name: /Tickets to approve/ }).click();
+  if (await decision.count()) await page.keyboard.press("Escape");
+  const edit = page.getByRole("region", { name: "To build" }).getByRole("button").first();
+  if (await edit.count()) await edit.click();
   const title = page.getByLabel("Title", { exact: true }).first();
   await title.waitFor();
   const canApprove = await title.isEnabled();
@@ -42,10 +44,10 @@ try {
     requireDryRun(await current.json());
     const reviewedTitle = `${(await title.inputValue()).replace(/ \(reviewed\)$/, "")} (reviewed)`;
     await title.fill(reviewedTitle);
-    await page.locator("#results").scrollIntoViewIfNeeded();
     await screenshot("03-human-review");
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     const responsePromise = page.waitForResponse((response) => response.url().endsWith("/approve") && response.request().method() === "POST");
-    await page.getByRole("button", { name: "Approve & preview" }).click();
+    await page.locator(".approval-bar").getByRole("button").click();
     const response = await responsePromise;
     const result = await response.json();
     assert.equal(response.status(), 200, JSON.stringify(result));
@@ -54,9 +56,8 @@ try {
     assert.equal(result.stories[0].title, reviewedTitle);
   } else {
     await screenshot("03-human-review");
-    await page.getByRole("tab", { name: /Jira preview/ }).click();
   }
-  await page.getByText("Reviewed. Approved. Ready.", { exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Done" }).waitFor();
   await page.locator("#results").scrollIntoViewIfNeeded();
   await screenshot("04-jira-preview");
   await page.evaluate(() => window.scrollTo(0, 0));

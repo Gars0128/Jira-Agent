@@ -1,4 +1,4 @@
-import type { Story } from "./types.ts";
+import type { Requirement, Story, TicketKind } from "./types.ts";
 
 export const steps = [
   { id: "extract", label: "Find the requests", detail: "Each one keeps the client's exact words" },
@@ -10,20 +10,26 @@ export const steps = [
   { id: "create_tickets", label: "Jira preview", detail: "What Jira will receive" },
 ];
 
-export const priorityLabel: Record<string, string> = { must: "Must have", should: "Should have", could: "Nice to have" };
+export const ticketColumns: [TicketKind, string, string][] = [
+  ["story", "To build", "New work for the team, with acceptance criteria."],
+  ["decision", "Needs decision", "The client asked for something the spec rules out."],
+  ["question", "Ask the client", "Too vague to build until the client answers."],
+];
+
+// shortcut: mirrors follow_ups() in apps/api/app/stories.py for the replay demo; the live API builds its own.
+export function followUps(requirements: Requirement[]): { kind: TicketKind; summary: string; requirement: Requirement }[] {
+  return requirements.filter((item) => item.status === "conflict" || item.status === "unclear").map((item) => {
+    const kind = item.status === "conflict" ? "decision" : "question";
+    return { kind, summary: `${kind === "decision" ? "Decide" : "Ask the client"}: ${item.text}`.split(/\s+/).join(" ").slice(0, 255), requirement: item };
+  });
+}
+
 
 // Spec chunks start with "## HD-EXPORT — Report export permissions"; people need the title, not the ID.
 export function sectionTitle(text: string): string | null {
   const heading = /^#+\s*(?:[A-Z][A-Z0-9-]*\s+[—-]\s+)?(.+)/.exec(text.split("\n", 1)[0]);
   return heading ? heading[1].trim() : null;
 }
-
-export const statusInfo = {
-  new: { label: "New work", meaning: "Not in the spec yet", outcome: "becomes a ticket" },
-  conflict: { label: "Conflicts with spec", meaning: "Contradicts what was agreed", outcome: "you decide first" },
-  duplicate: { label: "Already in spec", meaning: "Already agreed earlier", outcome: "nothing to do" },
-  unclear: { label: "Needs clarification", meaning: "Too vague to build", outcome: "ask the client" },
-} as const;
 
 export function safeJiraUrl(value: string | null | undefined): string | null {
   if (!value) return null;

@@ -2,6 +2,7 @@
 // contract with seven real stored runs, so the site works without a backend,
 // model calls or Jira writes. Locally, /api goes to the real FastAPI service.
 import recording from "../../../demo/runs.json";
+import { followUps } from "../../../lib/presentation";
 import type { Run, Story } from "../../../lib/types";
 
 type Recorded = Omit<Run, "run_id" | "status" | "tickets" | "error" | "trace_url">;
@@ -34,7 +35,7 @@ function snapshot(id: string, key: string, started: number): Run {
     retrieved: done("retrieve_spec") ? run.retrieved : {},
     stories: done("write_stories") ? run.stories : [],
     questions: done("classify") ? run.questions : [],
-    usage: { ...run.usage, cost_usd: null },
+    usage: { calls: 0, input_tokens: 0, output_tokens: 0, cost_usd: null },
     latency_ms: 0,
   };
 }
@@ -65,7 +66,8 @@ function events(started: number): Response {
 
 export async function GET(_request: Request, { params }: { params: Promise<{ path: string[] }> }) {
   const path = (await params).path;
-  if (path.join("/") === "capabilities") return json({ public_demo: true, jira_dry_run: true, transcript_limit: 20000, replay: true });
+  // The recorded runs were made with this model; their usage below is real.
+  if (path.join("/") === "capabilities") return json({ public_demo: true, jira_dry_run: true, transcript_limit: 20000, replay: true, model: "gpt-5.6-terra" });
   if (path.join("/") === "projects") return json({ projects: recording.projects });
   if (path.join("/") === "health" || path.join("/") === "ready") return json({ status: "ok" });
   if (path[0] === "runs" && path[1]) {
@@ -94,7 +96,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ pat
     const stories = (Array.isArray(body?.stories) ? body.stories : []).slice(0, 30) as Story[];
     // A short pause lets the board show "Creating…" as it would with Jira.
     await new Promise((resolve) => setTimeout(resolve, 1800));
-    const tickets = stories.map((story) => ({ key: `PREVIEW-${String(story.idempotency_key).slice(0, 8)}`, dry_run: true, reused: false, fields: { summary: String(story.title) } }));
+    const tasks = followUps(runs[run.key].requirements).map(({ kind, summary }, index) => ({ key: `PREVIEW-T${index + 1}`, dry_run: true, reused: false, kind, summary }));
+    const tickets = [...stories.map((story) => ({ key: `PREVIEW-${String(story.idempotency_key).slice(0, 8)}`, dry_run: true, reused: false, kind: "story", summary: String(story.title), fields: { summary: String(story.title) } })), ...tasks];
     return json({ ...snapshot(path[1], run.key, 0), status: "done", stories, tickets });
   }
   return json({ detail: "Not found" }, 404);

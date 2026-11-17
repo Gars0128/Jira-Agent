@@ -16,7 +16,9 @@ export type Story = {
   acceptance_criteria: string[]; requirement_ids: string[]; idempotency_key: string;
 };
 
-export type Ticket = { key?: string; url?: string; dry_run?: boolean; reused?: boolean; story_id?: string; fields?: { summary?: string }; [key: string]: unknown };
+export type TicketKind = "story" | "decision" | "question";
+
+export type Ticket = { key?: string; url?: string; dry_run?: boolean; reused?: boolean; story_id?: string; kind?: TicketKind; summary?: string; fields?: { summary?: string }; [key: string]: unknown };
 
 export type Run = {
   run_id: string;
@@ -29,4 +31,4 @@ export type Run = {
 
 export type RunEvent = { type: string; node?: string };
 
-export type Capabilities = { public_demo: boolean; jira_dry_run: boolean; transcript_limit: number; replay?: boolean };
+export type Capabilities = { public_demo: boolean; jira_dry_run: boolean; transcript_limit: number; replay?: boolean; model?: string };

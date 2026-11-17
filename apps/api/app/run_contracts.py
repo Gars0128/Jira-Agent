@@ -14,6 +14,8 @@ class TicketResult(BaseModel):
     dry_run: bool
     reused: bool
     fields: dict[str, JsonValue] | None = None
+    kind: Literal["story", "decision", "question"] = "story"
+    summary: str | None = None
 
 
 class RunResult(BaseModel):

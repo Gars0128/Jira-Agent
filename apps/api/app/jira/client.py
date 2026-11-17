@@ -8,7 +8,7 @@ import httpx
 
 from app.config import Settings
 from app.schemas import Requirement
-from app.stories import Story
+from app.stories import FollowUp, Story
 
 
 class JiraError(RuntimeError):
@@ -48,9 +48,49 @@ def label(key: str) -> str:
     return f"idem-{key[:16]}"
 
 
-def issue_fields(
-    story: Story, project_key: str, requirements: Sequence[Requirement] = ()
+def follow_up_fields(
+    task: FollowUp, project_key: str, requirements: Sequence[Requirement] = ()
 ) -> dict:
+    item = next((r for r in requirements if r.id in task.requirement_ids), None)
+    why = "Why it needs a decision" if task.kind == "decision" else "What is unclear"
+    content = [
+        _heading(why),
+        _paragraph(_text(item.note if item and item.note else task.title)),
+    ]
+    if item:
+        content += [
+            _heading("What the client said"),
+            {
+                "type": "blockquote",
+                "content": [
+                    _paragraph(_text(f"\u201c{item.quote}\u201d \u2014 {item.speaker}"))
+                ],
+            },
+        ]
+        if item.spec_refs:
+            content.append(
+                _paragraph(_text("Specification: "), _text(", ".join(item.spec_refs)))
+            )
+    content.append(
+        _paragraph(
+            _text("Raised by Tiro from a client call and approved by a human reviewer.")
+        )
+    )
+    tag = "needs-decision" if task.kind == "decision" else "needs-clarification"
+    return {
+        "project": {"key": project_key},
+        "issuetype": {"name": "Task"},
+        "summary": task.title,
+        "labels": [label(task.idempotency_key), "discovery-agent", tag],
+        "description": {"type": "doc", "version": 1, "content": content},
+    }
+
+
+def issue_fields(
+    story: Story | FollowUp, project_key: str, requirements: Sequence[Requirement] = ()
+) -> dict:
+    if isinstance(story, FollowUp):
+        return follow_up_fields(story, project_key, requirements)
     by_id = {item.id: item for item in requirements}
     content = [
         _heading("User story"),
@@ -129,8 +169,13 @@ def issue_fields(
     }
 
 
+def kind(item: Story | FollowUp) -> dict:
+    # The UI sorts the board by kind; Jira may return only a key, so keep the title.
+    return {"kind": getattr(item, "kind", "story"), "summary": item.title}
+
+
 def preview_tickets(
-    stories: list[Story], requirements: Sequence[Requirement] = ()
+    stories: list[Story | FollowUp], requirements: Sequence[Requirement] = ()
 ) -> list[dict]:
     return [
         {
@@ -139,6 +184,7 @@ def preview_tickets(
             "reused": False,
             "fields": issue_fields(story, "DEMO", requirements),
         }
+        | kind(story)
         for story in stories
     ]
 
@@ -207,7 +253,7 @@ class JiraClient:
         return None
 
     def create_tickets(
-        self, stories: list[Story], requirements: Sequence[Requirement] = ()
+        self, stories: list[Story | FollowUp], requirements: Sequence[Requirement] = ()
     ) -> list[dict]:
         result = []
         for story in stories:
@@ -217,7 +263,7 @@ class JiraClient:
             except JiraError as exc:
                 raise JiraRejected(str(exc)) from None
             if existing:
-                result.append(existing)
+                result.append(existing | kind(story))
                 continue
             try:
                 response = self._request(
@@ -228,7 +274,7 @@ class JiraClient:
             except JiraError:
                 existing = self._find(story.idempotency_key)
                 if existing:
-                    result.append(existing)
+                    result.append(existing | kind(story))
                     continue
                 # Search indexing can lag; retrying an ambiguous POST can duplicate.
                 raise JiraError(
@@ -249,6 +295,7 @@ class JiraClient:
                     "dry_run": False,
                     "reused": False,
                 }
+                | kind(story)
             )
         return result
 
