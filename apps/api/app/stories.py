@@ -130,6 +130,15 @@ def write_stories(
     try:
         return validate_stories(output.stories, requirements)
     except ValueError as exc:
+        # One retry with the broken rule; partial story sets cannot be accepted.
+        payload["revision_feedback"] = [*payload["revision_feedback"], str(exc)]
+        payload["previous_stories"] = [item.model_dump() for item in output.stories]
+    output = helper.invoke(
+        [SystemMessage(STORY_PROMPT), HumanMessage(json.dumps(payload))], StoryOutput
+    )
+    try:
+        return validate_stories(output.stories, requirements)
+    except ValueError as exc:
         raise LLMError(str(exc)) from None
 
 

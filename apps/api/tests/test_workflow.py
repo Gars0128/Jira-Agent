@@ -6,9 +6,10 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
 from app.jira.client import preview_tickets
+from app.llm import LLMError
 from app.rag.retrieve import RetrievedChunk
 from app.schemas import Requirement
-from app.stories import StoryDraft, idempotency_key, validate_stories
+from app.stories import StoryDraft, idempotency_key, validate_stories, write_stories
 from app.workflow import Approval, build_workflow
 
 USAGE = {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150}
@@ -199,3 +200,34 @@ def test_empty_input_requirements_skip_story_and_critic_calls(
 def test_approval_contract_rejects_unknown_fields() -> None:
     with pytest.raises(ValueError):
         Approval.model_validate({"stories": [], "approved": True})
+
+
+def two_stories_for_one_requirement() -> str:
+    second = draft() | {"id": "S2", "title": "Export monthly counts"}
+    return json.dumps({"stories": [draft(), second]})
+
+
+def test_story_rule_break_is_retried_once_with_the_error(
+    helper_factory: Callable,
+) -> None:
+    helper, requests = helper_factory(
+        [two_stories_for_one_requirement(), json.dumps({"stories": [draft()]})], USAGE
+    )
+
+    stories = write_stories(helper, [new_requirement()])
+
+    assert [story.id for story in stories] == ["S1"]
+    assert len(requests) == 2
+    retry = json.loads(requests[1]["messages"][1]["content"])
+    assert retry["revision_feedback"] == [
+        "A new requirement must not be implemented twice"
+    ]
+    assert [story["id"] for story in retry["previous_stories"]] == ["S1", "S2"]
+
+
+def test_story_rule_break_after_the_retry_fails(helper_factory: Callable) -> None:
+    helper, requests = helper_factory([two_stories_for_one_requirement()], USAGE)
+
+    with pytest.raises(LLMError, match="implemented twice"):
+        write_stories(helper, [new_requirement()])
+    assert len(requests) == 2

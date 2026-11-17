@@ -206,3 +206,11 @@ regressions. More instructions alone do not prevent a broken implementation.
 **Why not approved:** scores cluster at 3–4, so a low MAE is reachable by always answering 4; kappa shows weak discrimination. Human scores were adopted by the user after reading an AI reviewer's scores, so they are not blind, and an AI judge from the same family would agree with them by construction.
 
 **Revisit:** with new stories rated blind by a person; a judge prompt change must be checked on stories it was not tuned on. Calibration with n=10 and a narrow range is noisy.
+
+## 2026-11-17 — One retry when stories break a coverage rule
+
+**Decision:** when `validate_stories` rejects model output (a new requirement implemented twice, a non-new or repeated ID, missing coverage), `write_stories` asks once more with the error as `revision_feedback` and the rejected stories as `previous_stories`. A second failure fails the run as before. Human edits at approval are still validated without retries.
+
+**Why:** three local `qwen3:14b` baseline runs each lost one whole case to this rule. Unlike classification, there is no safe partial result to hand to a human: accepting some stories would silently drop model output, and a duplicate would create two Jira issues for one requirement.
+
+**Limit:** one extra model call per break (free locally, about a cent with the hosted model, bounded by the run budget).
