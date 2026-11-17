@@ -196,3 +196,13 @@ regressions. More instructions alone do not prevent a broken implementation.
 **Why:** re-embedding the 2026-11-03 outputs showed hand-checked true pairs at 0.60–0.98 and gold items without a true pair at most 0.53; 0.8 rejected paraphrases such as "Restrict report export to administrators" / "Only administrators may export reservation reports". At a lower threshold, maximum-cardinality matching paired "unsubscribe" gold with an unrelated prediction to gain a pair; greedy keeps the 0.91 pair. The same old outputs move from precision 0.406 / recall 0.448 to 0.719 / 0.793 at 0.58 (local embeddings).
 
 **Limit:** calibrated on 23 true pairs from one run; unrelated pairs reach 0.68, so a gold item with no true prediction can still be matched wrongly. Split requirements (one gold, several predictions) count only once — a gold-annotation question, not a matcher one. A different embedding model needs a new threshold.
+
+## 2026-11-17 — Story judge measured and not approved
+
+**Decision:** `calibration.json` stays unapproved and empty; the measurement lives in `calibration-review.json`. Full-mode `story_quality` remains reported as uncalibrated.
+
+**Measured:** ten real stories (seven from the 2026-11-03 `gpt-5.6-terra` run, three from a local `qwen3:14b` run) against the `qwen3:14b` judge with the runner's prompt (`judge_story`): MAE 0.5, 6/10 exact, 9/10 within one point, quadratic weighted kappa 0.19. On the seven older stories the earlier GPT judge had MAE 0.71. The judge rated 4 a story the reviewer rated 2 for an invented year filter and an untestable "displayed without errors" — the invented scope its prompt says to penalize.
+
+**Why not approved:** scores cluster at 3–4, so a low MAE is reachable by always answering 4; kappa shows weak discrimination. Human scores were adopted by the user after reading an AI reviewer's scores, so they are not blind, and an AI judge from the same family would agree with them by construction.
+
+**Revisit:** with new stories rated blind by a person; a judge prompt change must be checked on stories it was not tuned on. Calibration with n=10 and a narrow range is noisy.

@@ -1,12 +1,13 @@
 {
-  "instructions": "Review actual stories against linked requirements and rate 1-5 in human. Seven judge-rated examples are real saved outputs; the remaining three are pending real examples, not fabricated. Once ten real human/judge scores are reviewed, copy approved rows into calibration.json and explicitly approve agreement. This review worksheet is not the active calibration artifact.",
+  "instructions": "Ten real stories: seven from the 2026-11-03 gpt-5.6-terra run (gpt_judge holds that run's judge), three from a 2026-11-17 local qwen3:14b run. Rate `human` 1-5 blind, before reading any judge score, using the judge rubric: 1 unusable, 3 needs edits, 4 ready, 5 excellent; penalize invented requirements. `judge` is then filled by the current eval judge. Approved rows are copied into calibration.json.",
   "approved": false,
   "scores": [
     {
       "example_id": "02-retention:S1",
-      "human": null,
+      "human": 4,
       "judge": 4,
-      "judge_rationale": "The story is focused, valuable, and small, with clear actor, outcome, and two testable single-value filtering scenarios. It aligns with REQ-003 and does not add unsupported scope. Minor edits would make it fully test-ready: define what counts as an actor identifier (format/canonical matching) and clarify expected behavior for no matching records, invalid/empty values, and clearing the filter.",
+      "gpt_judge": 4,
+      "gpt_judge_rationale": "The story is focused, valuable, and small, with clear actor, outcome, and two testable single-value filtering scenarios. It aligns with REQ-003 and does not add unsupported scope. Minor edits would make it fully test-ready: define what counts as an actor identifier (format/canonical matching) and clarify expected behavior for no matching records, invalid/empty values, and clearing the filter.",
       "story": {
         "id": "S1",
         "title": "Filter Audit History by Actor Identifier",
@@ -36,13 +37,15 @@
           ],
           "note": "HD-AUDIT provides record-specific audit history but states that the baseline does not include a general actor filter, so this administrator actor-filter capability is additional scope."
         }
-      ]
+      ],
+      "judge_rationale": "The story is well-structured with clear roles, intentions, and acceptance criteria. It includes a requirement reference and context from the requirements document. However, it could be improved by adding negative test cases (e.g., invalid actor identifiers) and edge cases (e.g., no matching records). No invented requirements are present."
     },
     {
       "example_id": "03-sharing:S1",
-      "human": null,
-      "judge": 4,
-      "judge_rationale": "The story is independent, valuable, small, and directly traceable to REQ-002. Its acceptance criteria are clear and testable for revocation and continued non-acceptability before expiry. It correctly avoids inventing details such as authorization rules, UI behavior, or account-creation handling (the latter belongs to REQ-003). A minor edit would clarify whether revocation is allowed only while unexpired and define the expected outcome if a coordinator attempts to revoke an already expired invitation.",
+      "human": 4,
+      "judge": 3,
+      "gpt_judge": 4,
+      "gpt_judge_rationale": "The story is independent, valuable, small, and directly traceable to REQ-002. Its acceptance criteria are clear and testable for revocation and continued non-acceptability before expiry. It correctly avoids inventing details such as authorization rules, UI behavior, or account-creation handling (the latter belongs to REQ-003). A minor edit would clarify whether revocation is allowed only while unexpired and define the expected outcome if a coordinator attempts to revoke an already expired invitation.",
       "story": {
         "id": "S1",
         "title": "Revoke an unexpired invitation",
@@ -72,13 +75,15 @@
           ],
           "note": "Manual revocation of an unexpired invitation is explicitly not specified in the baseline and is identified as a potential future feature."
         }
-      ]
+      ],
+      "judge_rationale": "The story is partially testable but lacks sufficient detail for full implementation. The acceptance criteria are clear but could be expanded to include edge cases (e.g., what happens if the invitation is already accepted, or if the revocation is attempted after expiration). The requirement also notes that this feature is not in the baseline and may be a future feature, which introduces uncertainty about its priority and scope."
     },
     {
       "example_id": "03-sharing:S2",
-      "human": null,
-      "judge": 5,
-      "judge_rationale": "The story is focused and INVEST-aligned: it covers one clear revoked-invitation outcome for a defined user, has direct value, and is small and testable. Both acceptance criteria are deterministic and map exactly to REQ-003: rejection with a revoked explanation and no account creation. It does not invent requirements; the prerequisite ability to revoke is separately covered by REQ-002.",
+      "human": 4,
+      "judge": 4,
+      "gpt_judge": 5,
+      "gpt_judge_rationale": "The story is focused and INVEST-aligned: it covers one clear revoked-invitation outcome for a defined user, has direct value, and is small and testable. Both acceptance criteria are deterministic and map exactly to REQ-003: rejection with a revoked explanation and no account creation. It does not invent requirements; the prerequisite ability to revoke is separately covered by REQ-002.",
       "story": {
         "id": "S2",
         "title": "Reject acceptance of a revoked invitation",
@@ -108,13 +113,15 @@
           ],
           "note": "The invitation workflow defines handling for valid, expired, and used invitations but does not define revoked invitations or their acceptance response."
         }
-      ]
+      ],
+      "judge_rationale": "The story is well-structured with clear roles, goals, and acceptance criteria. The criteria are testable and cover both the rejection explanation and the prevention of account creation. The requirements are aligned and not overly invented. However, there is a small gap in the story's completeness (e.g., no mention of error messages or UI feedback beyond the explanation), which could be improved for full clarity."
     },
     {
       "example_id": "04-bookings:S1",
-      "human": null,
-      "judge": 3,
-      "judge_rationale": "The story is valuable and mostly testable: it identifies the member, item, interval, email channel, and portal-link content. However, it omits required related behavior: members must be able to unsubscribe (REQ-006), and it does not state that a notification does not create a reservation (REQ-005). More importantly, subscription expiry is explicitly undecided (REQ-007), leaving lifecycle behavior ambiguous. The criteria should also define what qualifies as availability within an interval and expected behavior for duplicate subscriptions or repeated availability events. No unsupported requirements should be added; the expiry rule needs stakeholder clarification.",
+      "human": 4,
+      "judge": 4,
+      "gpt_judge": 3,
+      "gpt_judge_rationale": "The story is valuable and mostly testable: it identifies the member, item, interval, email channel, and portal-link content. However, it omits required related behavior: members must be able to unsubscribe (REQ-006), and it does not state that a notification does not create a reservation (REQ-005). More importantly, subscription expiry is explicitly undecided (REQ-007), leaving lifecycle behavior ambiguous. The criteria should also define what qualifies as availability within an interval and expected behavior for duplicate subscriptions or repeated availability events. No unsupported requirements should be added; the expiry rule needs stakeholder clarification.",
       "story": {
         "id": "S1",
         "title": "Subscribe to item availability notifications",
@@ -159,13 +166,15 @@
           ],
           "note": "HD-NOTIFY defines email and portal links for existing reservation notifications, but not for availability notifications."
         }
-      ]
+      ],
+      "judge_rationale": "The story is well-structured with clear acceptance criteria and links to requirements. It includes sufficient context for testing and covers both subscription and notification aspects. However, some requirements (e.g., HD-BOOKING and HD-NOTIFY) are referenced but not fully defined in the provided data, which may affect testability if those specs are not available."
     },
     {
       "example_id": "04-bookings:S2",
-      "human": null,
+      "human": 4,
       "judge": 4,
-      "judge_rationale": "Focused, independent story with clear member value and two testable criteria: unsubscribing disables the subscription, and inactive subscriptions generate no availability email. It aligns with REQ-006 without expanding scope. Minor edits: \u201cmarks ... inactive\u201d assumes a particular internal state rather than specifying observable opt-out behavior, and the story does not state that a member may unsubscribe only their own subscription. These are small clarifications, not blockers.",
+      "gpt_judge": 4,
+      "gpt_judge_rationale": "Focused, independent story with clear member value and two testable criteria: unsubscribing disables the subscription, and inactive subscriptions generate no availability email. It aligns with REQ-006 without expanding scope. Minor edits: \u201cmarks ... inactive\u201d assumes a particular internal state rather than specifying observable opt-out behavior, and the story does not state that a member may unsubscribe only their own subscription. These are small clarifications, not blockers.",
       "story": {
         "id": "S2",
         "title": "Unsubscribe from availability notifications",
@@ -195,13 +204,15 @@
           ],
           "note": "HD-NOTIFY requires opt-out behavior to be identified for any new notification, but does not specify an unsubscribe mechanism for availability notices."
         }
-      ]
+      ],
+      "judge_rationale": "The story has clear acceptance criteria that are testable and specific. It includes a reference to a requirement, and the requirement itself is well-defined. However, it could be improved by adding more context or scenarios (e.g., what happens if a user tries to unsubscribe multiple times, or if the subscription is already inactive). No invented requirements are present."
     },
     {
       "example_id": "06-operations:S1",
-      "human": null,
-      "judge": 3,
-      "judge_rationale": "The story is valuable, small, and mostly testable: the criteria clearly cover availability visibility, exclusion of reservation/member data, and read-only behavior. However, it depends on a public status page whose creation is only stated in REQ-001, while the story traces only to REQ-002; REQ-001 is marked as conflicting with the baseline. The acceptance criteria also need a defined availability indicator/source and clearer verification scope for \u201cno action\u201d (for example, no state-changing UI controls or public API operations). Resolve the public-page conflict and link/clarify the enabling requirement before implementation.",
+      "human": 5,
+      "judge": 4,
+      "gpt_judge": 3,
+      "gpt_judge_rationale": "The story is valuable, small, and mostly testable: the criteria clearly cover availability visibility, exclusion of reservation/member data, and read-only behavior. However, it depends on a public status page whose creation is only stated in REQ-001, while the story traces only to REQ-002; REQ-001 is marked as conflicting with the baseline. The acceptance criteria also need a defined availability indicator/source and clearer verification scope for \u201cno action\u201d (for example, no state-changing UI controls or public API operations). Resolve the public-page conflict and link/clarify the enabling requirement before implementation.",
       "story": {
         "id": "S1",
         "title": "Restrict public status page content",
@@ -232,13 +243,15 @@
           ],
           "note": "Although the access rules limit anonymous visitors to sign-in and a generic cooperative description, they do not specify a public status page with these restricted contents."
         }
-      ]
+      ],
+      "judge_rationale": "The story is well-structured with clear roles, goals, and acceptance criteria. It includes a requirement reference and is testable. However, it could be improved by adding more specific examples or edge cases for the acceptance criteria."
     },
     {
       "example_id": "06-operations:S2",
-      "human": null,
-      "judge": 4,
-      "judge_rationale": "Aligned with REQ-005 and does not invent the separate weekend-prohibition behavior from REQ-004. The acceptance criterion is clear and testable, including timezone/day-boundary cases. Minor refinement: explicitly identify the scheduled timestamp and configured timezone source (and include a boundary example) to remove implementation ambiguity.",
+      "human": 3,
+      "judge": 3,
+      "gpt_judge": 4,
+      "gpt_judge_rationale": "Aligned with REQ-005 and does not invent the separate weekend-prohibition behavior from REQ-004. The acceptance criterion is clear and testable, including timezone/day-boundary cases. Minor refinement: explicitly identify the scheduled timestamp and configured timezone source (and include a boundary example) to remove implementation ambiguity.",
       "story": {
         "id": "S2",
         "title": "Use cooperative local timezone for weekend migration scheduling",
@@ -267,28 +280,146 @@
           ],
           "note": "The specification does not define any weekend migration restriction or timezone rule for scheduling schema migrations."
         }
-      ]
+      ],
+      "judge_rationale": "The story has a clear title, actor, intent, and outcome, and the acceptance criteria is testable. However, the requirement is not fully explained, and the note in the requirement indicates that the specification does not define any weekend migration restriction or timezone rule, which suggests the story may be based on an assumption or incomplete context. The acceptance criteria could be more explicit to ensure full testability."
     },
     {
-      "example_id": "pending-08",
-      "human": null,
-      "judge": null,
-      "story": null,
-      "requirements": []
+      "example_id": "01-exports:S-003",
+      "human": 2,
+      "judge": 4,
+      "story": {
+        "id": "S-003",
+        "title": "Display month-by-month reservation count grouped by reservation start month",
+        "as_a": "cooperative lead",
+        "i_want": "to see a month-by-month breakdown of reservations in the report, grouped by the start month of each reservation",
+        "so_that": "I can analyze reservation trends over time and make informed decisions",
+        "acceptance_criteria": [
+          "Given the report is generated, when the data is processed, then a table or chart displaying the count of reservations for each month, grouped by the start month of the reservation, is shown",
+          "Given the report includes historical data, when the start month is filtered to a specific year, then the reservation count is displayed only for that year",
+          "Given the report is viewed by a user with access to the report, when the month-by-month reservation count is requested, then the data is displayed without errors"
+        ],
+        "requirement_ids": [
+          "R-003"
+        ],
+        "idempotency_key": "0ba8259e885f1669df73c050bfa684dcc6d7100fa9b2470e67ffbd674911e6e7"
+      },
+      "requirements": [
+        {
+          "id": "R-003",
+          "text": "Add a month-by-month reservation count to the report, grouped by reservation start month.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Add a month-by-month reservation count to the report, grouped by reservation start month.",
+          "speaker": "Nora (cooperative lead)",
+          "status": "new",
+          "spec_refs": [
+            "HD-REPORTS"
+          ],
+          "note": "The requirement is new as HD-REPORTS does not mention adding a month-by-month reservation count to the report."
+        }
+      ],
+      "judge_rationale": "The story is well-structured with clear roles, goals, and acceptance criteria. The acceptance criteria are testable and cover key scenarios (displaying data, filtering by year, and ensuring correct display). The requirement is clearly defined and linked. No invented requirements are present."
     },
     {
-      "example_id": "pending-09",
-      "human": null,
-      "judge": null,
-      "story": null,
-      "requirements": []
+      "example_id": "05-usability:S1",
+      "human": 3,
+      "judge": 3,
+      "story": {
+        "id": "S1",
+        "title": "Member can save a personal catalogue filter preset with category only",
+        "as_a": "member",
+        "i_want": "to save a personal catalogue filter preset between visits",
+        "so_that": "I can quickly return to a specific category view without reselecting it each time",
+        "acceptance_criteria": [
+          "Given a member is viewing the catalogue, when they select a category and save the preset, then the preset is saved with only the category information",
+          "Given the member returns to the catalogue, when they load the saved preset, then the category is applied but the default alphabetical ordering is preserved"
+        ],
+        "requirement_ids": [
+          "REQ-002",
+          "REQ-003",
+          "REQ-004"
+        ],
+        "idempotency_key": "74b7af9bd0c30411e5a79c1dd409c0509e4b0da7aa17721e59169726662a78d7"
+      },
+      "requirements": [
+        {
+          "id": "REQ-002",
+          "text": "Each member should be able to save one personal catalogue filter preset between visits.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Let each member save one personal catalogue filter preset between visits.",
+          "speaker": "Owen (coordinator)",
+          "status": "new",
+          "spec_refs": [
+            "HD-CATALOGUE"
+          ],
+          "note": "The specification does not mention allowing members to save personal catalogue filter presets between visits."
+        },
+        {
+          "id": "REQ-003",
+          "text": "The saved preset should only include the category, not the selected dates.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "Save the category, not the selected dates.",
+          "speaker": "Owen (coordinator)",
+          "status": "new",
+          "spec_refs": [
+            "HD-CATALOGUE"
+          ],
+          "note": "The specification does not mention what specific details are saved in a personal catalogue filter preset."
+        },
+        {
+          "id": "REQ-004",
+          "text": "Loading a saved category should not replace the default alphabetical ordering.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "No. Load the saved category when I return, keep alphabetical ordering, and let me clear the preset.",
+          "speaker": "Owen (coordinator)",
+          "status": "new",
+          "spec_refs": [
+            "HD-CATALOGUE"
+          ],
+          "note": "The specification does not mention whether the default alphabetical ordering is preserved when loading a saved category."
+        }
+      ],
+      "judge_rationale": "The story has clear user roles, goals, and acceptance criteria, but the requirements are not well-aligned with the story. The acceptance criteria are testable, but the requirement IDs reference requirements that are not clearly defined in the story (they are marked as 'new' and the spec_refs do not provide enough context). Additionally, the story assumes functionality that is not explicitly covered in the specifications, which makes it less testable and potentially reliant on invented requirements."
     },
     {
-      "example_id": "pending-10",
-      "human": null,
-      "judge": null,
-      "story": null,
-      "requirements": []
+      "example_id": "05-usability:S2",
+      "human": 4,
+      "judge": 3,
+      "story": {
+        "id": "S2",
+        "title": "Member can clear a saved personal catalogue filter preset",
+        "as_a": "member",
+        "i_want": "to clear a saved personal catalogue filter preset",
+        "so_that": "I can remove the preset when it is no longer needed",
+        "acceptance_criteria": [
+          "Given a member has a saved preset, when they click the 'clear' control, then the preset is removed from their account"
+        ],
+        "requirement_ids": [
+          "REQ-005"
+        ],
+        "idempotency_key": "dca0215c1d195de2517f3e7189c53979a4e21f7af298db57a7d0e946e84b9b6a"
+      },
+      "requirements": [
+        {
+          "id": "REQ-005",
+          "text": "A clear save and clear control should be provided for the preset.",
+          "type": "functional",
+          "priority": "must",
+          "quote": "And do not build a whole design system for the saved preset. A clear save and clear control is enough.",
+          "speaker": "Owen (coordinator)",
+          "status": "new",
+          "spec_refs": [
+            "HD-USABILITY"
+          ],
+          "note": "The specification does not mention providing a clear save and clear control for a personal filter preset."
+        }
+      ],
+      "judge_rationale": "The story has a clear user persona, goal, and basic acceptance criteria. However, the acceptance criteria are not fully testable as they lack details on how the 'clear' control is implemented or how the removal is verified. Also, the requirement references a quote that may not fully align with the acceptance criteria, and the note indicates a potential discrepancy in the specification. Edits are needed to improve clarity and testability."
     }
-  ]
+  ],
+  "judge_model": "qwen3:14b",
+  "human_provenance": "Scores 1-10 were adopted by the user after reviewing an AI reviewer's scores and reasons; they are not blind human ratings."
 }
