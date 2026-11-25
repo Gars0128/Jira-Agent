@@ -28,6 +28,13 @@ type Phase =
   | { kind: "done"; run: Run }
   | { kind: "error"; message: string; run?: Run };
 
+// Scrolling follows CSS (smooth unless reduced motion); focus tells keyboard and
+// screen-reader users where the new content is after the button they used goes away.
+function revealResults() {
+  document.getElementById("results")?.scrollIntoView({ block: "start" });
+  document.getElementById("results-heading")?.focus({ preventScroll: true });
+}
+
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
@@ -124,13 +131,13 @@ export default function Home() {
   useEffect(() => {
     if (!runId || !followNewRun.current) return;
     followNewRun.current = false;
-    document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    revealResults();
   }, [runId]);
 
   useEffect(() => {
     if (run?.status !== "awaiting_review" || revealedRun.current === run.run_id) return;
     revealedRun.current = run.run_id;
-    document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    revealResults();
   }, [run?.status, run?.run_id]);
 
   async function startRun() {
@@ -154,7 +161,7 @@ export default function Home() {
       if (current.jira_dry_run !== capabilities.jira_dry_run) throw new Error("Jira mode changed. Reload the page and review the current mode before approving.");
       const result = await request<Run>(`/runs/${reviewed.run_id}/approve`, { method: "POST", body: JSON.stringify({ stories }) });
       setStories(result.stories); setPhase({ kind: "done", run: result });
-      document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      revealResults();
     } catch (reason) { setPhase({ kind: "review", run: reviewed }); setNotice(reason instanceof Error ? reason.message : "Approval failed. Your edits are still here."); }
   }
 
@@ -188,12 +195,11 @@ export default function Home() {
         <span className={`mode-pill ${capabilities?.jira_dry_run === false ? "live" : ""}`} title="Nothing reaches Jira until you approve"><i />{!capabilities ? "Checking mode…" : capabilities.replay ? "Recorded demo" : dryRun ? "Preview · dry run" : "Live Jira"}</span>
       </header>
       <main id="main">
-        <div className="page-heading"><div><h1>From conversation<br className="mobile-break" /> to clarity<span>.</span></h1><p>Paste a client call. Get Jira tickets backed by the client’s own words.</p></div></div>
-        <ol className="how-it-works reveal-list" aria-label="How it works">
-          <li><span>1</span><div><strong>Pick a call</strong>Use a sample or paste your own.</div></li>
-          <li><span>2</span><div><strong>The agent reads it</strong>Keeps real requests, drops small talk.</div></li>
-          <li><span>3</span><div><strong>You approve</strong>Edit the tickets, then send them to Jira.</div></li>
-        </ol>
+        <div className="page-heading"><div>
+          <h1>Nothing from the call<br className="mobile-break" /> gets lost<span>.</span></h1>
+          <p className="problem">After a client call, requests slip through the cracks, and changes to what was already agreed sneak into the backlog as ordinary work.</p>
+          <p>Tiro finds every request with the client’s exact words, checks it against the spec and drafts Jira tickets. Nothing is sent until you approve.</p>
+        </div></div>
 
         {notice && <div className="error-banner" role="alert"><span>{notice}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss error">×</button></div>}
         {phase.kind === "error" && !phase.run && <div className="error-banner" role="alert"><span>{phase.message}</span><button type="button" onClick={() => setPhase({ kind: "idle" })} aria-label="Dismiss error">×</button></div>}
@@ -203,15 +209,17 @@ export default function Home() {
             <div className="panel-heading"><div><span className="section-number">01</span><h2 id="source-heading">Start with a conversation</h2></div><span className="tag">SOURCE</span></div>
             <div className="input-body">
               <div className="source-selectors"><label>Project<select value={projectId} disabled={loading || active} onChange={(event) => { const project = projects.find((item) => item.id === event.target.value); setProjectId(event.target.value); setPresetId(project?.transcripts[0]?.id ?? ""); setTranscript(project?.transcripts[0]?.text ?? ""); }}>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
-              <label>Conversation<select value={presetId} disabled={loading || active} onChange={(event) => { const preset = currentProject?.transcripts.find((item) => item.id === event.target.value); setPresetId(event.target.value); if (preset) setTranscript(preset.text); }}><option value="">✎ Write your own</option>{currentProject?.transcripts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
+              <label>Conversation<select value={presetId} disabled={loading || active} onChange={(event) => { const preset = currentProject?.transcripts.find((item) => item.id === event.target.value); setPresetId(event.target.value); if (preset) setTranscript(preset.text); }}>{!capabilities?.replay && <option value="">✎ Write your own</option>}{currentProject?.transcripts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
               {capabilities?.replay && <p className="mode-hint"><strong>Recorded demo.</strong> This hosted version replays real runs of seven sample calls. Clone the repo to analyze your own calls.</p>}
               {currentProject?.spec === true && !capabilities?.replay && <p className="mode-hint"><strong>With a spec.</strong> The spec is what the client already agreed to. Tiro checks every request against it and flags anything new, repeated or contradictory.</p>}
               {currentProject?.spec === false && <p className="mode-hint"><strong>Any conversation.</strong> Paste a call, get clean stories. Without a spec, conflicts aren’t checked.</p>}
               <div className="transcript-label"><label htmlFor="transcript">Transcript</label><span>Fictional data only</span></div>
-              <textarea id="transcript" className="transcript" value={transcript} maxLength={20000} disabled={active} placeholder={loading ? "Loading your workspace…" : "Paste a fictional client conversation here. Include speaker names and the original wording."} onChange={(event) => { setTranscript(event.target.value); setPresetId(""); }} />
+              <textarea id="transcript" className="transcript" value={transcript} maxLength={20000} disabled={active} readOnly={capabilities?.replay === true} placeholder={loading ? "Loading your workspace…" : "Paste a fictional client conversation here. Include speaker names and the original wording."} onChange={(event) => { setTranscript(event.target.value); setPresetId(""); }} />
               <div className="input-footer"><span>{transcript.length.toLocaleString()} / 20,000 characters</span><span>Quotes stay verbatim <span aria-hidden="true">↳</span></span></div>
+              <div className="run-actions">
               <button type="button" className="primary-button run-button" disabled={loading || active || approving || !projectId || !transcript.trim()} onClick={() => void startRun()}>{active ? <><span className="spinner" /> Analyzing conversation</> : <>Run discovery <Arrow /></>}</button>
               <p className="under-button">Nothing is sent to Jira until you review and approve.</p>
+              </div>
             </div>
           </section>
 
@@ -235,7 +243,7 @@ export default function Home() {
         </div>
 
         {showResults && <section className="results-section" id="results" aria-labelledby="results-heading" aria-busy={active}>
-          <div className="results-heading"><h2 id="results-heading">{heading}</h2></div>
+          <div className="results-heading"><h2 id="results-heading" tabIndex={-1}>{heading}</h2></div>
           <p className="results-summary" aria-live="polite">{active || (!review && !completed) ? stage : completed ? (!cards.length ? "Nothing was sent to Jira." : run?.tickets?.every((ticket) => ticket.dry_run) ? "Preview mode: this is exactly what Jira would receive. Nothing was sent." : "Your tickets are in Jira.") : `${plural(requirements.length, "request", "requests")} found in the call. Edit anything, then approve.`}</p>
           {!!skipped.length && (review || completed) && <details className="skipped"><summary>{plural(skipped.length, "request was", "requests were")} already in the spec, so no ticket</summary><ul>{skipped.map((item) => <li key={item.id}>{item.text} <cite>“{item.quote}”</cite></li>)}</ul></details>}
           {!!cards.length && <TicketBoard cards={cards} creating={approving} live={!dryRun} onOpen={(index) => { setOpenCard(index); dialog.current?.showModal(); }} />}

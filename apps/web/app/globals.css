@@ -89,10 +89,6 @@ h1 > span { color: var(--orange); }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation: none !important; transition: none !important; } }
 
 /* Orientation, summary and ticket preview */
-.how-it-works { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; list-style: none; padding: 0; margin: -10px 0 30px; }
-.how-it-works li { display: flex; gap: 12px; align-items: flex-start; padding: 15px 16px; background: #fff; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; line-height: 1.6; color: var(--muted); }
-.how-it-works li > span { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: #fff1e9; color: var(--orange); font-size: 11px; font-weight: 700; }
-.how-it-works strong { display: block; color: var(--ink); font-size: 13px; font-weight: 600; margin-bottom: 2px; }
 .progress-track { height: 3px; margin: 0 23px 14px; background: #eef1eb; border-radius: 3px; overflow: hidden; }
 .progress-track span { display: block; height: 100%; background: linear-gradient(90deg, #3f8961, var(--orange)); border-radius: 3px; transition: width .7s cubic-bezier(.2,.7,.2,1); }
 
@@ -104,13 +100,10 @@ h1 > span { color: var(--orange); }
 @keyframes shimmer { from { background-position: -400px 0; } to { background-position: 400px 0; } }
 .page-heading, .studio-grid > * { animation: rise .6s cubic-bezier(.2,.7,.2,1) both; }
 .studio-grid > :nth-child(2) { animation-delay: .08s; }
-.reveal-list > * { animation: rise .5s cubic-bezier(.2,.7,.2,1) both; }
-.reveal-list > :nth-child(2) { animation-delay: .06s; } .reveal-list > :nth-child(3) { animation-delay: .12s; } .reveal-list > :nth-child(4) { animation-delay: .18s; } .reveal-list > :nth-child(5) { animation-delay: .24s; } .reveal-list > :nth-child(n+6) { animation-delay: .3s; }
 .fade-in { animation: fade .35s ease both; }
 .step-done .step-icon { animation: pop .4s cubic-bezier(.2,.7,.2,1) both; }
 .step-icon, .step-done strong, .step-current strong { transition: background .3s, color .3s, border-color .3s; }
 .story-card { transition: border-color .2s, box-shadow .2s, transform .2s; }
-@media (max-width: 920px) { .how-it-works { grid-template-columns: 1fr; } }
 .mode-hint { margin: 16px 0 0; padding: 12px 14px; border-radius: 8px; background: #f2f6ee; border: 1px solid #e0e8d9; color: #5f6f5a; font-size: 12px; line-height: 1.6; animation: fade .35s ease both; }
 .mode-hint strong { color: #3f5a3a; }
 
@@ -125,7 +118,6 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, 
 .panel { transition: box-shadow .3s; } .panel:hover { box-shadow: 0 10px 30px #14242b0d; }
 input, textarea, select { transition: border-color .2s, box-shadow .2s; }
 input:focus, textarea:focus, select:focus { border-color: var(--orange); box-shadow: 0 0 0 3px #f06a3c33; }
-.how-it-works li { transition: transform .2s, box-shadow .2s; } .how-it-works li:hover { transform: translateY(-2px); box-shadow: 0 8px 20px #14242b0f; }
 
 /* ===== Redesign: light, airy, product-grade ===== */
 :root { --ink: #0f1419; --muted: #6b7280; --paper: #f7f7f5; --line: #e8e8e4; --orange: #f06a3c; --navy: #0f1419; --card: #ffffff; --soft: 0 1px 2px #0f14190a, 0 12px 40px #0f14190d; }
@@ -147,9 +139,6 @@ main { max-width: 1200px; padding: 64px 24px 0; }
 .page-heading { margin-bottom: 36px; }
 h1 { font-size: clamp(38px, 5vw, 64px); font-weight: 650; letter-spacing: -.045em; line-height: 1.02; margin: 20px 0 14px; }
 .page-heading p { font-size: 17px; color: var(--muted); letter-spacing: -.01em; }
-.how-it-works { gap: 12px; margin: 0 0 36px; }
-.how-it-works li { border: 0; border-radius: 16px; background: #ffffffa8; box-shadow: 0 0 0 1px #0f14190d; padding: 16px 18px; font-size: 13px; }
-.how-it-works li > span { background: var(--ink); color: #fff; width: 26px; height: 26px; font-size: 12px; }
 .studio-grid { gap: 20px; }
 .panel { border: 0; border-radius: 20px; background: var(--card); box-shadow: 0 0 0 1px #0f14190d, var(--soft); }
 .panel-heading { padding: 20px 24px; border-bottom: 1px solid #0f14190a; }
@@ -224,3 +213,18 @@ input, textarea, select { border-radius: 12px; border-color: #0f141914; backgrou
 .editor-field small { font-weight: 400; color: #5f6862; }
 .editor-field input, .editor-field textarea { width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #d0d4d9; border-radius: 8px; background: #fff; font: inherit; font-size: 14px; line-height: 1.5; color: var(--ink); resize: vertical; }
 .editor-field input:disabled, .editor-field textarea:disabled { background: #f7f8f9; color: #3f4842; }
+
+/* Hero: the problem first, then what Tiro does about it. */
+.page-heading p { max-width: 720px; line-height: 1.55; }
+.page-heading p.problem { color: var(--ink); margin-bottom: 8px; }
+/* Long summaries stay two lines on the board; the dialog shows the full title. */
+.jira-summary { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* The approve action stays in reach while the reviewer scrolls the board. */
+.approval-bar { position: sticky; bottom: 16px; z-index: 10; box-shadow: 0 12px 32px #0f141933; animation: rise .35s cubic-bezier(.2,.7,.2,1) both; }
+#results-heading:focus { outline: none; }
+#results-heading:focus-visible { outline: 2px solid var(--orange); outline-offset: 6px; border-radius: 4px; }
+.transcript[readonly] { cursor: default; }
+/* The run action stays on screen while the transcript is in view, then settles in place.
+   clip (not hidden) keeps the rounded corners without breaking position: sticky. */
+.input-panel { overflow: clip; }
+.run-actions { position: sticky; bottom: 0; z-index: 2; margin: 0 -24px -24px; padding: 18px 24px 16px; background: linear-gradient(to bottom, #ffffff00, var(--card) 22px); }
