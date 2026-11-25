@@ -2,11 +2,14 @@
 
 Read this file in full before each task, then the [plan](docs/plan.md), [development lessons](docs/lessons.md), and relevant sections of the [specification](docs/spec.md). README is the human entry point; this file contains shared agent instructions.
 
+Mistakes are blocked by structure first and prose last: (1) architecture and types, (2) lint, `tsc`, tests, CI and the Claude Code hooks in `.claude/`, (3) verification in the running app, (4) this file and skills, (5) human review. Put each lesson in the highest layer that can hold it.
+
 ## Working together
 
 - Keep repository documentation, API names, classes, and fields in English. Discuss the work and report to the user in Russian.
 - Work only on the agreed phase or explicitly authorized batch. A request to start a phase authorizes its implementation and necessary checks.
-- Before editing, briefly explain the goal, scope, and verification. Read the affected files and their callers.
+- Before editing, briefly explain the goal, scope, data shape, and verification. Read the affected files, their callers, and `git log` for why they are the way they are.
+- When an experiment can settle a design question, build a quick throwaway prototype instead of debating it.
 - Make the smallest complete change. Do not add dependencies, abstractions, or features for hypothetical future use.
 - Run appropriate checks after implementation. Fix failures and rerun affected checks; report environment limitations explicitly.
 - Finish with changed files, actual commands and results, manual verification steps, and remaining limitations.
@@ -33,9 +36,19 @@ Read this file in full before each task, then the [plan](docs/plan.md), [develop
 - Check grounding in code: discard empty quotes and quotes absent from the transcript after whitespace/case normalization. Preserve the original quote text.
 - Write to Jira only from `create_tickets`, after `human_review` and an Approve request. Default `JIRA_DRY_RUN=true`; the public demo always uses dry-run.
 - Check idempotency before Jira creation; retry 429/5xx with exponential backoff, at most three retries. See the specification for the contract.
-- Run evals before merging prompt or model changes. Until an eval runner exists, state that model quality has not been measured.
+- Run evals before merging prompt or model changes.
 - Record non-obvious choices in [docs/decisions.md](docs/decisions.md).
-- After a recurring or non-obvious defect, fix the shared cause and add a behavioral regression check first; record cause, fix, check and limit in [development lessons](docs/lessons.md). Never record secrets. Harness guidance does not write memory automatically.
+- Bugs: reproduce first, commit the failing check, then the fix. Fix the root cause; never silence a symptom with `setTimeout`, extra null checks, `!`, `?? ''` or a broad `try/except`.
+- Follow the one existing path for each pattern instead of adding a second. Delete dead code you touch. Comment only a non-obvious why.
+- When a mistake repeats, add the strongest mechanism, in this order: a type that makes it impossible, a lint rule whose message says what to do instead, a shared helper, a runtime check. Write prose in [development lessons](docs/lessons.md) only for what needs judgment, with an example of the failure. Never record secrets.
+
+## Definition of done
+
+- Lint, `tsc --noEmit` and tests pass (the Stop hook runs them).
+- Verified in the running app, with evidence in the reply: a screenshot, a recording, or command output. If it could not be verified, say "inconclusive", not "done".
+- One task is one small commit or PR. A PR says why, scope, blast radius, and verification.
+- The agent that wrote a change does not review it; use a separate session or another model.
+- Always ask first: force push, deleting branches or data, deploys, and anything sent to other people.
 
 ## Using skills
 
