@@ -4,16 +4,9 @@
 
 # Tiro
 
-**From a messy client call to reviewed Jira stories, with every requirement backed by the client's own words.**
+**From a messy client call to reviewed Jira tickets, with every requirement backed by the client's own words.**
 
-[**▶ Live demo**](https://tiro-six-theta.vercel.app) · [How it works](#how-it-works) · [Results](#results) · [Run it locally](#run-it-locally) · [Case study](docs/case-study.md)
-
-![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
-![LangGraph](https://img.shields.io/badge/LangGraph-human--in--the--loop-1C3C3C)
-![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
-![pgvector](https://img.shields.io/badge/Neon-pgvector-00E599?logo=postgresql&logoColor=white)
-![Jira](https://img.shields.io/badge/Jira-Cloud%20REST%20v3-0052CC?logo=jira&logoColor=white)
+[**▶ Live demo**](https://tiro-six-theta.vercel.app) · [How trust is built](#how-trust-is-built) · [Results](#results) · [Try the demo locally](#try-the-demo-locally-no-keys-no-backend) · [Case study](docs/case-study.md)
 
 <img src="docs/demo/tiro-demo.gif" width="800" alt="Tiro reads a client call, turns it into a Jira board of tickets to build, decisions and questions for the client, lets a person edit a ticket, and shows what Jira would receive" />
 
@@ -21,24 +14,49 @@
 
 *Named after Marcus Tullius Tiro, Cicero's secretary, who invented shorthand to write speech down word for word.*
 
-## Why I built it
+## Problem
 
-After a discovery call someone has to sort real requests from small talk, check them against what was already agreed, and turn them into tickets. People skip steps: a "can we also…" gets lost, or a change that breaks the spec slips into the backlog as if it were new work.
+After every client call, someone has to turn notes into a backlog: separating real requests from small talk, checking them against what was already agreed, and writing tickets. Under time pressure, steps get skipped. A "can we also…" never reaches the team, or a request that contradicts the signed-off scope slips into the backlog as ordinary new work, and the cost shows up weeks later as rework or a dispute with the client.
 
-Tiro does that groundwork and leaves the decision to a person:
+## What it does
 
-- **Every requirement carries a verbatim quote and a speaker.** If the quote isn't in the transcript, code drops the requirement. The prompt is not trusted to do this.
-- **Each request is checked against the project spec** and marked *new*, *already in spec*, *conflicts with spec* or *needs clarification*, with the spec section it relied on.
-- **Stories come with Given/When/Then criteria.** A critic gets one chance to send them back.
-- **The PM gets the rest as tasks too.** A conflict with the spec becomes a *Decide* task, an unclear request an *Ask the client* task, each with the quote and the reason.
-- **Nothing reaches Jira until a person edits and approves.** The run pauses and survives an API restart while it waits.
-- **Jira writes are idempotent.** A retried approval or a timeout never creates a second ticket.
+Tiro reads the call transcript and prepares that backlog for a person to approve. It lists each request with the exact words the client used, checks it against the project specification, and drafts tickets with acceptance criteria. Requests that clash with the agreed scope become *Decide* tasks for the project manager, and vague ones become *Ask the client* tasks. Nothing goes to Jira until a person has reviewed, edited and approved it.
+
+```mermaid
+flowchart LR
+    A[Call transcript] --> B[Requirements<br/>each with a verbatim quote]
+    B --> C[Check against the spec<br/>RAG: new · already agreed · conflict · unclear]
+    C --> D[Draft tickets<br/>stories + Decide / Ask tasks]
+    D --> E{Person reviews,<br/>edits, approves}
+    E --> F[Jira]
+```
 
 | Pick a call | See why a ticket exists | Approve and hand off |
 |---|---|---|
 | ![Studio](docs/demo/tiro-studio.png) | ![A decision ticket with the client's words and the spec rule it conflicts with](docs/demo/tiro-evidence.png) | ![Jira board with tickets to build, decisions and client questions](docs/demo/tiro-jira.png) |
 
-> The hosted demo replays seven real recorded runs: no backend, no model calls, nothing sent to Jira. A public backend that calls a paid model needs abuse protection I haven't built, so to analyze your own text, run it locally.
+> The hosted demo replays seven real recorded runs: no backend, no model calls, nothing sent to Jira. To analyze your own text, run it locally.
+
+## How trust is built
+
+An AI that writes into someone else's backlog has to be checkable. Each safeguard below is enforced by code, not by asking the model nicely.
+
+- **Every requirement is tied to a quote.** Each one carries the client's verbatim words and the speaker. If the quote cannot be found in the transcript, code drops the requirement: the model can rephrase, but it cannot invent evidence.
+- **Conflicts and gaps go to a person, not into the backlog.** A request that contradicts the spec becomes a *Decide* task showing the quote and the spec rule it breaks. A vague one becomes an *Ask the client* task. The model flags scope questions; a person settles them.
+- **A person approves before anything is written.** The run pauses for review and survives a server restart while it waits. The reviewer can edit any ticket; the server re-validates the edits.
+- **No duplicate tickets.** Before calling Jira, Tiro records its intent in a ledger. A retried approval or a network timeout cannot create a second ticket; an unclear outcome blocks retries until someone checks Jira.
+- **Quality is measured, not assumed.** A hand-labelled set of 12 cases is run before prompt or model changes and scores recall, precision, spec conflicts and quote grounding, plus 5 prompt-injection attacks. The numbers, including the weak ones, are [below](#results).
+- **Failures are safe.** Every model call has a per-run ($0.30) and daily ($1) budget. One bad answer becomes "unclear" for a person instead of failing the run. Error messages and logs never contain keys or transcript text, only the error type. The public demo can never write to Jira.
+
+## How I build with AI agents
+
+Tiro was built with AI coding agents (Claude Code and Codex). Telling an agent to be careful doesn't work, so mistakes are blocked by the strongest layer that can hold them:
+
+1. **Types and architecture:** strict TypeScript ([tsconfig](apps/web/tsconfig.json)), Pydantic contracts, and a UI state that cannot represent impossible combinations.
+2. **Automatic checks:** lint rules that say what to do instead ([ESLint](apps/web/eslint.config.mjs), [ruff](apps/api/pyproject.toml)), tests and [CI](.github/workflows/api.yml). Claude Code [hooks](.claude/settings.json) lint every edited file and run types and tests before the agent may finish ([lint-file](.claude/hooks/lint-file.mjs), [check-all](.claude/hooks/check-all.mjs)); each block is logged to measure what they catch.
+3. **Verification in the running app:** "done" needs evidence (command output or a screenshot), otherwise the agent says "inconclusive".
+4. **Written rules:** [AGENTS.md](AGENTS.md) for what needs judgment, shared by both agents.
+5. **Human review:** the agent that wrote a change does not review it.
 
 ## How it works
 
@@ -128,7 +146,7 @@ What these numbers don't say:
 | Prompt injection | 5 attack transcripts. An attack counts as a success only if its payload reaches a ticket or flips a labelled status. |
 | LLM judge | Checked against 10 reviewer scores: MAE 0.5, weighted kappa 0.19, so its score is not used as a quality claim. |
 
-**Software: 154 API checks, 9 web unit tests, 5 browser flows**
+**Software: 158 API tests (4 need a test database), 8 web unit tests, 5 browser flows**
 
 | Area | What is covered |
 |---|---|
@@ -150,6 +168,20 @@ CI ([api.yml](.github/workflows/api.yml)) runs lint, types, unit tests and the b
 5. **Human approval is mandatory.** Writing to someone else's system and deciding a spec conflict are business calls. A path to autonomy would be to auto-approve *new* and *duplicate* once approvals-without-edits stay high, while keeping conflicts with a person.
 
 More in the [decision log](docs/decisions.md).
+
+## Try the demo locally (no keys, no backend)
+
+The same recorded replay as the hosted demo. You need [Node 24](https://nodejs.org) and nothing else: no database, no API key, no model.
+
+```powershell
+git clone https://github.com/Gars0128/Jira-Agent.git
+cd Jira-Agent/apps/web
+npm ci
+$env:DEMO_REPLAY = "true"   # bash: export DEMO_REPLAY=true
+npm run dev
+```
+
+Open <http://localhost:3000>, pick a call, press **Run discovery**, wait about ten seconds for the review, then **Create … tickets (preview)**. You see what Jira would receive; nothing is sent anywhere.
 
 ## Run it locally
 
@@ -191,12 +223,22 @@ uv run --env-file ../../.env --env-file ../../.env.ollama uvicorn app.main:app -
 
 **Evals:** `uv run --env-file ../../.env --env-file ../../.env.ollama python ../../evals/run_evals.py --mode full`. Add `--spec-context all|none` for the long-context and no-spec baselines, or `--cases-dir ../../evals/attacks` for the injection set.
 
-## Limits
+## Limitations
 
-- One fictional project; there's no spec upload in the UI.
-- No live public backend. Docker and Render configs exist but aren't deployed.
-- Real Jira writes were verified once against a test project. Reconciling an ambiguous 5xx is a manual step.
-- English transcripts only; no audio.
+This is a portfolio project, not a product in production. Be clear about what that means:
+
+- **Not deployed with a live backend.** The public site replays recorded runs. A public backend that calls a paid model needs sign-in and abuse protection, which I haven't built.
+- **Tested on fictional data only.** One fictional project, 12 hand-labelled cases that I labelled myself. The numbers are a regression baseline, not proof that it works on your calls.
+- **Accuracy is good, not great.** About three in four real requests are found, and roughly one in three suggested requirements is a near-duplicate a person has to merge. That is why approval is mandatory.
+- **Narrow input.** English text transcripts only; no audio, no spec upload in the UI.
+- **Jira was written to for real only in a test project.** If Jira answers ambiguously, a person has to check it before retrying.
+
+What I would do next, in order:
+
+1. Run it on a few anonymized real calls with the people who write the tickets today, and measure time saved and how many tickets they edit or reject.
+2. Grow the labelled set from those calls and fix the precision problem (merging near-duplicate requirements).
+3. Add sign-in, per-team budgets and spec upload, then deploy a real backend.
+4. Only then consider auto-approving the safe cases (*new* and *already agreed*) while keeping conflicts with a person.
 
 ## Docs
 
