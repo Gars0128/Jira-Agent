@@ -263,4 +263,4 @@ regressions. More instructions alone do not prevent a broken implementation.
 
 **Why:** xAI's constrained decoder matches a JSON Schema pattern against the whole string, so `\S` allowed exactly one character and Grok returned `"a"` for every text field. The anchored pattern means the same to unanchored validators. Separate embedding settings let chat run on a hosted provider while vectors and the 0.58 matching threshold stay with the local embedding model.
 
-**Measured:** `grok-4.20-0309-non-reasoning`, 12 cases, one run, $0.088: precision 0.81, recall 0.69, conflict F1 0.91, status accuracy 0.95, p95 17 s. The grounding check also accepted the one-letter quote `"a"` as a substring of the transcript; that hole is still open.
+**Measured:** `grok-4.20-0309-non-reasoning`, 12 cases, one run, $0.088: precision 0.81, recall 0.69, conflict F1 0.91, status accuracy 0.95, p95 17 s. The grounding check also accepted the one-letter quote `"a"` as a substring of the transcript. Fixed 2026-11-26: a quote must be at least two whole words; all 76 gold and recorded quotes still pass.
