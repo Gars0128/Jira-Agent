@@ -11,5 +11,14 @@ export default defineConfig([
       "@typescript-eslint/no-non-null-assertion": "error",
     },
   },
+  {
+    files: ["app/**/*.tsx"],
+    rules: {
+      "no-restricted-syntax": ["error", {
+        selector: "CallExpression[callee.name='setTimeout'], CallExpression[callee.property.name='setTimeout']",
+        message: "Don't wait for React with setTimeout. Do the work in a useEffect that depends on the state that makes it possible (e.g. the element now rendered).",
+      }],
+    },
+  },
   globalIgnores([".next/**", "next-env.d.ts"]),
 ]);

@@ -43,6 +43,7 @@ export default function Home() {
   const dialog = useRef<HTMLDialogElement>(null);
   const [openCard, setOpenCard] = useState<number | null>(null);
   const revealedRun = useRef<string | null>(null);
+  const followNewRun = useRef(false);
   const runRequest = useRef<AbortController | null>(null);
   const currentProject = projects.find((project) => project.id === projectId);
   const run = "run" in phase ? phase.run ?? null : null;
@@ -119,6 +120,13 @@ export default function Home() {
     return () => { stopped = true; controller.abort(); source.close(); window.clearInterval(timer); };
   }, [runId]);
 
+  // Follow a run started here (not one restored from the URL): the results section renders with its runId.
+  useEffect(() => {
+    if (!runId || !followNewRun.current) return;
+    followNewRun.current = false;
+    document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [runId]);
+
   useEffect(() => {
     if (run?.status !== "awaiting_review" || revealedRun.current === run.run_id) return;
     revealedRun.current = run.run_id;
@@ -131,8 +139,7 @@ export default function Home() {
       const result = await request<{ run_id: string }>("/runs", { method: "POST", body: JSON.stringify({ project_id: projectId, transcript, ...(presetId ? { preset_id: presetId } : {}) }) });
       setPhase({ kind: "running", runId: result.run_id, run: null });
       window.history.replaceState(null, "", `?run=${encodeURIComponent(result.run_id)}`);
-      // Follow the work: the board below shows each stage as it happens.
-      window.setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+      followNewRun.current = true;
     } catch (reason) { setPhase({ kind: "idle" }); setNotice(reason instanceof Error ? reason.message : "Could not start the run."); }
   }
 
