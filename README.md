@@ -60,7 +60,7 @@ Tiro was built with AI coding agents (Claude Code and Codex). Telling an agent t
 4. **Written rules:** [AGENTS.md](AGENTS.md) for what needs judgment, shared by both agents.
 5. **Human review:** the agent that wrote a change does not review it.
 
-What happens to one change an agent makes. Every red arrow is caught automatically and sent back to the agent before a person sees anything; each block is logged to `.claude/metrics.jsonl`.
+What happens to one change an agent makes. Red arrows send the work back to the agent. The first two are automatic and fire before a person sees anything; each of those blocks is logged to `.claude/metrics.jsonl`.
 
 ```mermaid
 flowchart LR
