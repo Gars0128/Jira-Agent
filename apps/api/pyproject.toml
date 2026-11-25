@@ -32,4 +32,8 @@ pythonpath = ["."]
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+select = ["E", "F", "I", "B", "RUF100"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI resolves these defaults per request; they are not shared mutable state.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]

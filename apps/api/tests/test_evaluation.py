@@ -9,14 +9,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "evals"))
 
-import run_evals  # noqa: E402
-from quality import (  # noqa: E402
+import run_evals
+from quality import (
     MATCH_THRESHOLD,
     check_thresholds,
     match_requirements,
     percentile95,
 )
-from sync_dataset import dataset_examples  # noqa: E402
+from sync_dataset import dataset_examples
 
 
 def test_matching_is_one_to_one_and_takes_most_similar_pairs_first():

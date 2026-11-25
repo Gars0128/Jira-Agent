@@ -12,7 +12,7 @@ from openai import OpenAI
 
 from app.config import Settings
 from app.extract import run_extraction
-from app.graph.graph import build_graph, classify_requirements
+from app.graph.graph import build_graph, classify_requirements, retrieve_spec_chunks
 from app.llm import LLMError, LLMHelper
 from app.rag.chunking import chunk_spec
 from app.rag.ingest import ingest
@@ -322,3 +322,10 @@ def test_graph_without_specification_classifies_with_no_excerpts(
     assert result["retrieved"] == {"R1": []}
     sent = json.loads(requests[1]["messages"][1]["content"])
     assert sent["spec_excerpts"] == {}
+
+
+def test_retrieval_refuses_fewer_results_than_requirements() -> None:
+    items = [requirement("R1", "Export"), requirement("R2", "Alerts")]
+    # A search that drops one result must not silently leave R2 without context.
+    with pytest.raises(ValueError):
+        retrieve_spec_chunks(lambda queries: [[chunk("HD-EXPORT")]], items)

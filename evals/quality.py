@@ -10,7 +10,7 @@ def cosine_similarity(left: Sequence[float], right: Sequence[float]) -> float:
     if not all(math.isfinite(value) for value in (*left, *right)):
         raise ValueError("Embeddings must contain finite numbers")
     norm = math.hypot(*left) * math.hypot(*right)
-    return sum(a * b for a, b in zip(left, right)) / norm if norm else 0.0
+    return sum(a * b for a, b in zip(left, right, strict=True)) / norm if norm else 0.0
 
 
 # Calibrated for embeddinggemma:300m on hand-checked pairs; recalibrate per model.

@@ -56,7 +56,7 @@ def retrieve_spec_chunks(
     search: Search, requirements: list[Requirement]
 ) -> dict[str, list[RetrievedChunk]]:
     results = search([f"{item.text}\n{item.quote}" for item in requirements])
-    return {item.id: chunks for item, chunks in zip(requirements, results)}
+    return {item.id: chunks for item, chunks in zip(requirements, results, strict=True)}
 
 
 def unclear(note: str) -> dict[str, object]:

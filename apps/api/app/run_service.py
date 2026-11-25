@@ -257,7 +257,7 @@ class RunService:
         notes: dict = {}
         try:
             with traced_root(self.settings, "discovery_to_jira", notes) as span:
-                for namespace, mode, part in graph.stream(
+                for _namespace, mode, part in graph.stream(
                     graph_input,
                     config,
                     stream_mode=["updates", "tasks"],

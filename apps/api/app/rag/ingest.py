@@ -61,7 +61,7 @@ def ingest(
                 "INSERT INTO spec_chunks VALUES (%s, %s, %s, %s, %s, %s::vector)",
                 [
                     (project_id, c.id, c.heading, c.text, model, to_vector(v))
-                    for c, v in zip(chunks, vectors)
+                    for c, v in zip(chunks, vectors, strict=True)
                 ],
             )
     return {"project_id": project_id, "chunks": len(chunks), "changed": True}
