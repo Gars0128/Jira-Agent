@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { costLabel, draftErrors, followUps, safeTraceUrl, sectionTitle, steps } from "../lib/presentation";
+import { costLabel, draftErrors, safeTraceUrl, sectionTitle, steps } from "../lib/presentation";
 import type { Capabilities, Project, Run, RunEvent, Story } from "../lib/types";
 import { Arrow, TicketBoard, type BoardCard } from "./components";
 import { StoryEditor } from "./story-editor";
@@ -171,7 +171,7 @@ export default function Home() {
   // Stories first, then decisions and questions: the same order the API creates them in.
   const drafts: BoardCard[] = review || completed ? [
     ...stories.map((story) => { const source = requirements.find((item) => story.requirement_ids.includes(item.id)); return { kind: "story" as const, title: story.title, quote: source?.quote, speaker: source?.speaker, specs: [], story }; }),
-    ...followUps(requirements).map(({ kind, summary, requirement }) => ({ kind, title: summary, quote: requirement.quote, speaker: requirement.speaker, why: requirement.note, specs: specTitles(requirement) })),
+    ...(run?.follow_ups ?? []).flatMap((task) => requirements.filter((item) => task.requirement_ids.includes(item.id)).map((item) => ({ kind: task.kind, title: task.title, quote: item.quote, speaker: item.speaker, why: item.note, specs: specTitles(item) }))),
   ] : [];
   const cards = drafts.map((card, index) => ({ ...card, ticket: run?.tickets?.[index] }));
   const skipped = requirements.filter((item) => item.status === "duplicate");

@@ -234,3 +234,48 @@ def test_ticket_contract_declares_every_field_the_jira_client_returns() -> None:
     returned = set(preview_tickets(stories())[0]) | set(reused[0])
     # The API response is an allowlist: an undeclared field is dropped silently.
     assert returned <= set(TicketResult.model_fields)
+
+
+def test_run_response_carries_follow_ups_built_from_requirements() -> None:
+    from app.run_contracts import RunResult
+
+    conflict = new_requirement().model_copy(
+        update={"id": "R2", "status": "conflict", "text": "Let coordinators export."}
+    )
+    run = RunResult.model_validate(
+        {
+            "run_id": "r",
+            "status": "awaiting_review",
+            "requirements": [new_requirement(), conflict],
+            "stories": [],
+            "questions": [],
+            "retrieved": {},
+            "usage": {},
+            "latency_ms": 0,
+            "trace_url": None,
+            "tickets": [],
+            "error": None,
+            "cached": False,
+        }
+    )
+    [task] = run.model_dump()["follow_ups"]
+    assert (task["kind"], task["title"], task["requirement_ids"]) == (
+        "decision",
+        "Decide: Let coordinators export.",
+        ["R2"],
+    )
+
+
+def test_recorded_demo_follow_ups_match_the_rule() -> None:
+    from pathlib import Path
+
+    from app.schemas import Requirement
+    from app.stories import follow_ups
+
+    path = Path(__file__).parents[2] / "web/demo/runs.json"
+    for name, run in json.loads(path.read_text(encoding="utf-8"))["runs"].items():
+        requirements = [
+            Requirement.model_validate(item) for item in run["requirements"]
+        ]
+        expected = [task.model_dump() for task in follow_ups(requirements)]
+        assert run["follow_ups"] == expected, name

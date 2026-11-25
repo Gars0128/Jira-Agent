@@ -269,7 +269,25 @@
     "output_tokens": 821
    },
    "latency_ms": 20342,
-   "critic_feedback": []
+   "critic_feedback": [],
+   "follow_ups": [
+    {
+     "kind": "decision",
+     "title": "Decide: Allow coordinators to export reservation reports; approval of this broader export access policy remains unresolved.",
+     "requirement_ids": [
+      "REQ-003"
+     ],
+     "idempotency_key": "a4f3c085f11d522255395d063c1b7d43ef7d6b3a83aed5f8170f9ece79116b0d"
+    },
+    {
+     "kind": "question",
+     "title": "Ask the client: Make exporting feel instant; the report size and time target are unresolved.",
+     "requirement_ids": [
+      "REQ-004"
+     ],
+     "idempotency_key": "468b35c75fbe0758a7472f875b56c3deae000593f378637642a48558e78ff0a0"
+    }
+   ]
   },
   "general/01-grooming-salon": {
    "requirements": [
@@ -461,7 +479,17 @@
     "output_tokens": 1407,
     "cost_usd": "0.025322"
    },
-   "latency_ms": 0
+   "latency_ms": 0,
+   "follow_ups": [
+    {
+     "kind": "question",
+     "title": "Ask the client: The app should have a nice, modern appearance.",
+     "requirement_ids": [
+      "REQ-008"
+     ],
+     "idempotency_key": "4a689975641ecbfc2884207c4b5a3cb9153c2a5e3302711262af6d765f94cfe6"
+    }
+   ]
   },
   "harbor-desk/02-retention": {
    "requirements": [
@@ -723,7 +751,17 @@
     "output_tokens": 1017,
     "cost_usd": "0.0215429"
    },
-   "latency_ms": 17638
+   "latency_ms": 17638,
+   "follow_ups": [
+    {
+     "kind": "decision",
+     "title": "Decide: Retain audit events for 365 days instead of 180 days, subject to committee review/approval.",
+     "requirement_ids": [
+      "REQ-001"
+     ],
+     "idempotency_key": "b23dcb0016e17680188dd8add579e5af98eb3c6b5eac7976832d850a23a4124b"
+    }
+   ]
   },
   "harbor-desk/03-sharing": {
    "requirements": [
@@ -1043,7 +1081,25 @@
     "output_tokens": 941,
     "cost_usd": "0.02133216"
    },
-   "latency_ms": 12223
+   "latency_ms": 12223,
+   "follow_ups": [
+    {
+     "kind": "decision",
+     "title": "Decide: The system could allow anyone holding a reservation sharing link to view that reservation without signing in; this remains a policy question because it conflicts with the private-access rule and excludes public sharing links.",
+     "requirement_ids": [
+      "REQ-001"
+     ],
+     "idempotency_key": "da906619190a25272bbf752f8462cbcbd09408efdf8913ec400579bfbe5f8e36"
+    },
+    {
+     "kind": "question",
+     "title": "Ask the client: External collaborators should receive appropriate access; the required role, account model, pages, actions, and permissions remain unresolved and must not be guessed or treated as full coordinator access.",
+     "requirement_ids": [
+      "REQ-006"
+     ],
+     "idempotency_key": "fec86c3d72a0ec02a20216878f525a53eb8b2c6e66206ef1517a918cfe551f3e"
+    }
+   ]
   },
   "harbor-desk/04-bookings": {
    "requirements": [
@@ -1483,7 +1539,25 @@
     "output_tokens": 2340,
     "cost_usd": "0.04077938"
    },
-   "latency_ms": 25808
+   "latency_ms": 25808,
+   "follow_ups": [
+    {
+     "kind": "decision",
+     "title": "Decide: Allow reservations to start up to 30 calendar days after submission. This policy change requires separate approval and remains unresolved.",
+     "requirement_ids": [
+      "REQ-001"
+     ],
+     "idempotency_key": "1200134004c3ff2b051347ad9e8a7a83ac50a34845168baa1ab3d1b471f177fa"
+    },
+    {
+     "kind": "question",
+     "title": "Ask the client: Define the expiry behavior for availability subscriptions before finalizing it; the expiry rule is currently unresolved.",
+     "requirement_ids": [
+      "REQ-007"
+     ],
+     "idempotency_key": "5a944d1ecbf20180daf487e9d3cc2673e24cb61c8b0f86675b8d07d551297871"
+    }
+   ]
   },
   "harbor-desk/05-usability": {
    "requirements": [
@@ -1828,7 +1902,57 @@
     "output_tokens": 864,
     "cost_usd": "0.0180896"
    },
-   "latency_ms": 10169
+   "latency_ms": 10169,
+   "follow_ups": [
+    {
+     "kind": "decision",
+     "title": "Decide: Each member must be able to save one personal catalogue filter preset that persists between visits.",
+     "requirement_ids": [
+      "REQ-001"
+     ],
+     "idempotency_key": "aef7ce6c267efce7bea29aa7538cb49b97ed58e3d6745ba7df6fca22c3147f81"
+    },
+    {
+     "kind": "decision",
+     "title": "Decide: The saved personal catalogue filter preset must contain only the selected category and must not save selected dates.",
+     "requirement_ids": [
+      "REQ-002"
+     ],
+     "idempotency_key": "c25b2cbdf6cc9b2da420bcddb6a8b9107b6327750274f609c0626b8c7a17f707"
+    },
+    {
+     "kind": "decision",
+     "title": "Decide: When a member returns, the system must load the saved category while retaining alphabetical catalogue ordering.",
+     "requirement_ids": [
+      "REQ-003"
+     ],
+     "idempotency_key": "b45cf89acbd7e31a114f29b08d981b519fbbe8c51b8264ed6e073bbeb444e994"
+    },
+    {
+     "kind": "decision",
+     "title": "Decide: Members must be able to clear their saved catalogue filter preset.",
+     "requirement_ids": [
+      "REQ-004"
+     ],
+     "idempotency_key": "36b48a55c0828ff968384adc725a0154df5c6634a6a122d2fa9d9b1f55b924ff"
+    },
+    {
+     "kind": "decision",
+     "title": "Decide: The saved-preset interface should provide clear save and clear controls without building a whole design system for the saved preset.",
+     "requirement_ids": [
+      "REQ-005"
+     ],
+     "idempotency_key": "72acb278f2745911c6225e155872fb07ad575a58e9a027b4d349527caded56db"
+    },
+    {
+     "kind": "question",
+     "title": "Ask the client: The reservation form should be faster; the specific performance or usability measure remains unresolved.",
+     "requirement_ids": [
+      "REQ-006"
+     ],
+     "idempotency_key": "32f853714f70d92224522f7b9719b0bf618734340c2cb7fc650b22805cfad190"
+    }
+   ]
   },
   "harbor-desk/06-operations": {
    "requirements": [
@@ -2153,7 +2277,33 @@
     "output_tokens": 1524,
     "cost_usd": "0.02930086"
    },
-   "latency_ms": 19479
+   "latency_ms": 19479,
+   "follow_ups": [
+    {
+     "kind": "decision",
+     "title": "Decide: Provide a public, read-only status page that shows whether the reservation service is available.",
+     "requirement_ids": [
+      "REQ-001"
+     ],
+     "idempotency_key": "b281c4ea3535bb08bb2ea2b83827c2f1f22b3290bb7d739a14360e85de10dd18"
+    },
+    {
+     "kind": "decision",
+     "title": "Decide: The public status page must show service availability only and must not expose reservation data, member details, controls for changing anything, or recent error details.",
+     "requirement_ids": [
+      "REQ-002"
+     ],
+     "idempotency_key": "adc5a16a1da579333e89dd7465440a99500bc74d50a255edc31d4a728e35fa0c"
+    },
+    {
+     "kind": "question",
+     "title": "Ask the client: Provide monitoring, with the events, thresholds, and alert recipients still to be defined; do not deploy alerts for every log line.",
+     "requirement_ids": [
+      "REQ-006"
+     ],
+     "idempotency_key": "aaf484f3ce57f7d83e0b0f19dc609fa212f0fdb7de29d97bf9d2c8c90d8dbc53"
+    }
+   ]
   }
  }
 }

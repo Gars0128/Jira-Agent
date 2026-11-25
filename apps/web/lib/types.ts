@@ -18,12 +18,15 @@ export type Story = {
 
 export type TicketKind = "story" | "decision" | "question";
 
+// Built by the API from conflict and unclear requirements (follow_ups in apps/api/app/stories.py).
+export type FollowUp = { kind: Exclude<TicketKind, "story">; title: string; requirement_ids: string[]; idempotency_key: string };
+
 export type Ticket = { key?: string; url?: string; dry_run?: boolean; reused?: boolean; story_id?: string; kind?: TicketKind; summary?: string; fields?: { summary?: string }; [key: string]: unknown };
 
 export type Run = {
   run_id: string;
   status: "queued" | "running" | "awaiting_review" | "done" | "error";
-  requirements: Requirement[]; stories: Story[]; questions: string[];
+  requirements: Requirement[]; stories: Story[]; follow_ups: FollowUp[]; questions: string[];
   retrieved: Record<string, { id: string; text: string; distance: number }[]>;
   usage: { cost_usd: string | number | null; input_tokens?: number; output_tokens?: number; calls?: number };
   latency_ms: number; trace_url: string | null; tickets: Ticket[]; error: string | null; cached?: boolean;

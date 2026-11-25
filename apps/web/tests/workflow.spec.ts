@@ -8,6 +8,7 @@ const ready: Run = {
     { id: "R2", text: "Allow coordinator exports", type: "functional", priority: "should", quote: "Coordinators should export too.", speaker: "Maya", status: "conflict", spec_refs: ["HD-EXPORT"], note: "Exports are limited to administrators." },
   ],
   stories: [{ id: "S1", title: "View monthly export count", as_a: "administrator", i_want: "a monthly count", so_that: "I can monitor activity", acceptance_criteria: ["Given recorded exports, when I view the month, then I see the count."], requirement_ids: ["R1"], idempotency_key: "server-owned" }],
+  follow_ups: [{ kind: "decision", title: "Decide: Allow coordinator exports", requirement_ids: ["R2"], idempotency_key: "server-owned-task" }],
   questions: ["Should coordinator exports be approved as a policy change?"],
   retrieved: { R1: [{ id: "HD-EXPORT", text: "Only administrators may export reports.", distance: .2 }], R2: [{ id: "HD-EXPORT", text: "Only administrators may export reports.", distance: .2 }] },
   usage: { cost_usd: "0.0123" }, latency_ms: 8200, trace_url: null, tickets: [], error: null,

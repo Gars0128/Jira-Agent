@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { followUps, sectionTitle, costLabel, draftErrors, safeJiraUrl, safeTraceUrl } from "./presentation.ts";
+import { sectionTitle, costLabel, draftErrors, safeJiraUrl, safeTraceUrl } from "./presentation.ts";
 import type { Story } from "./types.ts";
 
 const story: Story = { id: "S1", title: "Export a report", as_a: "administrator", i_want: "an export", so_that: "I can review it", acceptance_criteria: ["Given a report, when I export, then a CSV downloads"], requirement_ids: ["R1"], idempotency_key: "server-owned" };
@@ -35,18 +35,4 @@ test("Jira links accept only HTTPS Atlassian Cloud URLs without credentials", ()
 test("spec sections are shown by title, not by internal ID", () => {
   assert.equal(sectionTitle("## HD-EXPORT \u2014 Report export permissions and format\n\nOnly administrators..."), "Report export permissions and format");
   assert.equal(sectionTitle("Plain text without a heading"), null);
-});
-
-test("replay follow-up tasks match the API: decisions for conflicts, questions for unclear", () => {
-  const base = { type: "functional", priority: "must", quote: "q", speaker: "Nora", spec_refs: [], note: null };
-  const tasks = followUps([
-    { ...base, id: "R1", text: "Show counts", status: "new" },
-    { ...base, id: "R2", text: "Let coordinators  export", status: "conflict" },
-    { ...base, id: "R3", text: "Make it fast", status: "unclear" },
-    { ...base, id: "R4", text: "Keep CSV", status: "duplicate" },
-  ]);
-  assert.deepEqual(tasks.map(({ kind, summary }) => ({ kind, summary })), [
-    { kind: "decision", summary: "Decide: Let coordinators export" },
-    { kind: "question", summary: "Ask the client: Make it fast" },
-  ]);
 });

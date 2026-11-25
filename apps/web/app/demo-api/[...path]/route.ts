@@ -2,7 +2,6 @@
 // contract with seven real stored runs, so the site works without a backend,
 // model calls or Jira writes. Locally, /api goes to the real FastAPI service.
 import recording from "../../../demo/runs.json";
-import { followUps } from "../../../lib/presentation";
 import type { Run, Story } from "../../../lib/types";
 
 type Recorded = Omit<Run, "run_id" | "status" | "tickets" | "error" | "trace_url">;
@@ -33,6 +32,7 @@ function snapshot(id: string, run: Recorded, started: number): Run {
     requirements: done("extract") ? run.requirements.map((item) => (done("classify") ? item : { ...item, status: null, spec_refs: [], note: null })) : [],
     retrieved: done("retrieve_spec") ? run.retrieved : {},
     stories: done("write_stories") ? run.stories : [],
+    follow_ups: done("classify") ? run.follow_ups : [],
     questions: done("classify") ? run.questions : [],
     usage: { calls: 0, input_tokens: 0, output_tokens: 0, cost_usd: null },
     latency_ms: 0,
@@ -97,7 +97,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pat
     const stories = (Array.isArray(body?.stories) ? body.stories : []).slice(0, 30) as Story[];
     // A short pause lets the board show "Creating…" as it would with Jira.
     await new Promise((resolve) => setTimeout(resolve, 1800));
-    const tasks = followUps(replay.run.requirements).map(({ kind, summary }, index) => ({ key: `PREVIEW-T${index + 1}`, dry_run: true, reused: false, kind, summary }));
+    const tasks = replay.run.follow_ups.map(({ kind, title }, index) => ({ key: `PREVIEW-T${index + 1}`, dry_run: true, reused: false, kind, summary: title }));
     const tickets = [...stories.map((story) => ({ key: `PREVIEW-${String(story.idempotency_key).slice(0, 8)}`, dry_run: true, reused: false, kind: "story", summary: String(story.title), fields: { summary: String(story.title) } })), ...tasks];
     return json({ ...snapshot(id, replay.run, 0), status: "done", stories, tickets });
   }
