@@ -17,27 +17,39 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return payload as T;
 }
 
+// Each phase carries only the data that exists in it, so impossible combinations can't be written.
+type Phase =
+  | { kind: "loading" }
+  | { kind: "idle" }
+  | { kind: "submitting" }
+  | { kind: "running"; runId: string; run: Run | null }
+  | { kind: "review"; run: Run }
+  | { kind: "approving"; run: Run }
+  | { kind: "done"; run: Run }
+  | { kind: "error"; message: string; run?: Run };
+
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
   const [projectId, setProjectId] = useState("");
   const [presetId, setPresetId] = useState("");
   const [transcript, setTranscript] = useState("");
-  const [runId, setRunId] = useState<string | null>(null);
-  const [run, setRun] = useState<Run | null>(null);
+  const [phase, setPhase] = useState<Phase>({ kind: "loading" });
   const [events, setEvents] = useState<RunEvent[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [approving, setApproving] = useState(false);
+  // A request that failed while the run itself is fine (e.g. approval refused); the run keeps its phase.
+  const [notice, setNotice] = useState<string | null>(null);
   const draftRun = useRef<string | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const [openCard, setOpenCard] = useState<number | null>(null);
   const revealedRun = useRef<string | null>(null);
   const runRequest = useRef<AbortController | null>(null);
   const currentProject = projects.find((project) => project.id === projectId);
-  const active = submitting || (!!runId && !run && !error) || run?.status === "queued" || run?.status === "running";
+  const run = "run" in phase ? phase.run ?? null : null;
+  const runId = phase.kind === "running" ? phase.runId : null;
+  const loading = phase.kind === "loading";
+  const active = phase.kind === "submitting" || phase.kind === "running";
+  const approving = phase.kind === "approving";
   const dryRun = capabilities?.jira_dry_run === true;
   const traceUrl = safeTraceUrl(run?.trace_url);
 
@@ -54,9 +66,8 @@ export default function Home() {
         setTranscript(first.transcripts[0]?.text ?? "");
       }
       const saved = new URLSearchParams(window.location.search).get("run");
-      if (saved) setRunId(saved);
-    }).catch(() => { if (mounted) setError("The API is unavailable. Start the backend and reload this page."); })
-      .finally(() => { if (mounted) setLoading(false); });
+      setPhase(saved ? { kind: "running", runId: saved, run: null } : { kind: "idle" });
+    }).catch(() => { if (mounted) setPhase({ kind: "error", message: "The API is unavailable. Start the backend and reload this page." }); });
     return () => { mounted = false; };
   }, []);
 
@@ -74,18 +85,24 @@ export default function Home() {
       try {
         const snapshot = await request<Run>(path, { signal: controller.signal });
         if (controller.signal.aborted) return;
-        setRun(snapshot); setError(null);
-        if (snapshot.status === "awaiting_review" && draftRun.current !== runId) {
-          setStories(snapshot.stories); draftRun.current = runId;
-        }
-        if (snapshot.status === "done") setStories(snapshot.stories);
+        setNotice(null);
+        if (snapshot.status === "awaiting_review") {
+          // SSE and polling can both deliver the review; only the first one seeds the editable draft.
+          if (draftRun.current !== runId) { setStories(snapshot.stories); draftRun.current = runId; }
+          setPhase({ kind: "review", run: snapshot });
+        } else if (snapshot.status === "done") {
+          setStories(snapshot.stories); setPhase({ kind: "done", run: snapshot });
+        } else if (snapshot.status === "error") {
+          setPhase({ kind: "error", message: snapshot.error ?? "This run could not complete. Check the configuration and start a new run.", run: snapshot });
+        } else setPhase({ kind: "running", runId, run: snapshot });
         if (["done", "error", "awaiting_review"].includes(snapshot.status)) {
           source.close(); window.clearInterval(timer);
         }
       } catch (reason) {
         if (controller.signal.aborted) return;
-        if (reason instanceof Error && reason.message === "Unknown run") { stopped = true; source.close(); window.clearInterval(timer); }
-        setError(reason instanceof Error ? reason.message : "Could not refresh this run.");
+        const message = reason instanceof Error ? reason.message : "Could not refresh this run.";
+        if (message === "Unknown run") { stopped = true; source.close(); window.clearInterval(timer); setPhase({ kind: "error", message }); }
+        else setNotice(message);
       } finally { inFlight = false; }
     };
     source.onmessage = (message) => {
@@ -109,37 +126,37 @@ export default function Home() {
   }, [run?.status, run?.run_id]);
 
   async function startRun() {
-    runRequest.current?.abort(); setRunId(null); setError(null); setSubmitting(true); setEvents([]); setRun(null); setStories([]); draftRun.current = null;
+    runRequest.current?.abort(); setNotice(null); setPhase({ kind: "submitting" }); setEvents([]); setStories([]); draftRun.current = null;
     try {
       const result = await request<{ run_id: string }>("/runs", { method: "POST", body: JSON.stringify({ project_id: projectId, transcript, ...(presetId ? { preset_id: presetId } : {}) }) });
-      setRunId(result.run_id);
+      setPhase({ kind: "running", runId: result.run_id, run: null });
       window.history.replaceState(null, "", `?run=${encodeURIComponent(result.run_id)}`);
       // Follow the work: the board below shows each stage as it happens.
       window.setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not start the run."); }
-    finally { setSubmitting(false); }
+    } catch (reason) { setPhase({ kind: "idle" }); setNotice(reason instanceof Error ? reason.message : "Could not start the run."); }
   }
 
   async function approve() {
-    if (!run || !capabilities || approving) return;
-    const errors = draftErrors(stories, run.requirements.filter((item) => item.status === "new").map((item) => item.id));
-    if (errors.length) { setError(errors.join(" ")); return; }
-    setApproving(true); setError(null);
+    if (phase.kind !== "review" || !capabilities) return;
+    const reviewed = phase.run;
+    const errors = draftErrors(stories, reviewed.requirements.filter((item) => item.status === "new").map((item) => item.id));
+    if (errors.length) { setNotice(errors.join(" ")); return; }
+    setPhase({ kind: "approving", run: reviewed }); setNotice(null);
     try {
       const current = await request<Capabilities>("/capabilities");
       if (current.jira_dry_run !== capabilities.jira_dry_run) throw new Error("Jira mode changed. Reload the page and review the current mode before approving.");
-      const result = await request<Run>(`/runs/${run.run_id}/approve`, { method: "POST", body: JSON.stringify({ stories }) });
-      setRun(result); setStories(result.stories);
+      const result = await request<Run>(`/runs/${reviewed.run_id}/approve`, { method: "POST", body: JSON.stringify({ stories }) });
+      setStories(result.stories); setPhase({ kind: "done", run: result });
       document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Approval failed. Your edits are still here."); }
-    finally { setApproving(false); }
+    } catch (reason) { setPhase({ kind: "review", run: reviewed }); setNotice(reason instanceof Error ? reason.message : "Approval failed. Your edits are still here."); }
   }
 
   const requirements = run?.requirements ?? [];
   const doneNodes = new Set(events.filter((event) => event.type === "node_finished").map((event) => event.node));
   const currentNode = events.filter((event) => event.type === "node_started").at(-1)?.node;
-  const review = run?.status === "awaiting_review";
-  const completed = run?.status === "done";
+  const review = phase.kind === "review" || approving;
+  const completed = phase.kind === "done";
+  const showResults = run !== null || phase.kind === "running";
   const progress = completed ? steps.length : review ? 5 : steps.filter((step) => doneNodes.has(step.id)).length;
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
   const sorted = requirements.some((item) => item.status);
@@ -153,14 +170,14 @@ export default function Home() {
   const skipped = requirements.filter((item) => item.status === "duplicate");
   const heading = !review && !completed ? "Working on it" : completed ? (cards.length ? "Done" : "Review finished") : cards.length ? `${plural(cards.length, "ticket", "tickets")} from this call` : "No tickets from this call";
   const stage = !requirements.length ? "Reading the call…" : !sorted ? `Found ${plural(requirements.length, "request", "requests")}. Checking them against the spec…` : "Writing tickets…";
-  const statusText = completed ? "Completed" : review ? "Your review is ready" : run?.status === "error" ? "Needs attention" : active ? "Agent is working" : "Ready when you are";
+  const statusText = completed ? "Completed" : review ? "Your review is ready" : phase.kind === "error" ? "Needs attention" : active ? "Agent is working" : "Ready when you are";
 
   return <div className="workspace">
     <a href="#main" className="skip-link">Skip to workspace</a>
     <div className="main-shell">
       <header className="appbar">
         <Link className="brand" href="/"><svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="currentColor" /><path d="M9.5 10h13M16 10v12.5" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" /><circle cx="23.5" cy="22" r="2.2" fill="#ff8a5c" /></svg><span>Tiro<span className="brand-sub">call to Jira</span></span></Link>
-        <nav aria-label="Sections"><a href="#main">Studio</a><a href="#pipeline">Workflow</a>{runId && <a href="#results">Results</a>}</nav>
+        <nav aria-label="Sections"><a href="#main">Studio</a><a href="#pipeline">Workflow</a>{showResults && <a href="#results">Results</a>}</nav>
         <span className={`mode-pill ${capabilities?.jira_dry_run === false ? "live" : ""}`} title="Nothing reaches Jira until you approve"><i />{!capabilities ? "Checking mode…" : capabilities.replay ? "Recorded demo" : dryRun ? "Preview · dry run" : "Live Jira"}</span>
       </header>
       <main id="main">
@@ -171,7 +188,8 @@ export default function Home() {
           <li><span>3</span><div><strong>You approve</strong>Edit the tickets, then send them to Jira.</div></li>
         </ol>
 
-        {error && <div className="error-banner" role="alert"><span>{error}</span><button type="button" onClick={() => setError(null)} aria-label="Dismiss error">×</button></div>}
+        {notice && <div className="error-banner" role="alert"><span>{notice}</span><button type="button" onClick={() => setNotice(null)} aria-label="Dismiss error">×</button></div>}
+        {phase.kind === "error" && !phase.run && <div className="error-banner" role="alert"><span>{phase.message}</span><button type="button" onClick={() => setPhase({ kind: "idle" })} aria-label="Dismiss error">×</button></div>}
 
         <div className="studio-grid">
           <section className="panel input-panel" aria-labelledby="source-heading">
@@ -209,7 +227,7 @@ export default function Home() {
           </section>
         </div>
 
-        {runId && <section className="results-section" id="results" aria-labelledby="results-heading" aria-busy={active}>
+        {showResults && <section className="results-section" id="results" aria-labelledby="results-heading" aria-busy={active}>
           <div className="results-heading"><h2 id="results-heading">{heading}</h2></div>
           <p className="results-summary" aria-live="polite">{active || (!review && !completed) ? stage : completed ? (!cards.length ? "Nothing was sent to Jira." : run?.tickets?.every((ticket) => ticket.dry_run) ? "Preview mode: this is exactly what Jira would receive. Nothing was sent." : "Your tickets are in Jira.") : `${plural(requirements.length, "request", "requests")} found in the call. Edit anything, then approve.`}</p>
           {!!skipped.length && (review || completed) && <details className="skipped"><summary>{plural(skipped.length, "request was", "requests were")} already in the spec, so no ticket</summary><ul>{skipped.map((item) => <li key={item.id}>{item.text} <cite>“{item.quote}”</cite></li>)}</ul></details>}
@@ -227,7 +245,7 @@ export default function Home() {
             </>;
           })()}</dialog>
           {review && <div className="approval-bar"><div>{cards.length ? <><strong>Ready to create {plural(cards.length, "ticket", "tickets")}.</strong><span>Nothing is sent until you approve.</span></> : <><strong>Nothing to send to Jira.</strong><span>Every request is already in the spec.</span></>}</div><button type="button" className="primary-button" disabled={approving || !capabilities} onClick={() => void approve()}>{approving ? "Creating…" : !cards.length ? "Finish review" : dryRun ? `Create ${plural(cards.length, "ticket", "tickets")} (preview)` : `Create ${plural(cards.length, "ticket", "tickets")} in Jira`}<Arrow /></button></div>}
-          {run?.status === "error" && <div className="error-banner" role="alert">{run.error ?? "This run could not complete. Check the configuration and start a new run."}</div>}
+          {phase.kind === "error" && phase.run && <div className="error-banner" role="alert">{phase.message}</div>}
         </section>}
         <footer className="page-footer"><span>TIRO <span className="footer-arrow">·</span> CALL → JIRA</span><span>Grounded in evidence. Guided by you.</span><span>Fictional data · Human-approved output</span></footer>
       </main>
