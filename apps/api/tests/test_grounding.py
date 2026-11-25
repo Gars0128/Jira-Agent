@@ -17,6 +17,11 @@ from app.schemas import Requirement
         ("Email reports", "Nora: Export reports.", False),
         ("Export reports", "Export only monthly reports", False),
         ("Export reports!", "Export reports.", False),
+        # A fragment inside other words is not evidence (Grok once quoted "a").
+        ("a", "Jun: Make the reservation form much faster.", False),
+        ("xport repo", "Nora: Export reports, please.", False),
+        ("Faster", "Jun: Make the reservation form much faster.", False),
+        ("form much faster.", "Jun: Make the reservation form much faster.", True),
     ],
 )
 def test_quote_grounding(quote: str, transcript: str, expected: bool) -> None:
