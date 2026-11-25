@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     llm_timeout_seconds: int = Field(default=60, gt=0, le=1800)
     embedding_model: str = Field(default="text-embedding-3-small", pattern=r"\S")
     embedding_usd_per_million: Decimal = Field(default=Decimal("0.02"), gt=0)
+    # Unset: embeddings use the chat key and OPENAI_BASE_URL. Set to keep local
+    # embeddings while chat runs elsewhere (stored vectors are per model).
+    embedding_base_url: str | None = None
+    embedding_api_key: SecretStr | None = None
     # Empty URL lets libpq use PG* variables, as in docker-compose.
     database_url: SecretStr = SecretStr("")
     public_demo: bool = True

@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 import pytest
+from pydantic import SecretStr
 
 from app.llm import LLMError, LLMHelper
 
@@ -43,3 +44,17 @@ def test_invalid_embedding_usage_blocks_future_calls(settings):
     assert helper.usage.cost_usd is None
     with pytest.raises(LLMError, match="unknown"):
         helper.embed(["second"])
+
+
+def test_embeddings_can_use_their_own_endpoint(settings, monkeypatch):
+    # Chat on a hosted provider, embeddings on local Ollama: stored vectors and
+    # the calibrated match threshold belong to the embedding model.
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    shared = LLMHelper(settings).embedder
+    assert shared.api_key == "test-not-a-real-key"
+
+    settings.embedding_base_url = "http://localhost:11434/v1"
+    settings.embedding_api_key = SecretStr("ollama")
+    split = LLMHelper(settings).embedder
+    assert str(split.base_url).rstrip("/") == "http://localhost:11434/v1"
+    assert split.api_key == "ollama"

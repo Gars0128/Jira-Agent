@@ -104,7 +104,10 @@ class LLMHelper:
             embedder
             if embedder is not None
             else OpenAI(
-                api_key=settings.openai_api_key.get_secret_value(),
+                api_key=(
+                    settings.embedding_api_key or settings.openai_api_key
+                ).get_secret_value(),
+                base_url=settings.embedding_base_url,
                 max_retries=0,
                 timeout=settings.llm_timeout_seconds,
             )
