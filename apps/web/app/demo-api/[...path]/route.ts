@@ -8,24 +8,23 @@ import type { Run, Story } from "../../../lib/types";
 type Recorded = Omit<Run, "run_id" | "status" | "tickets" | "error" | "trace_url">;
 const runs = recording.runs as unknown as Record<string, Recorded>;
 
-// Seconds after creation at which each node finishes; review follows the last.
-const schedule: [string, number][] = [["extract", 2.4], ["retrieve_spec", 3.4], ["classify", 5.2], ["write_stories", 7.6], ["critic", 9]];
+// Seconds after creation at which each node finishes, in order; review follows the last.
+const finishedAt = { extract: 2.4, retrieve_spec: 3.4, classify: 5.2, write_stories: 7.6, critic: 9 } as const;
 const reviewAt = 9.4;
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 
-function parseRun(id: string): { key: string; started: number } | null {
+// Returns the recorded run itself, so callers never look it up a second time.
+function parseRun(id: string): { run: Recorded; started: number } | null {
   // Run IDs avoid "/" because the UI puts them in URL paths unencoded on approve.
-  const match = /^replay~([\w-]+):([\w-]+)~(\d+)$/.exec(id);
-  const key = match && `${match[1]}/${match[2]}`;
-  if (!match || !key || !(key in runs)) return null;
-  return { key, started: Number(match[3]) };
+  const groups = /^replay~(?<project>[\w-]+):(?<preset>[\w-]+)~(?<started>\d+)$/.exec(id)?.groups;
+  const run = groups && runs[`${groups.project}/${groups.preset}`];
+  return run && groups.started ? { run, started: Number(groups.started) } : null;
 }
 
-function snapshot(id: string, key: string, started: number): Run {
-  const run = runs[key];
+function snapshot(id: string, run: Recorded, started: number): Run {
   const elapsed = (Date.now() - started) / 1000;
-  const done = (node: string) => elapsed >= schedule.find(([name]) => name === node)![1];
+  const done = (node: keyof typeof finishedAt) => elapsed >= finishedAt[node];
   const base = { run_id: id, trace_url: null, tickets: [], error: null, usage: run.usage, latency_ms: run.latency_ms, questions: run.questions };
   if (elapsed >= reviewAt) return { ...base, ...run, run_id: id, status: "awaiting_review", trace_url: null, tickets: [], error: null };
   return {
@@ -46,14 +45,14 @@ function events(started: number): Response {
     async start(controller) {
       const send = (event: object) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       let previous = 0;
-      for (const [node, finishedAt] of schedule) {
+      for (const [node, finish] of Object.entries(finishedAt)) {
         const wait = started + previous * 1000 - Date.now();
         if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
         send({ type: "node_started", node });
-        const finish = started + finishedAt * 1000 - Date.now();
-        if (finish > 0) await new Promise((resolve) => setTimeout(resolve, finish));
+        const remaining = started + finish * 1000 - Date.now();
+        if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
         send({ type: "node_finished", node });
-        previous = finishedAt;
+        previous = finish;
       }
       const review = started + reviewAt * 1000 - Date.now();
       if (review > 0) await new Promise((resolve) => setTimeout(resolve, review));
@@ -70,11 +69,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pat
   if (path.join("/") === "capabilities") return json({ public_demo: true, jira_dry_run: true, transcript_limit: 20000, replay: true, model: "gpt-5.6-terra" });
   if (path.join("/") === "projects") return json({ projects: recording.projects });
   if (path.join("/") === "health" || path.join("/") === "ready") return json({ status: "ok" });
-  if (path[0] === "runs" && path[1]) {
-    const run = parseRun(path[1]);
-    if (!run) return json({ detail: "Unknown run" }, 404);
-    if (path[2] === "events") return events(run.started);
-    if (path.length === 2) return json(snapshot(path[1], run.key, run.started));
+  const [resource, id, action] = path;
+  if (resource === "runs" && id) {
+    const replay = parseRun(id);
+    if (!replay) return json({ detail: "Unknown run" }, 404);
+    if (action === "events") return events(replay.started);
+    if (path.length === 2) return json(snapshot(id, replay.run, replay.started));
   }
   return json({ detail: "Not found" }, 404);
 }
@@ -90,15 +90,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ pat
     }
     return json({ run_id: `replay~${body.project_id}:${body.preset_id}~${Date.now()}` }, 202);
   }
-  if (path[0] === "runs" && path[2] === "approve") {
-    const run = parseRun(path[1]);
-    if (!run) return json({ detail: "Unknown run" }, 404);
+  const [resource, id, action] = path;
+  if (resource === "runs" && id && action === "approve") {
+    const replay = parseRun(id);
+    if (!replay) return json({ detail: "Unknown run" }, 404);
     const stories = (Array.isArray(body?.stories) ? body.stories : []).slice(0, 30) as Story[];
     // A short pause lets the board show "Creating…" as it would with Jira.
     await new Promise((resolve) => setTimeout(resolve, 1800));
-    const tasks = followUps(runs[run.key].requirements).map(({ kind, summary }, index) => ({ key: `PREVIEW-T${index + 1}`, dry_run: true, reused: false, kind, summary }));
+    const tasks = followUps(replay.run.requirements).map(({ kind, summary }, index) => ({ key: `PREVIEW-T${index + 1}`, dry_run: true, reused: false, kind, summary }));
     const tickets = [...stories.map((story) => ({ key: `PREVIEW-${String(story.idempotency_key).slice(0, 8)}`, dry_run: true, reused: false, kind: "story", summary: String(story.title), fields: { summary: String(story.title) } })), ...tasks];
-    return json({ ...snapshot(path[1], run.key, 0), status: "done", stories, tickets });
+    return json({ ...snapshot(id, replay.run, 0), status: "done", stories, tickets });
   }
   return json({ detail: "Not found" }, 404);
 }

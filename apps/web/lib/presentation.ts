@@ -27,8 +27,9 @@ export function followUps(requirements: Requirement[]): { kind: TicketKind; summ
 
 // Spec chunks start with "## HD-EXPORT — Report export permissions"; people need the title, not the ID.
 export function sectionTitle(text: string): string | null {
-  const heading = /^#+\s*(?:[A-Z][A-Z0-9-]*\s+[—-]\s+)?(.+)/.exec(text.split("\n", 1)[0]);
-  return heading ? heading[1].trim() : null;
+  // Without the m flag, ^ and . stop at the first line.
+  const title = /^#+\s*(?:[A-Z][A-Z0-9-]*\s+[—-]\s+)?(?<title>.+)/.exec(text)?.groups?.title;
+  return title ? title.trim() : null;
 }
 
 export function safeJiraUrl(value: string | null | undefined): string | null {
