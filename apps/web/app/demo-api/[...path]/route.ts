@@ -2,10 +2,23 @@
 // contract with seven real stored runs, so the site works without a backend,
 // model calls or Jira writes. Locally, /api goes to the real FastAPI service.
 import recording from "../../../demo/runs.json";
-import type { Run, Story } from "../../../lib/types";
+import type { FollowUp, Requirement, Run, Story } from "../../../lib/types";
 
 type Recorded = Omit<Run, "run_id" | "status" | "tickets" | "error" | "trace_url">;
-const runs = recording.runs as unknown as Record<string, Recorded>;
+
+// JSON imports widen string unions to string, so check those fields once at load instead of casting.
+function oneOf<T extends string>(allowed: readonly T[], value: string): T {
+  const match = allowed.find((item) => item === value);
+  if (match === undefined) throw new Error(`Recorded run has unexpected value "${value}"`);
+  return match;
+}
+const statuses = ["new", "duplicate", "conflict", "unclear"] as const;
+const kinds = ["decision", "question"] as const;
+const runs: Record<string, Recorded> = Object.fromEntries(Object.entries(recording.runs).map(([key, run]) => [key, {
+  ...run,
+  requirements: run.requirements.map((item): Requirement => ({ ...item, status: oneOf(statuses, item.status) })),
+  follow_ups: run.follow_ups.map((task): FollowUp => ({ ...task, kind: oneOf(kinds, task.kind) })),
+}]));
 
 // Seconds after creation at which each node finishes, in order; review follows the last.
 const finishedAt = { extract: 2.4, retrieve_spec: 3.4, classify: 5.2, write_stories: 7.6, critic: 9 } as const;
