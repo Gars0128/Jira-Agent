@@ -245,4 +245,22 @@ regressions. More instructions alone do not prevent a broken implementation.
 
 **Why:** a call made only of conflicts and open questions produced zero tickets, so the PM's actual next steps were left out of Jira. Users expected the summary of a call, not only the build work.
 
-**Limit:** the replay demo mirrors the rule in TypeScript (`followUps` in `lib/presentation.ts`, marked as a shortcut). Tasks inherit the extraction's splitting: two requests about one rule become two decisions.
+**Limit:** tasks inherit the extraction's splitting: two requests about one rule become two decisions.
+
+**Update 2026-11-25:** the API now returns `follow_ups` derived from the requirements, `runs.json` stores them, and the TypeScript copy of the rule is gone; a test fails if the recorded demo drifts from the rule.
+
+## 2026-11-25 — Long ticket titles are clamped in the UI, not shortened by the prompt
+
+**Decision:** keep the extraction prompt; the board clamps a long title to two lines and the ticket dialog shows it in full.
+
+**Why:** asking the extractor for "one short sentence of at most 15 words" shortened requirement text (mean 85 → 72 characters) but lowered every quality metric in one local `qwen3.5-9b` run: precision 0.73 → 0.67, recall 0.84 → 0.75, conflict F1 0.67 → 0.63, status accuracy 0.82 → 0.71. One run is noisy, but every metric moved the same way, and the gain was cosmetic.
+
+**Limit:** Jira still receives the long summary (up to 255 characters). A later attempt should derive a short title as a separate field rather than compress the requirement text the matcher and classifier rely on.
+
+## 2026-11-25 — Grok needs anchoring-safe schema patterns
+
+**Decision:** the non-blank string pattern is `^\s*\S[\s\S]*$` instead of `\S`; embeddings can use their own endpoint (`EMBEDDING_BASE_URL`, `EMBEDDING_API_KEY`).
+
+**Why:** xAI's constrained decoder matches a JSON Schema pattern against the whole string, so `\S` allowed exactly one character and Grok returned `"a"` for every text field. The anchored pattern means the same to unanchored validators. Separate embedding settings let chat run on a hosted provider while vectors and the 0.58 matching threshold stay with the local embedding model.
+
+**Measured:** `grok-4.20-0309-non-reasoning`, 12 cases, one run, $0.088: precision 0.81, recall 0.69, conflict F1 0.91, status accuracy 0.95, p95 17 s. The grounding check also accepted the one-letter quote `"a"` as a substring of the transcript; that hole is still open.
