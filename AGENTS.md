@@ -56,7 +56,7 @@ Mistakes are blocked by structure first and prose last: (1) architecture and typ
 - **Matt Pocock:** choose the specific skill needed for requirements, TDD, diagnosis, teaching, or review. Do not run the whole collection automatically.
 - **Thermonuclear Review:** a separate strict maintainability review, only on an explicit user request.
 - **Agent Harness Construction:** use when designing our agent's tools, output formats, and recovery behavior. Keep project checkpoints in the plan rather than introducing another memory system.
-- **pstack:** installed in Claude Code; use compatible workflows when useful. Do not assume full Codex support.
+- **pstack:** installed in Claude Code as a plugin. Multi-step work (bug, feature, refactor): start with `/poteto-mode`; it picks the playbook. Skills are process; hooks and lint are the enforcement. Do not assume full Codex support.
 - An installed skill is not necessarily an applied skill. Do not enable autonomous execution or parallel agents merely because a plugin exists. User instructions and phase boundaries take priority.
 
 Skills are installed per user and may be absent on another computer. The project's essential rules are recorded here and do not require plugins.
