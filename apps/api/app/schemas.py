@@ -2,7 +2,9 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-NonBlankString = Annotated[str, StringConstraints(pattern=r"\S")]
+# Anchored on purpose: some constrained decoders (xAI) match patterns against the
+# whole string, where an unanchored r"\S" would allow exactly one character.
+NonBlankString = Annotated[str, StringConstraints(pattern=r"^\s*\S[\s\S]*$")]
 
 
 class ExtractedRequirement(BaseModel):
