@@ -13,6 +13,8 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 .test-tmp*/
+# Local log of blocked hook runs (.claude/hooks/metrics.mjs).
+.claude/metrics.jsonl
 
 # Raw demo recording; the GIF and MP4 are committed.
 docs/demo/*.webm

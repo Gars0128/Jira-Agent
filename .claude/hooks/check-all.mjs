@@ -1,6 +1,7 @@
 // Stop: type-check and run the fast test suites when code changed. Exit 2 sends failures back.
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
+import { recordBlocks } from "./metrics.mjs";
 
 let raw = "";
 for await (const chunk of process.stdin) raw += chunk;
@@ -19,11 +20,12 @@ const checks = [
   ["web unit tests", "npm", ["test", "--silent"], "apps/web"],
   ["pytest", "uv", ["run", "pytest", "-q"], "apps/api"],
 ];
-const failures = checks.flatMap(([name, bin, args, cwd]) => {
+const failed = checks.flatMap(([name, bin, args, cwd]) => {
   const result = run(bin, args, cwd);
-  return result.status === 0 ? [] : [`## ${name} failed (${cwd})\n${`${result.stdout}${result.stderr}`.trim().split("\n").slice(-40).join("\n")}`];
+  return result.status === 0 ? [] : [{ name, report: `## ${name} failed (${cwd})\n${`${result.stdout}${result.stderr}`.trim().split("\n").slice(-40).join("\n")}` }];
 });
-if (failures.length) {
-  process.stderr.write(`${failures.join("\n\n")}\n\nFix these before finishing.`);
+if (failed.length) {
+  recordBlocks(root, "check-all", failed.map(({ name }) => ({ file: null, check: name })));
+  process.stderr.write(`${failed.map(({ report }) => report).join("\n\n")}\n\nFix these before finishing.`);
   process.exit(2);
 }
