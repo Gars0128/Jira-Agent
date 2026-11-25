@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 432" width="1040" height="432" role="img" aria-labelledby="t d">
+<title id="t">Trust pyramid</title>
+<desc id="d">Five layers that block agent mistakes, strongest at the base: types and architecture, automatic checks, verification in the running app, written rules, human review.</desc>
+<style>
+text{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}
+.name{fill:#fff;font-size:15px;font-weight:600}
+.num{fill:#ffffffb3;font-size:12px;font-weight:600}
+.what{fill:#1f2328;font-size:14px}
+.when{fill:#59636e;font-size:12.5px}
+.axis{fill:#59636e;font-size:12px}
+.line{stroke:#d0d7de}
+.arrow{stroke:#8c959f;fill:#8c959f}
+@media (prefers-color-scheme:dark){.what{fill:#e6edf3}.when,.axis{fill:#9198a1}.line{stroke:#3d444d}.arrow{stroke:#656c76;fill:#656c76}}
+</style>
+<polygon points="225.0,40 375.0,40 408.7,106 191.3,106" fill="#5b8f96"/>
+<text class="num" x="300" y="65.0" text-anchor="middle">5</text>
+<text class="name" x="300" y="84.0" text-anchor="middle">Human review</text>
+<line class="line" x1="405.9" y1="73.0" x2="585" y2="73.0" stroke-dasharray="3 4"/>
+<text class="what" x="595" y="70.0">A separate session or another model reviews each change.</text>
+<text class="when" x="595" y="89.0">before merge</text>
+<polygon points="187.2,114 412.8,114 446.5,180 153.5,180" fill="#467b83"/>
+<text class="num" x="300" y="139.0" text-anchor="middle">4</text>
+<text class="name" x="300" y="158.0" text-anchor="middle">Written rules</text>
+<line class="line" x1="443.7" y1="147.0" x2="585" y2="147.0" stroke-dasharray="3 4"/>
+<text class="what" x="595" y="144.0">AGENTS.md: scope, evals before prompt changes, ask first.</text>
+<text class="when" x="595" y="163.0">read before every task</text>
+<polygon points="149.4,188 450.6,188 484.4,254 115.6,254" fill="#33676f"/>
+<text class="num" x="300" y="213.0" text-anchor="middle">3</text>
+<text class="name" x="300" y="232.0" text-anchor="middle">Running app</text>
+<line class="line" x1="481.5" y1="221.0" x2="585" y2="221.0" stroke-dasharray="3 4"/>
+<text class="what" x="595" y="218.0">Playwright walk-through, axe WCAG 2.2 AA, fresh-clone replay.</text>
+<text class="when" x="595" y="237.0">before the agent may say “done”</text>
+<polygon points="111.5,262 488.5,262 522.2,328 77.8,328" fill="#22525a"/>
+<text class="num" x="300" y="287.0" text-anchor="middle">2</text>
+<text class="name" x="300" y="306.0" text-anchor="middle">Automatic checks</text>
+<line class="line" x1="519.3" y1="295.0" x2="585" y2="295.0" stroke-dasharray="3 4"/>
+<text class="what" x="595" y="292.0">ESLint (no !, no setTimeout, 0 warnings), ruff, 176 tests.</text>
+<text class="when" x="595" y="311.0">every edit · every stop · every push</text>
+<polygon points="73.7,336 526.3,336 560.0,402 40.0,402" fill="#143d44"/>
+<text class="num" x="300" y="361.0" text-anchor="middle">1</text>
+<text class="name" x="300" y="380.0" text-anchor="middle">Types &amp; architecture</text>
+<line class="line" x1="557.1" y1="369.0" x2="585" y2="369.0" stroke-dasharray="3 4"/>
+<text class="what" x="595" y="366.0">Strict TS, Phase union, Pydantic contracts, derived follow-ups.</text>
+<text class="when" x="595" y="385.0">always: wrong code does not compile</text>
+<line class="arrow" x1="22" y1="396" x2="22" y2="52" stroke-width="1.5"/>
+<polygon class="arrow" points="17,54 27,54 22,44"/>
+<text class="axis" x="12" y="26">judgment · slower</text>
+<text class="axis" x="12" y="426">automatic · cannot be skipped</text>
+<text class="axis" x="595" y="426">A lesson goes to the lowest layer that can hold it.</text>
+</svg>

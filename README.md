@@ -52,11 +52,30 @@ An AI that writes into someone else's backlog has to be checkable. Each safeguar
 
 Tiro was built with AI coding agents (Claude Code and Codex). Telling an agent to be careful doesn't work, so mistakes are blocked by the strongest layer that can hold them:
 
+<p align="center"><img src="docs/trust-pyramid.svg" width="900" alt="Trust pyramid with five layers, strongest at the base: 1 types and architecture, 2 automatic checks, 3 verification in the running app, 4 written rules, 5 human review. Lower layers are automatic and cannot be skipped; higher layers need judgment." /></p>
+
 1. **Types and architecture:** strict TypeScript ([tsconfig](apps/web/tsconfig.json)), Pydantic contracts, and a UI state that cannot represent impossible combinations.
 2. **Automatic checks:** lint rules that say what to do instead ([ESLint](apps/web/eslint.config.mjs), [ruff](apps/api/pyproject.toml)), tests and [CI](.github/workflows/api.yml). Claude Code [hooks](.claude/settings.json) lint every edited file and run types and tests before the agent may finish ([lint-file](.claude/hooks/lint-file.mjs), [check-all](.claude/hooks/check-all.mjs)); each block is logged to measure what they catch.
 3. **Verification in the running app:** "done" needs evidence (command output or a screenshot), otherwise the agent says "inconclusive".
 4. **Written rules:** [AGENTS.md](AGENTS.md) for what needs judgment, shared by both agents.
 5. **Human review:** the agent that wrote a change does not review it.
+
+What happens to one change an agent makes. Every red arrow is caught automatically and sent back to the agent before a person sees anything; each block is logged to `.claude/metrics.jsonl`.
+
+```mermaid
+flowchart LR
+    E[Agent edits a file] --> L{Lint hook<br/>ruff · ESLint}
+    L -- error --> E
+    L -- clean --> D[Agent wants to finish]
+    D --> S{Stop hook<br/>tsc · all tests}
+    S -- failure --> E
+    S -- green --> V{Checked in the<br/>running app?}
+    V -- no evidence --> I[Reported as inconclusive]
+    V -- screenshot or output --> R{Review by another<br/>session or model}
+    R -- changes --> E
+    R -- approved --> C[Commit]
+    linkStyle 1,4,8 stroke:#cf222e,stroke-width:2px
+```
 
 ## How it works
 
