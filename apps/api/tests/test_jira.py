@@ -219,3 +219,18 @@ def test_conflicts_and_open_questions_become_follow_up_tasks() -> None:
     assert "Only administrators may export." in text and "HD-EXPORT" in text
     # Same request, same key: a repeated approval reuses the ledger entry.
     assert follow_ups(requirements)[0].idempotency_key == tasks[0].idempotency_key
+
+
+def test_ticket_contract_declares_every_field_the_jira_client_returns() -> None:
+    from app.run_contracts import TicketResult
+
+    def reuse(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"issues": [{"key": "HD-7"}]})
+
+    with httpx.Client(
+        base_url="https://jira.example", transport=httpx.MockTransport(reuse)
+    ) as http:
+        reused = JiraClient(client=http).create_tickets(stories())
+    returned = set(preview_tickets(stories())[0]) | set(reused[0])
+    # The API response is an allowlist: an undeclared field is dropped silently.
+    assert returned <= set(TicketResult.model_fields)
