@@ -14,6 +14,8 @@ from langsmith import Client  # noqa: E402
 
 from app.config import Settings  # noqa: E402
 
+logger = logging.getLogger(__name__)
+
 
 def dataset_examples(dataset_name: str) -> list[dict]:
     examples = []
@@ -67,7 +69,8 @@ def main() -> int:
         client.create_examples(dataset_id=dataset.id, examples=examples)
         print(json.dumps({"dataset": args.dataset, "examples_n": len(examples)}))
         return 0
-    except Exception:
+    except Exception as exc:
+        logger.warning("Dataset sync failed (%s)", type(exc).__name__)
         print(
             json.dumps({"error": "Dataset sync failed; check LangSmith configuration"}),
             file=sys.stderr,
@@ -77,8 +80,8 @@ def main() -> int:
         if client is not None:
             try:
                 client.close(timeout=0)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("LangSmith client close failed (%s)", type(exc).__name__)
 
 
 if __name__ == "__main__":

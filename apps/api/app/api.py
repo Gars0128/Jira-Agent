@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 from uuid import UUID
 
@@ -13,6 +14,8 @@ from app.run_service import RunService, preset_key
 from app.run_store import RunLimitError
 from app.schemas import NonBlankString
 from app.workflow import Approval
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -31,7 +34,8 @@ def service(request: Request) -> RunService:
                 instance = RunService(Settings())
                 instance.start()
                 request.app.state.service = instance
-            except Exception:
+            except Exception as exc:
+                logger.warning("Run service failed to start (%s)", type(exc).__name__)
                 raise HTTPException(
                     503, "Run service unavailable; check server configuration"
                 ) from None

@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -18,6 +19,8 @@ from app.config import Settings
 # default client that uploads transcripts; trace only inside explicit contexts
 # whose clients hide inputs and outputs.
 configure(enabled=False)
+# SDK exceptions can carry keys or transcript text: log only their type.
+logger = logging.getLogger(__name__)
 
 Output = TypeVar("Output", bound=BaseModel)
 
@@ -38,7 +41,8 @@ def traced_root(
                 workspace_id=settings.langsmith_workspace_id,
                 timeout_ms=5000,
             )
-        except Exception:
+        except Exception as exc:
+            logger.warning("LangSmith client failed (%s)", type(exc).__name__)
             notes["trace_warning"] = "LangSmith unavailable"
     address = (
         agent_address(settings.langsmith_agent_id, settings.langsmith_agent_environment)
@@ -55,7 +59,8 @@ def traced_root(
                 try:
                     # shortcut: sync URL API, migrate to async before 2027-01-31.
                     notes["trace_url"] = client.get_run_url(run=span)
-                except Exception:
+                except Exception as exc:
+                    logger.warning("Trace link failed (%s)", type(exc).__name__)
                     notes["trace_warning"] = "Trace link unavailable"
     finally:
         if client:
@@ -65,7 +70,8 @@ def traced_root(
             ):
                 try:
                     close()
-                except Exception:
+                except Exception as exc:
+                    logger.warning("Trace delivery failed (%s)", type(exc).__name__)
                     notes["trace_warning"] = "Trace delivery unverified"
 
 
@@ -152,7 +158,8 @@ class LLMHelper:
                 # Trace this sanitized wrapper, not SDK exceptions containing raw data.
                 with tracing_context(enabled=False):
                     response = structured.invoke(messages)
-            except Exception:
+            except Exception as exc:
+                logger.warning("Provider call failed (%s)", type(exc).__name__)
                 self.usage.cost_usd = None
                 raise LLMError("Provider call failed; cost is unknown") from None
 
@@ -206,7 +213,8 @@ class LLMHelper:
                 tokens = TokenCounts(
                     input_tokens=response.usage.prompt_tokens, output_tokens=0
                 ).input_tokens
-            except Exception:
+            except Exception as exc:
+                logger.warning("Embedding call failed (%s)", type(exc).__name__)
                 self.usage.cost_usd = None
                 raise LLMError("Embedding call failed; cost is unknown") from None
             self.usage.input_tokens += tokens

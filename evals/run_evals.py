@@ -32,6 +32,8 @@ from app.rag.ingest import connect, ingest  # noqa: E402
 from app.rag.retrieve import RetrievedChunk, retrieve  # noqa: E402
 from app.schemas import ExtractedRequirement, Requirement  # noqa: E402
 
+logger = logging.getLogger(__name__)
+
 
 class StoryRating(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
@@ -177,7 +179,8 @@ def run_case(case: dict, args: argparse.Namespace, conn, helper: LLMHelper) -> d
         sample["error"] = str(exc)
     except ValidationError:
         sample["error"] = "Structured data validation failed"
-    except Exception:
+    except Exception as exc:
+        logger.warning("Evaluation stage failed (%s)", type(exc).__name__)
         sample["error"] = (
             "Evaluation stage failed; check provider/database configuration"
         )
@@ -432,7 +435,8 @@ def main() -> int:
         if report.get("incomplete_reason") or report.get("error_cases"):
             return 2
         return 1 if report["threshold_failures"] else 0
-    except Exception:
+    except Exception as exc:
+        logger.warning("Evaluation failed (%s)", type(exc).__name__)
         print(
             json.dumps(
                 {"error": "Evaluation failed; check configuration, budget and database"}

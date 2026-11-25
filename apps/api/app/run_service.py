@@ -122,9 +122,12 @@ class RunService:
                         self.execute(str(run_id))
                     except RunBusyError:
                         continue
-            except Exception:
+            except Exception as exc:
                 # DB/SDK exceptions can contain credentials or transcript text.
-                logger.warning("Run worker unavailable; will retry database polling")
+                logger.warning(
+                    "Run worker unavailable (%s); will retry database polling",
+                    type(exc).__name__,
+                )
             self.stop.wait(1)
 
     def _tickets(self, stories: list, requirements: Sequence = ()) -> list[dict]:
@@ -197,6 +200,7 @@ class RunService:
                             [cache_key, Jsonb(state)],
                         )
                 except Exception as exc:
+                    logger.warning("Run %s failed (%s)", run_id, type(exc).__name__)
                     result["status"] = "error"
                     result["error"] = (
                         str(exc)

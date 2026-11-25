@@ -179,10 +179,12 @@ def test_settings_reject_invalid_budget_and_missing_trace_key(
 def test_tracing_failure_does_not_lose_paid_result(
     helper_factory: Callable,
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
     failure: str | None,
     provider_failure: bool,
 ) -> None:
     writes: list[dict[str, Any]] = []
+    caplog.set_level("WARNING", logger="app.llm")
 
     class OfflineTraceClient(Client):
         def create_run(self, *args: Any, **kwargs: Any) -> None:
@@ -221,6 +223,7 @@ def test_tracing_failure_does_not_lose_paid_result(
             run_extraction("Nora: Good morning.", helper)
         assert "SECRET-KEY" not in str(error.value)
         assert helper.usage.cost_usd is None
+        assert "Provider call failed (" in caplog.text
         assert writes
         return
 
@@ -230,6 +233,10 @@ def test_tracing_failure_does_not_lose_paid_result(
     assert Decimal(result["cost_usd"]) == Decimal("0.00012")
     assert (result["trace_warning"] is not None) == (failure is not None)
     assert "SECRET-KEY" not in json.dumps(result)
+    # Only the exception type reaches the log; its message may carry secrets.
+    assert "SECRET-KEY" not in caplog.text
+    if failure == "close":
+        assert "Trace delivery failed (RuntimeError)" in caplog.text
     assert writes
     root_run_ids = [str(item["id"]) for item in writes if "id" in item]
     assert result["run_id"] in root_run_ids
