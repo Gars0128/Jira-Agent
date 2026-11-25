@@ -56,7 +56,7 @@ Tiro was built with AI coding agents (Claude Code and Codex). Telling an agent t
 
 1. **Types and architecture:** strict TypeScript ([tsconfig](apps/web/tsconfig.json)), Pydantic contracts, and a UI state that cannot represent impossible combinations.
 2. **Automatic checks:** lint rules that say what to do instead ([ESLint](apps/web/eslint.config.mjs), [ruff](apps/api/pyproject.toml)), tests and [CI](.github/workflows/api.yml). Claude Code [hooks](.claude/settings.json) lint every edited file and run types and tests before the agent may finish ([lint-file](.claude/hooks/lint-file.mjs), [check-all](.claude/hooks/check-all.mjs)); each block is logged to measure what they catch.
-3. **Verification in the running app:** "done" needs evidence (command output or a screenshot), otherwise the agent says "inconclusive".
+3. **Verification in the running app:** "done" needs evidence, otherwise the agent says "inconclusive". A project skill, [verify-tiro](.claude/skills/verify-tiro/SKILL.md), drives the real UI through four user journeys (analyze, review evidence, approve a preview, accessibility) and saves screenshots, ARIA snapshots and the list of every network request.
 4. **Written rules:** [AGENTS.md](AGENTS.md) for what needs judgment, shared by both agents.
 5. **Human review:** the agent that wrote a change does not review it.
 

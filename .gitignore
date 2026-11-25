@@ -18,3 +18,5 @@ test-results/
 
 # Raw demo recording; the GIF and MP4 are committed.
 docs/demo/*.webm
+# Evidence and server state from the verify-tiro skill.
+.verify/

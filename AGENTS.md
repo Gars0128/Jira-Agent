@@ -45,7 +45,7 @@ Mistakes are blocked by structure first and prose last: (1) architecture and typ
 ## Definition of done
 
 - Lint, `tsc --noEmit` and tests pass (the Stop hook runs them).
-- Verified in the running app, with evidence in the reply: a screenshot, a recording, or command output. If it could not be verified, say "inconclusive", not "done".
+- Verified in the running app, with evidence in the reply: a screenshot, a recording, or command output. For the web UI, use the `verify-tiro` skill (`.claude/skills/verify-tiro/`): its journeys drive the replay app and keep evidence in `.verify/evidence/`. If it could not be verified, say "inconclusive", not "done".
 - One task is one small commit or PR. A PR says why, scope, blast radius, and verification.
 - The agent that wrote a change does not review it; use a separate session or another model.
 - Always ask first: force push, deleting branches or data, deploys, and anything sent to other people.
