@@ -15,7 +15,7 @@ const web = resolve(root, "apps/web");
 let command;
 // Ruff runs from apps/api, like CI, so evals/ also gets the project's rule set.
 if (/\.py$/.test(path) && /^(apps\/api|evals)\//.test(path)) command = ["uv", ["run", "ruff", "check", relative(api, resolve(root, path))], api];
-else if (/\.(ts|tsx|mjs)$/.test(path) && path.startsWith("apps/web/")) command = ["npx", ["--no-install", "eslint", relative(web, resolve(root, path))], web];
+else if (/\.(ts|tsx|mjs)$/.test(path) && path.startsWith("apps/web/")) command = ["npx", ["--no-install", "eslint", "--max-warnings=0", relative(web, resolve(root, path))], web];
 if (!command) process.exit(0);
 
 const [bin, args, cwd] = command;
